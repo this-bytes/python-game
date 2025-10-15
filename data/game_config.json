@@ -1,0 +1,89 @@
+{
+  "game_settings": {
+    "starting_specialists": 2,
+    "starting_money": 5000,
+    "time_scale": 1.0,
+    "max_active_incidents": 50,
+    "auto_save_interval_seconds": 300,
+    "window_width": 1280,
+    "window_height": 720,
+    "target_fps": 60
+  },
+  "xp_curve": {
+    "base_xp": 100,
+    "exponent": 1.5,
+    "level_cap": 20,
+    "xp_for_level": {
+      "1": 0,
+      "2": 100,
+      "3": 250,
+      "4": 450,
+      "5": 700,
+      "6": 1000,
+      "7": 1350,
+      "8": 1750,
+      "9": 2200,
+      "10": 2700,
+      "11": 3250,
+      "12": 3850,
+      "13": 4500,
+      "14": 5200,
+      "15": 5950,
+      "16": 6750,
+      "17": 7600,
+      "18": 8500,
+      "19": 9450,
+      "20": 10450
+    }
+  },
+  "economy": {
+    "sla_failure_penalty_multiplier": 0.5,
+    "perfect_completion_bonus": 1.2,
+    "specialist_hiring_cost_base": 2000,
+    "specialist_hiring_cost_multiplier": 1.5,
+    "reputation_gain_per_success": 1,
+    "reputation_loss_per_failure": 3,
+    "difficulty_reward_multiplier": {
+      "1": 1.0,
+      "2": 1.3,
+      "3": 1.6,
+      "4": 2.0,
+      "5": 2.5
+    }
+  },
+  "incident_generation": {
+    "difficulty_weights": {
+      "1": 0.35,
+      "2": 0.30,
+      "3": 0.20,
+      "4": 0.10,
+      "5": 0.05
+    },
+    "specialty_distribution": {
+      "Network Security": 0.25,
+      "Malware Analysis": 0.20,
+      "Digital Forensics": 0.15,
+      "Application Security": 0.20,
+      "Cloud Security": 0.15,
+      "Incident Response": 0.05
+    }
+  },
+  "ui_settings": {
+    "font_family": "Arial",
+    "font_size_normal": 14,
+    "font_size_large": 18,
+    "font_size_title": 24,
+    "colors": {
+      "background": "#1a1a2e",
+      "panel": "#16213e",
+      "text": "#eef5ff",
+      "accent": "#00adb5",
+      "success": "#4caf50",
+      "warning": "#ff9800",
+      "danger": "#f44336",
+      "sla_good": "#4caf50",
+      "sla_warning": "#ff9800",
+      "sla_critical": "#f44336"
+    }
+  }
+}

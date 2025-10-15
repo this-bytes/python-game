@@ -1,0 +1,125 @@
+{
+  "automation_scripts": [
+    {
+      "id": "auto_assign_network_low",
+      "name": "Auto-Assign Network (Low Priority)",
+      "description": "Automatically assigns low-difficulty network security incidents",
+      "required_level": 3,
+      "specialty": "Network Security",
+      "trigger_conditions": {
+        "max_difficulty": 2,
+        "specialty_match": true,
+        "specialist_available": true
+      },
+      "effect": "auto_assign",
+      "effect_magnitude": 1.0
+    },
+    {
+      "id": "auto_assign_network_medium",
+      "name": "Auto-Assign Network (Medium Priority)",
+      "description": "Automatically assigns medium-difficulty network security incidents",
+      "required_level": 6,
+      "specialty": "Network Security",
+      "trigger_conditions": {
+        "max_difficulty": 3,
+        "specialty_match": true,
+        "specialist_available": true,
+        "min_accuracy": 85
+      },
+      "effect": "auto_assign",
+      "effect_magnitude": 1.0
+    },
+    {
+      "id": "auto_assign_malware_low",
+      "name": "Auto-Assign Malware (Low Priority)",
+      "description": "Automatically assigns low-difficulty malware incidents",
+      "required_level": 3,
+      "specialty": "Malware Analysis",
+      "trigger_conditions": {
+        "max_difficulty": 2,
+        "specialty_match": true,
+        "specialist_available": true
+      },
+      "effect": "auto_assign",
+      "effect_magnitude": 1.0
+    },
+    {
+      "id": "auto_assign_forensics_low",
+      "name": "Auto-Assign Forensics (Low Priority)",
+      "description": "Automatically assigns low-difficulty forensics incidents",
+      "required_level": 3,
+      "specialty": "Digital Forensics",
+      "trigger_conditions": {
+        "max_difficulty": 2,
+        "specialty_match": true,
+        "specialist_available": true
+      },
+      "effect": "auto_assign",
+      "effect_magnitude": 1.0
+    },
+    {
+      "id": "auto_assign_forensics_medium",
+      "name": "Auto-Assign Forensics (Medium Priority)",
+      "description": "Automatically assigns medium-difficulty forensics incidents",
+      "required_level": 5,
+      "specialty": "Digital Forensics",
+      "trigger_conditions": {
+        "max_difficulty": 3,
+        "specialty_match": true,
+        "specialist_available": true,
+        "min_accuracy": 85
+      },
+      "effect": "auto_assign",
+      "effect_magnitude": 1.0
+    },
+    {
+      "id": "auto_assign_appsec_low",
+      "name": "Auto-Assign AppSec (Low Priority)",
+      "description": "Automatically assigns low-difficulty application security incidents",
+      "required_level": 3,
+      "specialty": "Application Security",
+      "trigger_conditions": {
+        "max_difficulty": 2,
+        "specialty_match": true,
+        "specialist_available": true
+      },
+      "effect": "auto_assign",
+      "effect_magnitude": 1.0
+    },
+    {
+      "id": "speed_boost_network",
+      "name": "Network Speed Optimizer",
+      "description": "Increases resolution speed for network incidents by 25%",
+      "required_level": 8,
+      "specialty": "Network Security",
+      "trigger_conditions": {
+        "specialty_match": true,
+        "specialist_available": true
+      },
+      "effect": "speed_boost",
+      "effect_magnitude": 1.25
+    },
+    {
+      "id": "accuracy_boost_forensics",
+      "name": "Forensics Precision Enhancer",
+      "description": "Increases accuracy for forensics investigations by 15%",
+      "required_level": 10,
+      "specialty": "Digital Forensics",
+      "trigger_conditions": {
+        "specialty_match": true
+      },
+      "effect": "accuracy_boost",
+      "effect_magnitude": 1.15
+    },
+    {
+      "id": "xp_boost_any",
+      "name": "Experience Accelerator",
+      "description": "Increases XP gain by 20% for any specialty",
+      "required_level": 12,
+      "specialty": "Any",
+      "trigger_conditions": {},
+      "effect": "xp_boost",
+      "effect_magnitude": 1.2
+    }
+  ]
+}

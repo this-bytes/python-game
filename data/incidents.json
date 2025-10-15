@@ -1,0 +1,124 @@
+{
+  "incident_types": [
+    {
+      "id": "inc_type_001",
+      "name": "DDoS Attack",
+      "description": "Distributed denial-of-service attack overwhelming network infrastructure",
+      "specialty_required": "Network Security",
+      "difficulty_range": [1, 5],
+      "base_sla_seconds": 300,
+      "base_reward": 500,
+      "xp_reward": 100
+    },
+    {
+      "id": "inc_type_002",
+      "name": "Port Scan Detection",
+      "description": "Suspicious port scanning activity detected from external sources",
+      "specialty_required": "Network Security",
+      "difficulty_range": [1, 2],
+      "base_sla_seconds": 180,
+      "base_reward": 200,
+      "xp_reward": 50
+    },
+    {
+      "id": "inc_type_003",
+      "name": "Ransomware Infection",
+      "description": "File encryption ransomware detected on endpoint systems",
+      "specialty_required": "Malware Analysis",
+      "difficulty_range": [3, 5],
+      "base_sla_seconds": 600,
+      "base_reward": 1200,
+      "xp_reward": 250
+    },
+    {
+      "id": "inc_type_004",
+      "name": "Suspicious Email Attachment",
+      "description": "Potentially malicious email attachment requires analysis",
+      "specialty_required": "Malware Analysis",
+      "difficulty_range": [1, 3],
+      "base_sla_seconds": 240,
+      "base_reward": 350,
+      "xp_reward": 75
+    },
+    {
+      "id": "inc_type_005",
+      "name": "Data Breach Investigation",
+      "description": "Potential data exfiltration requires forensic investigation",
+      "specialty_required": "Digital Forensics",
+      "difficulty_range": [3, 5],
+      "base_sla_seconds": 900,
+      "base_reward": 1500,
+      "xp_reward": 300
+    },
+    {
+      "id": "inc_type_006",
+      "name": "Log Analysis Request",
+      "description": "Analyze system logs for indicators of compromise",
+      "specialty_required": "Digital Forensics",
+      "difficulty_range": [1, 3],
+      "base_sla_seconds": 360,
+      "base_reward": 400,
+      "xp_reward": 80
+    },
+    {
+      "id": "inc_type_007",
+      "name": "SQL Injection Attempt",
+      "description": "Web application under SQL injection attack",
+      "specialty_required": "Application Security",
+      "difficulty_range": [2, 4],
+      "base_sla_seconds": 420,
+      "base_reward": 700,
+      "xp_reward": 150
+    },
+    {
+      "id": "inc_type_008",
+      "name": "XSS Vulnerability",
+      "description": "Cross-site scripting vulnerability discovered in web app",
+      "specialty_required": "Application Security",
+      "difficulty_range": [1, 3],
+      "base_sla_seconds": 300,
+      "base_reward": 450,
+      "xp_reward": 90
+    },
+    {
+      "id": "inc_type_009",
+      "name": "Cloud Misconfiguration",
+      "description": "Insecure cloud resource configuration detected",
+      "specialty_required": "Cloud Security",
+      "difficulty_range": [2, 4],
+      "base_sla_seconds": 480,
+      "base_reward": 600,
+      "xp_reward": 120
+    },
+    {
+      "id": "inc_type_010",
+      "name": "IAM Policy Violation",
+      "description": "Identity and access management policy violation alert",
+      "specialty_required": "Cloud Security",
+      "difficulty_range": [1, 3],
+      "base_sla_seconds": 240,
+      "base_reward": 350,
+      "xp_reward": 70
+    },
+    {
+      "id": "inc_type_011",
+      "name": "Active Security Breach",
+      "description": "Real-time security breach requiring immediate response",
+      "specialty_required": "Incident Response",
+      "difficulty_range": [4, 5],
+      "base_sla_seconds": 180,
+      "base_reward": 2000,
+      "xp_reward": 400
+    },
+    {
+      "id": "inc_type_012",
+      "name": "Phishing Campaign",
+      "description": "Coordinated phishing campaign targeting organization",
+      "specialty_required": "Incident Response",
+      "difficulty_range": [2, 4],
+      "base_sla_seconds": 360,
+      "base_reward": 800,
+      "xp_reward": 160
+    }
+  ]
+}
