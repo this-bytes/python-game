@@ -1,0 +1,83 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "automation_script_schema.json",
+  "title": "Automation Script",
+  "description": "Schema for automation script configuration",
+  "type": "object",
+  "required": ["id", "name", "required_level", "specialty", "trigger_conditions", "effect"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique identifier for the automation script",
+      "pattern": "^auto_[a-z_]+$"
+    },
+    "name": {
+      "type": "string",
+      "description": "Display name of the automation script",
+      "minLength": 5,
+      "maxLength": 100
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of what the script does",
+      "maxLength": 500
+    },
+    "required_level": {
+      "type": "integer",
+      "description": "Specialist level required to unlock",
+      "minimum": 1,
+      "maximum": 20
+    },
+    "specialty": {
+      "type": "string",
+      "description": "Specialty required for this automation",
+      "enum": [
+        "Network Security",
+        "Malware Analysis",
+        "Digital Forensics",
+        "Application Security",
+        "Cloud Security",
+        "Incident Response",
+        "Any"
+      ]
+    },
+    "trigger_conditions": {
+      "type": "object",
+      "description": "Conditions that must be met to trigger automation",
+      "properties": {
+        "max_difficulty": {
+          "type": "integer",
+          "description": "Maximum incident difficulty to auto-handle",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "specialty_match": {
+          "type": "boolean",
+          "description": "Whether specialist specialty must match incident"
+        },
+        "specialist_available": {
+          "type": "boolean",
+          "description": "Whether specialist must be available"
+        },
+        "min_accuracy": {
+          "type": "number",
+          "description": "Minimum specialist accuracy required",
+          "minimum": 0,
+          "maximum": 100
+        }
+      }
+    },
+    "effect": {
+      "type": "string",
+      "description": "Effect of the automation script",
+      "enum": ["auto_assign", "speed_boost", "accuracy_boost", "xp_boost"]
+    },
+    "effect_magnitude": {
+      "type": "number",
+      "description": "Magnitude of the effect (for boost types)",
+      "minimum": 1.0,
+      "maximum": 3.0,
+      "default": 1.0
+    }
+  }
+}
