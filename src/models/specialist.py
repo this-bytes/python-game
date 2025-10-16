@@ -65,6 +65,12 @@ class Specialist:
     status: str = "available"
     automation_scripts: List[str] = field(default_factory=list)
     assigned_incident_id: Optional[str] = None
+    skill_points: int = 0
+    abilities: List[str] = field(default_factory=list)  # Ability IDs
+    ability_cooldowns: Dict[str, float] = field(default_factory=dict)  # Ability ID -> cooldown remaining
+    active_effects: List[Dict] = field(default_factory=list)  # Temporary buffs
+    equipped_items: Dict[str, str] = field(default_factory=dict)  # Slot -> equipment ID
+    inventory: List[str] = field(default_factory=list)  # Owned equipment IDs
     
     def __post_init__(self):
         """Validate and normalize data after initialization."""
@@ -219,6 +225,40 @@ class Specialist:
         self.automation_scripts.append(script_id)
         return True
     
+    def allocate_skill_point(self, stat: str) -> bool:
+        """Allocate a skill point to increase a stat.
+        
+        Args:
+            stat: Name of the stat to increase (speed, accuracy, experience_bonus)
+            
+        Returns:
+            True if allocation successful, False if no skill points available or invalid stat
+        """
+        if self.skill_points <= 0:
+            return False
+        
+        # Define stat increase values
+        stat_increases = {
+            "speed": 5.0,
+            "accuracy": 2.0,
+            "experience_bonus": 0.1
+        }
+        
+        if stat not in stat_increases:
+            return False
+        
+        # Apply the stat increase
+        if stat == "speed":
+            self.stats.speed += stat_increases["speed"]
+        elif stat == "accuracy":
+            self.stats.accuracy = min(100.0, self.stats.accuracy + stat_increases["accuracy"])
+        elif stat == "experience_bonus":
+            self.stats.experience_bonus += stat_increases["experience_bonus"]
+        
+        # Deduct skill point
+        self.skill_points -= 1
+        return True
+    
     def matches_specialty(self, required_specialty: str) -> bool:
         """Check if specialist's specialty matches the required specialty.
         
@@ -272,7 +312,13 @@ class Specialist:
             "stats": self.stats.to_dict(),
             "status": self.status,
             "automation_scripts": self.automation_scripts.copy(),
-            "assigned_incident_id": self.assigned_incident_id
+            "assigned_incident_id": self.assigned_incident_id,
+            "skill_points": self.skill_points,
+            "abilities": self.abilities.copy(),
+            "ability_cooldowns": self.ability_cooldowns.copy(),
+            "active_effects": self.active_effects.copy(),
+            "equipped_items": self.equipped_items.copy(),
+            "inventory": self.inventory.copy()
         }
     
     @classmethod
@@ -294,7 +340,13 @@ class Specialist:
             stats=data["stats"],  # Will be converted in __post_init__
             status=data.get("status", "available"),
             automation_scripts=data.get("automation_scripts", []).copy(),
-            assigned_incident_id=data.get("assigned_incident_id")
+            assigned_incident_id=data.get("assigned_incident_id"),
+            skill_points=data.get("skill_points", 0),
+            abilities=data.get("abilities", []).copy(),
+            ability_cooldowns=data.get("ability_cooldowns", {}).copy(),
+            active_effects=data.get("active_effects", []).copy(),
+            equipped_items=data.get("equipped_items", {}).copy(),
+            inventory=data.get("inventory", []).copy()
         )
     
     def __repr__(self) -> str:

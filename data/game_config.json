@@ -13,7 +13,7 @@
   "xp_curve": {
     "base_xp": 100,
     "exponent": 1.5,
-    "level_cap": 20,
+    "level_cap": 50,
     "xp_for_level": {
       "1": 0,
       "2": 100,
@@ -37,6 +37,12 @@
       "20": 10450
     }
   },
+  "level_stat_increases": {
+    "speed": 2,
+    "accuracy": 1,
+    "xp_bonus": 0.05
+  },
+  "skill_points_per_level": 1,
   "economy": {
     "sla_failure_penalty_multiplier": 0.5,
     "perfect_completion_bonus": 1.2,
