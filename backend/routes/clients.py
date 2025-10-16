@@ -146,4 +146,113 @@ def create_economy_blueprint(game_state_ref):
         except Exception as e:
             return jsonify({"success": False, "message": str(e)}), 500
     
+    @bp.route('/economy/invest', methods=['POST'])
+    def make_investment():
+        """Make an investment."""
+        game_state = get_game_state()
+        if not game_state:
+            return jsonify({"success": False, "message": "Game state not initialized"}), 503
+        
+        try:
+            data = request.get_json()
+            investment_type = data.get('investment_type')
+            amount = data.get('amount', 0)
+            
+            if not investment_type:
+                return jsonify({"success": False, "message": "Investment type required"}), 400
+            
+            if amount <= 0:
+                return jsonify({"success": False, "message": "Amount must be positive"}), 400
+            
+            # Use passive income system to make investment
+            if hasattr(game_state, '_passive_income_system'):
+                result = game_state._passive_income_system.invest(game_state, investment_type, amount)
+                if result['success']:
+                    return jsonify({
+                        "success": True,
+                        "message": f"Invested ${amount:.2f} in {investment_type}",
+                        "data": result,
+                        "timestamp": datetime.utcnow().isoformat()
+                    })
+                else:
+                    return jsonify({
+                        "success": False,
+                        "message": result.get('error', 'Investment failed'),
+                        "data": result,
+                        "timestamp": datetime.utcnow().isoformat()
+                    }), 400
+            else:
+                return jsonify({"success": False, "message": "Passive income system not available"}), 503
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 500
+    
+    @bp.route('/economy/withdraw', methods=['POST'])
+    def withdraw_investment():
+        """Withdraw from an investment."""
+        game_state = get_game_state()
+        if not game_state:
+            return jsonify({"success": False, "message": "Game state not initialized"}), 503
+        
+        try:
+            data = request.get_json()
+            investment_type = data.get('investment_type')
+            amount = data.get('amount', 0)
+            
+            if not investment_type:
+                return jsonify({"success": False, "message": "Investment type required"}), 400
+            
+            if amount <= 0:
+                return jsonify({"success": False, "message": "Amount must be positive"}), 400
+            
+            # Use passive income system to withdraw
+            if hasattr(game_state, '_passive_income_system'):
+                result = game_state._passive_income_system.withdraw(game_state, investment_type, amount)
+                if result['success']:
+                    return jsonify({
+                        "success": True,
+                        "message": f"Withdrew ${amount:.2f} from {investment_type}",
+                        "data": result,
+                        "timestamp": datetime.utcnow().isoformat()
+                    })
+                else:
+                    return jsonify({
+                        "success": False,
+                        "message": result.get('error', 'Withdrawal failed'),
+                        "data": result,
+                        "timestamp": datetime.utcnow().isoformat()
+                    }), 400
+            else:
+                return jsonify({"success": False, "message": "Passive income system not available"}), 503
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 500
+    
+    @bp.route('/economy/passive-income', methods=['GET'])
+    def get_passive_income():
+        """Get passive income breakdown."""
+        game_state = get_game_state()
+        if not game_state:
+            return jsonify({"success": False, "message": "Game state not initialized"}), 503
+        
+        try:
+            if hasattr(game_state, '_passive_income_system'):
+                # Get statistics
+                stats = game_state._passive_income_system.get_statistics()
+                
+                # Get current investments
+                investments = getattr(game_state, 'investments', {})
+                
+                return jsonify({
+                    "success": True,
+                    "data": {
+                        "statistics": stats,
+                        "current_investments": investments,
+                        "total_invested": sum(investments.values())
+                    },
+                    "timestamp": datetime.utcnow().isoformat()
+                })
+            else:
+                return jsonify({"success": False, "message": "Passive income system not available"}), 503
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 500
+    
     return bp
