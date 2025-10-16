@@ -65,7 +65,9 @@ class AutomationProcessor:
             "total_scripts_executed": 0,
             "scripts_executed_by_type": {},
             "execution_failures": 0,
-            "last_execution_time": None
+            "last_execution_time": None,
+            "triggers_per_script": {},  # Track triggers per script ID
+            "success_rate_per_script": {}  # Track success rate per script ID
         }
 
     def process_automation(self, game_state: 'GameState', delta_time: float) -> List[AutomationResult]:
@@ -93,10 +95,25 @@ class AutomationProcessor:
         if not available_scripts:
             return results
 
+        # Sort scripts by priority (higher priority first)
+        available_scripts.sort(key=lambda x: x[0].priority, reverse=True)
+
         # Check for automation opportunities
-        for script in available_scripts:
-            script_results = self._evaluate_and_execute_script(script, game_state)
+        for script, specialist in available_scripts:
+            # Check cooldown
+            if script.is_on_cooldown(current_time):
+                continue
+            
+            script_results = self._evaluate_and_execute_script((script, specialist), game_state, current_time)
             results.extend(script_results)
+            
+            # If script executed successfully, mark as triggered and handle chaining
+            if script_results and script_results[0].success:
+                script.mark_triggered(current_time)
+                
+                # Execute chained scripts
+                chain_results = self._execute_chained_scripts(script, game_state, current_time)
+                results.extend(chain_results)
 
         # Update statistics
         self._stats["total_scripts_evaluated"] += len(available_scripts)
@@ -106,14 +123,14 @@ class AutomationProcessor:
 
         return results
 
-    def _get_available_scripts(self, game_state: 'GameState') -> List[AutomationScript]:
+    def _get_available_scripts(self, game_state: 'GameState') -> List[tuple]:
         """Get all automation scripts available from specialists.
 
         Args:
             game_state: Current game state
 
         Returns:
-            List of available automation scripts
+            List of (AutomationScript, Specialist) tuples
         """
         available_scripts = []
 
@@ -130,12 +147,13 @@ class AutomationProcessor:
         return available_scripts
 
     def _evaluate_and_execute_script(self, script_specialist_pair: tuple,
-                                   game_state: 'GameState') -> List[AutomationResult]:
+                                   game_state: 'GameState', current_time: float) -> List[AutomationResult]:
         """Evaluate and execute a single automation script.
 
         Args:
             script_specialist_pair: Tuple of (AutomationScript, Specialist)
             game_state: Current game state
+            current_time: Current game time
 
         Returns:
             List of automation results (usually 1, but could be more for complex scripts)
@@ -148,7 +166,7 @@ class AutomationProcessor:
             for incident in game_state.incidents:
                 if incident.status == "pending":
                     if script.evaluate_triggers(specialist, incident):
-                        result = self._execute_script(script, specialist, game_state, incident)
+                        result = self._execute_script(script, specialist, game_state, incident, current_time)
                         if result:
                             results.append(result)
                             break  # Only assign one incident per script per cycle
@@ -158,7 +176,7 @@ class AutomationProcessor:
             # Check if script should be active (using a dummy incident for evaluation)
             should_activate = self._check_boost_conditions(script, specialist, game_state)
             if should_activate:
-                result = self._execute_script(script, specialist, game_state)
+                result = self._execute_script(script, specialist, game_state, None, current_time)
                 if result:
                     results.append(result)
 
@@ -200,7 +218,8 @@ class AutomationProcessor:
         return True
 
     def _execute_script(self, script: AutomationScript, specialist: Specialist,
-                       game_state: 'GameState', incident: Optional[Incident] = None) -> Optional[AutomationResult]:
+                       game_state: 'GameState', incident: Optional[Incident] = None,
+                       current_time: float = None) -> Optional[AutomationResult]:
         """Execute an automation script.
 
         Args:
@@ -208,13 +227,24 @@ class AutomationProcessor:
             specialist: The specialist executing the script
             game_state: Current game state
             incident: Optional incident for assignment scripts
+            current_time: Current game time
 
         Returns:
             AutomationResult if execution occurred, None otherwise
         """
+        if current_time is None:
+            current_time = time.time()
+        
         try:
-            # Apply the effect
+            # Apply the effect with effective magnitude
+            effective_magnitude = script.get_effective_magnitude()
+            original_magnitude = script.effect_magnitude
+            script.effect_magnitude = effective_magnitude
+            
             effect_result = script.apply_effect(specialist, incident)
+            
+            # Restore original magnitude
+            script.effect_magnitude = original_magnitude
 
             # Create result record
             result = AutomationResult(
@@ -223,7 +253,7 @@ class AutomationProcessor:
                 incident_id=incident.id if incident else None,
                 effect_type=script.effect,
                 success=effect_result["success"],
-                timestamp=time.time(),
+                timestamp=current_time,
                 details=effect_result["details"]
             )
 
@@ -232,15 +262,25 @@ class AutomationProcessor:
             if effect_type not in self._stats["scripts_executed_by_type"]:
                 self._stats["scripts_executed_by_type"][effect_type] = 0
             self._stats["scripts_executed_by_type"][effect_type] += 1
-
-            if not effect_result["success"]:
+            
+            # Track per-script statistics
+            if script.id not in self._stats["triggers_per_script"]:
+                self._stats["triggers_per_script"][script.id] = 0
+                self._stats["success_rate_per_script"][script.id] = {"successes": 0, "total": 0}
+            
+            self._stats["triggers_per_script"][script.id] += 1
+            self._stats["success_rate_per_script"][script.id]["total"] += 1
+            
+            if effect_result["success"]:
+                self._stats["success_rate_per_script"][script.id]["successes"] += 1
+            else:
                 self._stats["execution_failures"] += 1
 
             # Log the automation execution
             if effect_result["success"]:
                 self._logger.logger.info(
                     f"[AUTOMATION] Script '{script.name}' executed by specialist {specialist.id}: "
-                    f"{effect_type} (magnitude: {script.effect_magnitude})"
+                    f"{effect_type} (magnitude: {effective_magnitude:.2f})"
                 )
             else:
                 self._logger.logger.warning(
@@ -253,6 +293,44 @@ class AutomationProcessor:
             self._logger.logger.error(f"[AUTOMATION] Error executing script '{script.id}': {e}")
             self._stats["execution_failures"] += 1
             return None
+
+    def _execute_chained_scripts(self, parent_script: AutomationScript, 
+                                game_state: 'GameState', current_time: float) -> List[AutomationResult]:
+        """Execute chained scripts after a parent script succeeds.
+        
+        Args:
+            parent_script: The parent automation script that triggered
+            game_state: Current game state
+            current_time: Current game time
+            
+        Returns:
+            List of automation results from chained scripts
+        """
+        results = []
+        
+        for chained_script_id in parent_script.chained_scripts:
+            chained_script = game_state.get_automation_script_by_id(chained_script_id)
+            if not chained_script:
+                self._logger.logger.warning(
+                    f"[AUTOMATION] Chained script '{chained_script_id}' not found"
+                )
+                continue
+            
+            # Find a specialist who can use this script
+            for specialist in game_state.get_available_specialists():
+                if chained_script.can_be_used_by(specialist) and not chained_script.is_on_cooldown(current_time):
+                    # Execute the chained script
+                    chain_results = self._evaluate_and_execute_script(
+                        (chained_script, specialist), game_state, current_time
+                    )
+                    results.extend(chain_results)
+                    
+                    # Mark as triggered if successful
+                    if chain_results and chain_results[0].success:
+                        chained_script.mark_triggered(current_time)
+                    break
+        
+        return results
 
     def get_statistics(self) -> Dict[str, Any]:
         """Get automation processing statistics.
@@ -269,5 +347,42 @@ class AutomationProcessor:
             "total_scripts_executed": 0,
             "scripts_executed_by_type": {},
             "execution_failures": 0,
-            "last_execution_time": None
+            "last_execution_time": None,
+            "triggers_per_script": {},
+            "success_rate_per_script": {}
+        }
+    
+    def upgrade_automation_script(self, game_state: 'GameState', script_id: str) -> Dict[str, Any]:
+        """Upgrade an automation script if player can afford it.
+        
+        Args:
+            game_state: Current game state
+            script_id: ID of script to upgrade
+            
+        Returns:
+            Dictionary with result information
+        """
+        script = game_state.get_automation_script_by_id(script_id)
+        if not script:
+            return {"success": False, "error": "Script not found"}
+        
+        cost = script.calculate_upgrade_cost()
+        if game_state.current_money < cost:
+            return {"success": False, "error": "Insufficient funds", "cost": cost}
+        
+        if not script.upgrade():
+            return {"success": False, "error": "Max upgrade level reached"}
+        
+        game_state.current_money -= cost
+        
+        self._logger.logger.info(
+            f"[AUTOMATION] Script '{script.name}' upgraded to level {script.upgrade_level} for ${cost}"
+        )
+        
+        return {
+            "success": True,
+            "new_level": script.upgrade_level,
+            "cost": cost,
+            "effective_cooldown": script.get_effective_cooldown(),
+            "effective_magnitude": script.get_effective_magnitude()
         }

@@ -12,7 +12,11 @@
         "specialist_available": true
       },
       "effect": "auto_assign",
-      "effect_magnitude": 1.0
+      "effect_magnitude": 1.0,
+      "trigger_logic": "AND",
+      "chained_scripts": [],
+      "priority": 10,
+      "cooldown_seconds": 5.0
     },
     {
       "id": "auto_assign_network_medium",
@@ -27,7 +31,30 @@
         "min_accuracy": 85
       },
       "effect": "auto_assign",
-      "effect_magnitude": 1.0
+      "effect_magnitude": 1.0,
+      "trigger_logic": "AND",
+      "chained_scripts": ["speed_boost_network"],
+      "priority": 20,
+      "cooldown_seconds": 5.0
+    },
+    {
+      "id": "auto_assign_network_high",
+      "name": "Auto-Assign Network (High Priority)",
+      "description": "Automatically assigns high-difficulty network security incidents when accuracy is high",
+      "required_level": 10,
+      "specialty": "Network Security",
+      "trigger_conditions": {
+        "max_difficulty": 5,
+        "specialty_match": true,
+        "specialist_available": true,
+        "min_accuracy": 90
+      },
+      "effect": "auto_assign",
+      "effect_magnitude": 1.0,
+      "trigger_logic": "AND",
+      "chained_scripts": ["speed_boost_network"],
+      "priority": 30,
+      "cooldown_seconds": 8.0
     },
     {
       "id": "auto_assign_malware_low",
@@ -41,7 +68,30 @@
         "specialist_available": true
       },
       "effect": "auto_assign",
-      "effect_magnitude": 1.0
+      "effect_magnitude": 1.0,
+      "trigger_logic": "AND",
+      "chained_scripts": [],
+      "priority": 10,
+      "cooldown_seconds": 5.0
+    },
+    {
+      "id": "auto_assign_malware_medium",
+      "name": "Auto-Assign Malware (Medium Priority)",
+      "description": "Automatically assigns medium-difficulty malware incidents with accuracy check",
+      "required_level": 6,
+      "specialty": "Malware Analysis",
+      "trigger_conditions": {
+        "max_difficulty": 3,
+        "specialty_match": true,
+        "specialist_available": true,
+        "min_accuracy": 85
+      },
+      "effect": "auto_assign",
+      "effect_magnitude": 1.0,
+      "trigger_logic": "AND",
+      "chained_scripts": [],
+      "priority": 20,
+      "cooldown_seconds": 5.0
     },
     {
       "id": "auto_assign_forensics_low",
@@ -55,7 +105,11 @@
         "specialist_available": true
       },
       "effect": "auto_assign",
-      "effect_magnitude": 1.0
+      "effect_magnitude": 1.0,
+      "trigger_logic": "AND",
+      "chained_scripts": [],
+      "priority": 10,
+      "cooldown_seconds": 5.0
     },
     {
       "id": "auto_assign_forensics_medium",
@@ -70,7 +124,11 @@
         "min_accuracy": 85
       },
       "effect": "auto_assign",
-      "effect_magnitude": 1.0
+      "effect_magnitude": 1.0,
+      "trigger_logic": "AND",
+      "chained_scripts": ["accuracy_boost_forensics"],
+      "priority": 20,
+      "cooldown_seconds": 5.0
     },
     {
       "id": "auto_assign_appsec_low",
@@ -84,7 +142,46 @@
         "specialist_available": true
       },
       "effect": "auto_assign",
-      "effect_magnitude": 1.0
+      "effect_magnitude": 1.0,
+      "trigger_logic": "AND",
+      "chained_scripts": [],
+      "priority": 10,
+      "cooldown_seconds": 5.0
+    },
+    {
+      "id": "auto_assign_cloud_low",
+      "name": "Auto-Assign Cloud (Low Priority)",
+      "description": "Automatically assigns low-difficulty cloud security incidents",
+      "required_level": 3,
+      "specialty": "Cloud Security",
+      "trigger_conditions": {
+        "max_difficulty": 2,
+        "specialty_match": true,
+        "specialist_available": true
+      },
+      "effect": "auto_assign",
+      "effect_magnitude": 1.0,
+      "trigger_logic": "AND",
+      "chained_scripts": [],
+      "priority": 10,
+      "cooldown_seconds": 5.0
+    },
+    {
+      "id": "auto_assign_any_urgent",
+      "name": "Auto-Assign Any (Urgent)",
+      "description": "Assigns any incident to available specialist when SLA is critical (OR logic)",
+      "required_level": 15,
+      "specialty": "Any",
+      "trigger_conditions": {
+        "max_difficulty": 3,
+        "specialist_available": true
+      },
+      "effect": "auto_assign",
+      "effect_magnitude": 1.0,
+      "trigger_logic": "OR",
+      "chained_scripts": [],
+      "priority": 50,
+      "cooldown_seconds": 3.0
     },
     {
       "id": "speed_boost_network",
@@ -97,7 +194,11 @@
         "specialist_available": true
       },
       "effect": "speed_boost",
-      "effect_magnitude": 1.25
+      "effect_magnitude": 1.25,
+      "trigger_logic": "AND",
+      "chained_scripts": [],
+      "priority": 5,
+      "cooldown_seconds": 60.0
     },
     {
       "id": "accuracy_boost_forensics",
@@ -109,7 +210,27 @@
         "specialty_match": true
       },
       "effect": "accuracy_boost",
-      "effect_magnitude": 1.15
+      "effect_magnitude": 1.15,
+      "trigger_logic": "AND",
+      "chained_scripts": [],
+      "priority": 5,
+      "cooldown_seconds": 60.0
+    },
+    {
+      "id": "accuracy_boost_malware",
+      "name": "Malware Detection Enhancer",
+      "description": "Increases accuracy for malware analysis by 20%",
+      "required_level": 12,
+      "specialty": "Malware Analysis",
+      "trigger_conditions": {
+        "specialty_match": true
+      },
+      "effect": "accuracy_boost",
+      "effect_magnitude": 1.20,
+      "trigger_logic": "AND",
+      "chained_scripts": [],
+      "priority": 5,
+      "cooldown_seconds": 60.0
     },
     {
       "id": "xp_boost_any",
@@ -119,7 +240,27 @@
       "specialty": "Any",
       "trigger_conditions": {},
       "effect": "xp_boost",
-      "effect_magnitude": 1.2
+      "effect_magnitude": 1.2,
+      "trigger_logic": "AND",
+      "chained_scripts": [],
+      "priority": 5,
+      "cooldown_seconds": 120.0
+    },
+    {
+      "id": "xp_boost_high_level",
+      "name": "Expert Experience Multiplier",
+      "description": "Increases XP gain by 50% for high-level specialists (min accuracy 90)",
+      "required_level": 18,
+      "specialty": "Any",
+      "trigger_conditions": {
+        "min_accuracy": 90
+      },
+      "effect": "xp_boost",
+      "effect_magnitude": 1.5,
+      "trigger_logic": "AND",
+      "chained_scripts": [],
+      "priority": 8,
+      "cooldown_seconds": 120.0
     }
   ]
 }
