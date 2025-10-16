@@ -167,6 +167,28 @@ class TestAutomationScript:
         # Specialist has 90% accuracy, below required 95%
         assert script.evaluate_triggers(sample_specialist, sample_incident) is False
 
+    def test_evaluate_triggers_with_string_difficulty(self, sample_script_data, sample_specialist):
+        """Ensure evaluate_triggers handles incident difficulty provided as a string."""
+        # Create script that should allow up to difficulty 3
+        data = sample_script_data.copy()
+        data["trigger_conditions"]["max_difficulty"] = 3
+        script = AutomationScript.from_dict(data)
+
+        # Incident with difficulty as string (simulating bad JSON input)
+        inc = Incident(
+            id="inc_str",
+            incident_type="Test",
+            specialty_required="Network Security",
+            difficulty="2",
+            sla_seconds=300,
+            base_reward=100,
+            xp_reward=10,
+            client_id="client_001"
+        )
+
+        # Should not raise and should return True because difficulty 2 <= max_difficulty 3
+        assert script.evaluate_triggers(sample_specialist, inc) is True
+
     def test_apply_effect_auto_assign_success(self, sample_script_data, sample_specialist, sample_incident):
         """Test applying auto_assign effect successfully."""
         script = AutomationScript.from_dict(sample_script_data)

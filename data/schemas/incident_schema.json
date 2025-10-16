@@ -1,67 +1,77 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "incident_schema.json",
-  "title": "Incident Type",
-  "description": "Schema for security incident type configuration",
+  "title": "Incidents Configuration",
+  "description": "Schema for security incidents configuration file",
   "type": "object",
-  "required": ["id", "name", "specialty_required", "difficulty_range", "base_sla_seconds", "base_reward", "xp_reward"],
+  "required": ["incident_types"],
   "properties": {
-    "id": {
-      "type": "string",
-      "description": "Unique identifier for the incident type",
-      "pattern": "^inc_type_[0-9]{3}$"
-    },
-    "name": {
-      "type": "string",
-      "description": "Display name of the incident type",
-      "minLength": 3,
-      "maxLength": 100
-    },
-    "description": {
-      "type": "string",
-      "description": "Brief description of the incident",
-      "maxLength": 500
-    },
-    "specialty_required": {
-      "type": "string",
-      "description": "Required specialist specialty to handle this incident",
-      "enum": [
-        "Network Security",
-        "Malware Analysis",
-        "Digital Forensics",
-        "Application Security",
-        "Cloud Security",
-        "Incident Response"
-      ]
-    },
-    "difficulty_range": {
+    "incident_types": {
       "type": "array",
-      "description": "Min and max difficulty levels [min, max]",
-      "minItems": 2,
-      "maxItems": 2,
+      "description": "Array of incident type configurations",
       "items": {
-        "type": "integer",
-        "minimum": 1,
-        "maximum": 5
+        "type": "object",
+        "required": ["id", "name", "specialty_required", "difficulty_range", "base_sla_seconds", "base_reward", "xp_reward"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the incident type",
+            "pattern": "^inc_type_[0-9]{3}$"
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name of the incident type",
+            "minLength": 3,
+            "maxLength": 100
+          },
+          "description": {
+            "type": "string",
+            "description": "Brief description of the incident",
+            "maxLength": 500
+          },
+          "specialty_required": {
+            "type": "string",
+            "description": "Required specialist specialty to handle this incident",
+            "enum": [
+              "Network Security",
+              "Malware Analysis",
+              "Digital Forensics",
+              "Application Security",
+              "Cloud Security",
+              "Incident Response"
+            ]
+          },
+          "difficulty_range": {
+            "type": "array",
+            "description": "Min and max difficulty levels [min, max]",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 5
+            }
+          },
+          "base_sla_seconds": {
+            "type": "integer",
+            "description": "Base SLA time in seconds",
+            "minimum": 30,
+            "maximum": 3600
+          },
+          "base_reward": {
+            "type": "integer",
+            "description": "Base monetary reward for resolution",
+            "minimum": 10,
+            "maximum": 100000
+          },
+          "xp_reward": {
+            "type": "integer",
+            "description": "Base XP reward for resolution",
+            "minimum": 1,
+            "maximum": 10000
+          }
+        }
       }
-    },
-    "base_sla_seconds": {
-      "type": "integer",
-      "description": "Base SLA time in seconds",
-      "minimum": 30,
-      "maximum": 3600
-    },
-    "base_reward": {
-      "type": "integer",
-      "description": "Base monetary reward for resolution",
-      "minimum": 10,
-      "maximum": 100000
-    },
-    "xp_reward": {
-      "type": "integer",
-      "description": "Base XP reward for resolution",
-      "minimum": 1,
-      "maximum": 10000
     }
   }
 }
