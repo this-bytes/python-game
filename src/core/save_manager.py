@@ -41,13 +41,14 @@ class SaveManager:
         if save_dir:
             self._save_dir = save_dir
         else:
-            # Find project root and create saves directory
-            current_dir = os.getcwd()
-            if os.path.basename(current_dir) == 'src':
-                project_root = os.path.dirname(current_dir)
+            # Allow override via environment variable
+            env_save_dir = os.environ.get("SAVE_DIR")
+            if env_save_dir:
+                self._save_dir = env_save_dir
             else:
-                project_root = current_dir
-            self._save_dir = os.path.join(project_root, "data", "saves")
+                # Find project root relative to this file
+                project_root = Path(__file__).parent.parent
+                self._save_dir = str(project_root / "data" / "saves")
         
         # Ensure save directory exists
         os.makedirs(self._save_dir, exist_ok=True)
