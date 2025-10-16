@@ -191,7 +191,7 @@ def create_state_blueprint(game_state_ref):
         except FileNotFoundError as e:
             return jsonify({
                 "success": False,
-                "message": f"Save file not found: {str(e)}"
+                "message": f"Save file not found for slot {slot}"
             }), 404
         except Exception as e:
             return jsonify({
