@@ -26,12 +26,13 @@
 
 ## Phase 2: Core Game Logic Layer 🚧 IN PROGRESS
 
-**Status**: 3/12 tasks completed on `dev` branch
+**Status**: 4/12 tasks completed on `dev` branch
 
 ### Completed Tasks:
 - ✅ TASK-009: Specialist class implemented with stats, leveling, XP, and automation
 - ✅ TASK-010: Incident class implemented with SLA tracking and resolution logic
 - ✅ TASK-011: Client class implemented with reputation and contract management
+- ✅ TASK-012: AutomationScript class implemented with trigger evaluation and effect application logic
 
 ### Commits (3 total on `dev` branch):
 1. `7152f76` - feat: Implement Specialist class (TASK-009)
@@ -39,7 +40,6 @@
 3. `ac83880` - feat: Implement Client class (TASK-011)
 
 ### Remaining Phase 2 Tasks:
-- ⏳ TASK-012: AutomationScript class
 - ⏳ TASK-013: GameState class
 - ⏳ TASK-014: Incident generation system
 - ⏳ TASK-015: Assignment logic
@@ -69,7 +69,8 @@ python-game/
 │   ├── models/
 │   │   ├── specialist.py             ✅ Complete
 │   │   ├── incident.py               ✅ Complete
-│   │   └── client.py                 ✅ Complete
+│   │   ├── client.py                 ✅ Complete
+│   │   └── automation_script.py      ✅ Complete
 │   ├── core/                         ⏳ Not started
 │   ├── ui/                           ⏳ Not started
 │   └── utils/
@@ -77,7 +78,8 @@ python-game/
 │       └── logger.py                 ✅ Complete
 ├── tests/
 │   ├── conftest.py                   ✅ Complete
-│   └── test_json_loader.py           ✅ Complete
+│   ├── test_json_loader.py           ✅ Complete
+│   └── test_automation_script.py     ✅ Complete
 ├── backend/                          ⏳ Not started
 ├── docs/
 │   └── SETUP_GITHUB.md               ✅ Complete
@@ -163,4 +165,4 @@ Repository not yet published. See `docs/SETUP_GITHUB.md` for instructions.
 
 **Last Updated**: 2025-10-16
 **Current Branch**: `dev`
-**Next Milestone**: Complete Phase 2 (9 tasks remaining)
+**Next Milestone**: Complete Phase 2 (8 tasks remaining)
