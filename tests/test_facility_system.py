@@ -286,6 +286,8 @@ class TestFacilitySystem:
             clients=[],
             automation_scripts=[],
         )
+        # Clear facilities that might be loaded
+        game_state.facilities = []
 
         effects = facility_system.apply_facility_effects(game_state)
 
