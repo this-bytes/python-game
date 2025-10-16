@@ -18,7 +18,7 @@ def test_load_schema():
     schema = loader.load_schema("specialist_schema.json")
     assert schema is not None
     assert "$schema" in schema
-    assert schema["title"] == "Specialist"
+    assert schema["title"] == "Specialists Configuration"
 
 
 def test_load_data():
@@ -47,22 +47,26 @@ def test_data_validation():
     loader = JSONLoader()
     
     # Valid data should pass
-    valid_specialist = {
-        "id": "spec_999",
-        "name": "Test Specialist",
-        "specialty": "Network Security",
-        "level": 1,
-        "xp": 0,
-        "stats": {
-            "speed": 50,
-            "accuracy": 50,
-            "experience_bonus": 1.0
-        },
-        "status": "available"
+    valid_specialists = {
+        "specialists": [
+            {
+                "id": "spec_999",
+                "name": "Test Specialist",
+                "specialty": "Network Security",
+                "level": 1,
+                "xp": 0,
+                "stats": {
+                    "speed": 50,
+                    "accuracy": 50,
+                    "experience_bonus": 1.0
+                },
+                "status": "available"
+            }
+        ]
     }
     
     schema = loader.load_schema("specialist_schema.json")
-    assert loader.validate_data(valid_specialist, schema) is True
+    assert loader.validate_data(valid_specialists, schema) is True
 
 
 if __name__ == "__main__":

@@ -85,9 +85,15 @@ class AutomationScript:
         """
         conditions = self.trigger_conditions
 
-        # Check max_difficulty
+        # Check max_difficulty (ensure we compare ints)
         if conditions.max_difficulty is not None:
-            if incident.difficulty > conditions.max_difficulty:
+            try:
+                incident_difficulty = int(incident.difficulty)
+            except (TypeError, ValueError):
+                # If difficulty can't be interpreted, fail the trigger
+                return False
+
+            if incident_difficulty > conditions.max_difficulty:
                 return False
 
         # Check specialty_match

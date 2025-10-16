@@ -1,64 +1,74 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "client_schema.json",
-  "title": "Client",
-  "description": "Schema for client contract configuration",
+  "title": "Clients Configuration",
+  "description": "Schema for client contracts configuration file",
   "type": "object",
-  "required": ["id", "name", "incident_rate_per_minute", "sla_multiplier", "reputation", "contract_value"],
+  "required": ["clients"],
   "properties": {
-    "id": {
-      "type": "string",
-      "description": "Unique identifier for the client",
-      "pattern": "^client_[0-9]{3}$"
-    },
-    "name": {
-      "type": "string",
-      "description": "Client company name",
-      "minLength": 2,
-      "maxLength": 100
-    },
-    "industry": {
-      "type": "string",
-      "description": "Client industry sector",
-      "enum": [
-        "Technology",
-        "Finance",
-        "Healthcare",
-        "Retail",
-        "Manufacturing",
-        "Government",
-        "Education",
-        "Energy"
-      ]
-    },
-    "incident_rate_per_minute": {
-      "type": "number",
-      "description": "Average number of incidents generated per minute",
-      "minimum": 0.01,
-      "maximum": 10.0
-    },
-    "sla_multiplier": {
-      "type": "number",
-      "description": "Multiplier applied to base SLA times",
-      "minimum": 0.5,
-      "maximum": 3.0
-    },
-    "reputation": {
-      "type": "integer",
-      "description": "Current reputation score with client (0-100)",
-      "minimum": 0,
-      "maximum": 100
-    },
-    "contract_value": {
-      "type": "integer",
-      "description": "Monthly contract value in dollars",
-      "minimum": 1000,
-      "maximum": 10000000
-    },
-    "active": {
-      "type": "boolean",
-      "description": "Whether contract is currently active",
-      "default": true
+    "clients": {
+      "type": "array",
+      "description": "Array of client contract configurations",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "incident_rate_per_minute", "sla_multiplier", "reputation", "contract_value"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the client",
+            "pattern": "^client_[0-9]{3}$"
+          },
+          "name": {
+            "type": "string",
+            "description": "Client company name",
+            "minLength": 2,
+            "maxLength": 100
+          },
+          "industry": {
+            "type": "string",
+            "description": "Client industry sector",
+            "enum": [
+              "Technology",
+              "Finance",
+              "Healthcare",
+              "Retail",
+              "Manufacturing",
+              "Government",
+              "Education",
+              "Energy"
+            ]
+          },
+          "incident_rate_per_minute": {
+            "type": "number",
+            "description": "Average number of incidents generated per minute",
+            "minimum": 0.01,
+            "maximum": 10.0
+          },
+          "sla_multiplier": {
+            "type": "number",
+            "description": "Multiplier applied to base SLA times",
+            "minimum": 0.5,
+            "maximum": 3.0
+          },
+          "reputation": {
+            "type": "integer",
+            "description": "Current reputation score with client (0-100)",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "contract_value": {
+            "type": "integer",
+            "description": "Monthly contract value in dollars",
+            "minimum": 1000,
+            "maximum": 10000000
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Whether contract is currently active",
+            "default": true
+          }
+        }
+      }
     }
   }
 }

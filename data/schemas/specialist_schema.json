@@ -1,87 +1,97 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "specialist_schema.json",
-  "title": "Specialist",
-  "description": "Schema for cybersecurity specialist configuration",
+  "title": "Specialists Configuration",
+  "description": "Schema for cybersecurity specialists configuration file",
   "type": "object",
-  "required": ["id", "name", "specialty", "level", "xp", "stats", "status"],
+  "required": ["specialists"],
   "properties": {
-    "id": {
-      "type": "string",
-      "description": "Unique identifier for the specialist",
-      "pattern": "^spec_[0-9]{3}$"
-    },
-    "name": {
-      "type": "string",
-      "description": "Full name of the specialist",
-      "minLength": 2,
-      "maxLength": 50
-    },
-    "specialty": {
-      "type": "string",
-      "description": "Security specialty area",
-      "enum": [
-        "Network Security",
-        "Malware Analysis",
-        "Digital Forensics",
-        "Application Security",
-        "Cloud Security",
-        "Incident Response"
-      ]
-    },
-    "level": {
-      "type": "integer",
-      "description": "Current level of the specialist",
-      "minimum": 1,
-      "maximum": 20
-    },
-    "xp": {
-      "type": "integer",
-      "description": "Current experience points",
-      "minimum": 0
-    },
-    "stats": {
-      "type": "object",
-      "description": "Specialist performance statistics",
-      "required": ["speed", "accuracy", "experience_bonus"],
-      "properties": {
-        "speed": {
-          "type": "number",
-          "description": "Resolution speed multiplier (higher = faster)",
-          "minimum": 1,
-          "maximum": 200
-        },
-        "accuracy": {
-          "type": "number",
-          "description": "Success rate percentage",
-          "minimum": 1,
-          "maximum": 100
-        },
-        "experience_bonus": {
-          "type": "number",
-          "description": "XP gain multiplier",
-          "minimum": 1.0,
-          "maximum": 3.0
+    "specialists": {
+      "type": "array",
+      "description": "Array of specialist configurations",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "specialty", "level", "xp", "stats", "status"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the specialist",
+            "pattern": "^spec_[0-9]{3}$"
+          },
+          "name": {
+            "type": "string",
+            "description": "Full name of the specialist",
+            "minLength": 2,
+            "maxLength": 50
+          },
+          "specialty": {
+            "type": "string",
+            "description": "Security specialty area",
+            "enum": [
+              "Network Security",
+              "Malware Analysis",
+              "Digital Forensics",
+              "Application Security",
+              "Cloud Security",
+              "Incident Response"
+            ]
+          },
+          "level": {
+            "type": "integer",
+            "description": "Current level of the specialist",
+            "minimum": 1,
+            "maximum": 20
+          },
+          "xp": {
+            "type": "integer",
+            "description": "Current experience points",
+            "minimum": 0
+          },
+          "stats": {
+            "type": "object",
+            "description": "Specialist performance statistics",
+            "required": ["speed", "accuracy", "experience_bonus"],
+            "properties": {
+              "speed": {
+                "type": "number",
+                "description": "Resolution speed multiplier (higher = faster)",
+                "minimum": 1,
+                "maximum": 200
+              },
+              "accuracy": {
+                "type": "number",
+                "description": "Success rate percentage",
+                "minimum": 1,
+                "maximum": 100
+              },
+              "experience_bonus": {
+                "type": "number",
+                "description": "XP gain multiplier",
+                "minimum": 1.0,
+                "maximum": 3.0
+              }
+            }
+          },
+          "automation_scripts": {
+            "type": "array",
+            "description": "List of unlocked automation script IDs",
+            "items": {
+              "type": "string"
+            },
+            "default": []
+          },
+          "status": {
+            "type": "string",
+            "description": "Current availability status",
+            "enum": ["available", "busy", "training", "offline"]
+          },
+          "assigned_incident_id": {
+            "type": ["string", "null"],
+            "description": "ID of currently assigned incident, null if available",
+            "default": null
+          }
         }
       }
-    },
-    "automation_scripts": {
-      "type": "array",
-      "description": "List of unlocked automation script IDs",
-      "items": {
-        "type": "string"
-      },
-      "default": []
-    },
-    "status": {
-      "type": "string",
-      "description": "Current availability status",
-      "enum": ["available", "busy", "training", "offline"]
-    },
-    "assigned_incident_id": {
-      "type": ["string", "null"],
-      "description": "ID of currently assigned incident, null if available",
-      "default": null
     }
   }
 }

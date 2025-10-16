@@ -42,6 +42,18 @@ class Incident:
     
     def __post_init__(self):
         """Calculate SLA deadline after initialization."""
+        # Normalize difficulty to an int and clamp to expected range (1-5)
+        try:
+            self.difficulty = int(self.difficulty)
+        except (TypeError, ValueError):
+            # Fallback to minimal difficulty if invalid
+            self.difficulty = 1
+
+        if self.difficulty < 1:
+            self.difficulty = 1
+        if self.difficulty > 5:
+            self.difficulty = 5
+
         if self.sla_deadline is None:
             self.sla_deadline = self.spawn_time + self.sla_seconds
     
@@ -293,11 +305,18 @@ class Incident:
         Returns:
             New Incident instance
         """
+        # Safe extraction and normalization of difficulty
+        raw_difficulty = data.get("difficulty", 1)
+        try:
+            difficulty = int(raw_difficulty)
+        except (TypeError, ValueError):
+            difficulty = 1
+
         return cls(
             id=data["id"],
             incident_type=data["incident_type"],
             specialty_required=data["specialty_required"],
-            difficulty=data["difficulty"],
+            difficulty=difficulty,
             sla_seconds=data["sla_seconds"],
             base_reward=data["base_reward"],
             xp_reward=data["xp_reward"],
