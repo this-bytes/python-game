@@ -29,7 +29,8 @@ def create_config_blueprint(game_state_ref):
             
             # Reload incident generator configuration
             if hasattr(game_state, 'incident_generator'):
-                game_state.incident_generator.reload_configuration()
+                if hasattr(game_state.incident_generator, 'reload_configuration'):
+                    game_state.incident_generator.reload_configuration()
             
             return jsonify({
                 "success": True,
