@@ -4,25 +4,35 @@ Provides endpoints for client management and economy adjustments.
 """
 from flask import Blueprint, jsonify, request
 from datetime import datetime
+from src.core.client_manager import ClientManager
 
 
 def create_clients_blueprint(game_state_ref):
     """Create the clients blueprint."""
     bp = Blueprint('clients', __name__)
     state_container = {'game_state': game_state_ref}
+    client_manager = ClientManager()
     
     def get_game_state():
         return state_container.get('game_state')
     
     @bp.route('/clients', methods=['GET'])
     def list_clients():
-        """List all clients."""
+        """List all clients with reputation and tier information."""
         game_state = get_game_state()
         if not game_state:
             return jsonify({"success": False, "message": "Game state not initialized"}), 503
         
         try:
-            clients_data = [c.to_dict() for c in game_state.clients]
+            clients_data = []
+            for client in game_state.clients:
+                client_dict = client.to_dict()
+                # Add computed fields
+                client_dict['tier_name'] = client_manager.get_reputation_tier_name(client.tier)
+                client_dict['satisfaction'] = client_manager.calculate_satisfaction(client)
+                client_dict['will_renew'] = client_manager.check_contract_renewal(client, game_state)
+                clients_data.append(client_dict)
+            
             return jsonify({
                 "success": True,
                 "data": clients_data,
@@ -34,7 +44,7 @@ def create_clients_blueprint(game_state_ref):
     
     @bp.route('/clients/<client_id>', methods=['GET'])
     def get_client(client_id):
-        """Get specific client details."""
+        """Get specific client details with full summary."""
         game_state = get_game_state()
         if not game_state:
             return jsonify({"success": False, "message": "Game state not initialized"}), 503
@@ -44,9 +54,12 @@ def create_clients_blueprint(game_state_ref):
             if not client:
                 return jsonify({"success": False, "message": "Client not found"}), 404
             
+            # Get comprehensive summary
+            summary = client_manager.get_client_summary(client)
+            
             return jsonify({
                 "success": True,
-                "data": client.to_dict(),
+                "data": summary,
                 "timestamp": datetime.utcnow().isoformat()
             })
         except Exception as e:
@@ -73,6 +86,7 @@ def create_clients_blueprint(game_state_ref):
                 client.sla_multiplier = float(data['sla_multiplier'])
             if 'reputation' in data:
                 client.reputation = int(data['reputation'])
+                client.tier = client_manager.determine_tier(client)
             if 'contract_value' in data:
                 client.contract_value = float(data['contract_value'])
             if 'active' in data:
@@ -82,6 +96,77 @@ def create_clients_blueprint(game_state_ref):
                 "success": True,
                 "message": "Client updated successfully",
                 "data": client.to_dict(),
+                "timestamp": datetime.utcnow().isoformat()
+            })
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 500
+    
+    @bp.route('/clients/<client_id>/reputation', methods=['PUT'])
+    def adjust_reputation(client_id):
+        """Manually adjust client reputation (admin function)."""
+        game_state = get_game_state()
+        if not game_state:
+            return jsonify({"success": False, "message": "Game state not initialized"}), 503
+        
+        try:
+            client = game_state.get_client_by_id(client_id)
+            if not client:
+                return jsonify({"success": False, "message": "Client not found"}), 404
+            
+            data = request.get_json()
+            adjustment = data.get('adjustment', 0)
+            
+            old_reputation = client.reputation
+            old_tier = client.tier
+            
+            client.reputation = max(0, min(100, client.reputation + adjustment))
+            client.tier = client_manager.determine_tier(client)
+            
+            return jsonify({
+                "success": True,
+                "message": f"Reputation adjusted by {adjustment:+d}",
+                "data": {
+                    "old_reputation": old_reputation,
+                    "new_reputation": client.reputation,
+                    "old_tier": old_tier,
+                    "new_tier": client.tier,
+                    "tier_name": client_manager.get_reputation_tier_name(client.tier)
+                },
+                "timestamp": datetime.utcnow().isoformat()
+            })
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 500
+    
+    @bp.route('/clients/<client_id>/simulate-incidents', methods=['POST'])
+    def simulate_incidents(client_id):
+        """Force incident generation for a specific client (testing)."""
+        game_state = get_game_state()
+        if not game_state:
+            return jsonify({"success": False, "message": "Game state not initialized"}), 503
+        
+        try:
+            client = game_state.get_client_by_id(client_id)
+            if not client:
+                return jsonify({"success": False, "message": "Client not found"}), 404
+            
+            data = request.get_json()
+            count = data.get('count', 1)
+            
+            generated_incidents = []
+            for _ in range(count):
+                incident = game_state.incident_generator.generate_incident(client)
+                if incident:
+                    game_state.incidents.append(incident)
+                    generated_incidents.append(incident.to_dict())
+            
+            return jsonify({
+                "success": True,
+                "message": f"Generated {len(generated_incidents)} incidents for {client.name}",
+                "data": {
+                    "client_id": client_id,
+                    "incidents_generated": len(generated_incidents),
+                    "incidents": generated_incidents
+                },
                 "timestamp": datetime.utcnow().isoformat()
             })
         except Exception as e:
