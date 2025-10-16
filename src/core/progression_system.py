@@ -112,7 +112,7 @@ class ProgressionSystem:
         # Award skill points
         specialist.skill_points += self.skill_points_per_level
         
-        # Check for ability unlocks (to be implemented with ability system)
+        # Unlock abilities for this level (will be populated by ability system if available)
         unlocked_abilities = []
         
         self._logger.logger.info(

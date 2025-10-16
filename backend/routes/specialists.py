@@ -319,4 +319,96 @@ def create_specialists_blueprint(game_state_ref):
         except Exception as e:
             return jsonify({"success": False, "message": str(e)}), 500
     
+    @bp.route('/specialists/<specialist_id>/abilities', methods=['GET'])
+    def get_abilities(specialist_id):
+        """Get unlocked abilities for a specialist."""
+        game_state = get_game_state()
+        if not game_state:
+            return jsonify({"success": False, "message": "Game state not initialized"}), 503
+        
+        try:
+            from src.core.ability_system import AbilitySystem
+            from src.utils.json_loader import JSONLoader
+            
+            specialist = game_state.get_specialist_by_id(specialist_id)
+            if not specialist:
+                return jsonify({"success": False, "message": "Specialist not found"}), 404
+            
+            # Load abilities config
+            json_loader = JSONLoader()
+            abilities_config = json_loader.load_data("abilities")
+            ability_system = AbilitySystem(abilities_config)
+            
+            # Get unlocked abilities with details
+            abilities_data = []
+            for ability_id in specialist.abilities:
+                ability = ability_system.get_ability(ability_id)
+                if ability:
+                    ability_dict = ability.to_dict()
+                    ability_dict["cooldown_remaining"] = specialist.ability_cooldowns.get(ability_id, 0.0)
+                    ability_dict["available"] = ability_id in ability_system.get_available_abilities(specialist)
+                    abilities_data.append(ability_dict)
+            
+            return jsonify({
+                "success": True,
+                "data": abilities_data,
+                "count": len(abilities_data),
+                "timestamp": datetime.utcnow().isoformat()
+            })
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 500
+    
+    @bp.route('/specialists/<specialist_id>/activate-ability', methods=['POST'])
+    def activate_ability(specialist_id):
+        """Activate an ability for a specialist."""
+        game_state = get_game_state()
+        if not game_state:
+            return jsonify({"success": False, "message": "Game state not initialized"}), 503
+        
+        try:
+            from src.core.ability_system import AbilitySystem
+            from src.utils.json_loader import JSONLoader
+            
+            specialist = game_state.get_specialist_by_id(specialist_id)
+            if not specialist:
+                return jsonify({"success": False, "message": "Specialist not found"}), 404
+            
+            data = request.get_json()
+            ability_id = data.get('ability_id')
+            target_incident_id = data.get('target_incident_id')
+            
+            if not ability_id:
+                return jsonify({"success": False, "message": "ability_id required"}), 400
+            
+            # Load abilities config
+            json_loader = JSONLoader()
+            abilities_config = json_loader.load_data("abilities")
+            ability_system = AbilitySystem(abilities_config)
+            
+            # Get target incident if specified
+            target = None
+            if target_incident_id:
+                target = game_state.get_incident_by_id(target_incident_id)
+            
+            # Activate ability
+            result = ability_system.activate_ability(specialist, ability_id, target)
+            
+            if result["success"]:
+                return jsonify({
+                    "success": True,
+                    "message": result["message"],
+                    "data": {
+                        "specialist": specialist.to_dict(),
+                        "effect": result.get("effect_applied")
+                    },
+                    "timestamp": datetime.utcnow().isoformat()
+                })
+            else:
+                return jsonify({
+                    "success": False,
+                    "message": result["message"]
+                }), 400
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 500
+    
     return bp

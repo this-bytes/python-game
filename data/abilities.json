@@ -1,0 +1,202 @@
+{
+  "abilities": [
+    {
+      "id": "speed_burst",
+      "name": "Speed Burst",
+      "description": "Double resolution speed for 30 seconds",
+      "ability_type": "speed_burst",
+      "cooldown_seconds": 120,
+      "duration_seconds": 30,
+      "effect_magnitude": 2.0,
+      "unlock_level": 5,
+      "specialty": "Any"
+    },
+    {
+      "id": "accuracy_boost",
+      "name": "Perfect Focus",
+      "description": "Guaranteed 100% accuracy for next incident",
+      "ability_type": "accuracy_boost",
+      "cooldown_seconds": 180,
+      "duration_seconds": 60,
+      "effect_magnitude": 2.0,
+      "unlock_level": 8,
+      "specialty": "Any"
+    },
+    {
+      "id": "sla_extension",
+      "name": "Time Extension",
+      "description": "Extend SLA deadline by 50%",
+      "ability_type": "sla_extension",
+      "cooldown_seconds": 300,
+      "duration_seconds": 0,
+      "effect_magnitude": 1.5,
+      "unlock_level": 10,
+      "specialty": "Any"
+    },
+    {
+      "id": "reward_multiplier",
+      "name": "Bonus Negotiation",
+      "description": "Double reward for next incident",
+      "ability_type": "reward_multiplier",
+      "cooldown_seconds": 240,
+      "duration_seconds": 0,
+      "effect_magnitude": 2.0,
+      "unlock_level": 12,
+      "specialty": "Any"
+    },
+    {
+      "id": "auto_complete",
+      "name": "Instant Resolution",
+      "description": "Instantly resolve current incident (guaranteed success)",
+      "ability_type": "auto_complete",
+      "cooldown_seconds": 600,
+      "duration_seconds": 0,
+      "effect_magnitude": 1.0,
+      "unlock_level": 15,
+      "specialty": "Any"
+    },
+    {
+      "id": "network_firewall_deploy",
+      "name": "Emergency Firewall Deploy",
+      "description": "Triple speed on Network Security incidents for 45 seconds",
+      "ability_type": "speed_burst",
+      "cooldown_seconds": 150,
+      "duration_seconds": 45,
+      "effect_magnitude": 3.0,
+      "unlock_level": 7,
+      "specialty": "Network Security"
+    },
+    {
+      "id": "malware_signature_scan",
+      "name": "Signature Database Scan",
+      "description": "Instantly identify all malware variants for 60 seconds",
+      "ability_type": "accuracy_boost",
+      "cooldown_seconds": 200,
+      "duration_seconds": 60,
+      "effect_magnitude": 2.5,
+      "unlock_level": 7,
+      "specialty": "Malware Analysis"
+    },
+    {
+      "id": "forensics_deep_dive",
+      "name": "Deep Forensic Analysis",
+      "description": "Guarantee perfect evidence recovery",
+      "ability_type": "accuracy_boost",
+      "cooldown_seconds": 180,
+      "duration_seconds": 45,
+      "effect_magnitude": 3.0,
+      "unlock_level": 7,
+      "specialty": "Digital Forensics"
+    },
+    {
+      "id": "app_sec_code_review",
+      "name": "Automated Code Review",
+      "description": "Instantly scan and patch application vulnerabilities",
+      "ability_type": "speed_burst",
+      "cooldown_seconds": 180,
+      "duration_seconds": 30,
+      "effect_magnitude": 2.5,
+      "unlock_level": 7,
+      "specialty": "Application Security"
+    },
+    {
+      "id": "cloud_auto_scale",
+      "name": "Auto-Scale Defense",
+      "description": "Deploy cloud defenses at triple speed",
+      "ability_type": "speed_burst",
+      "cooldown_seconds": 160,
+      "duration_seconds": 40,
+      "effect_magnitude": 3.0,
+      "unlock_level": 7,
+      "specialty": "Cloud Security"
+    },
+    {
+      "id": "incident_triage",
+      "name": "Rapid Triage Protocol",
+      "description": "Instantly classify and prioritize incident",
+      "ability_type": "auto_complete",
+      "cooldown_seconds": 420,
+      "duration_seconds": 0,
+      "effect_magnitude": 1.0,
+      "unlock_level": 9,
+      "specialty": "Incident Response"
+    },
+    {
+      "id": "mega_speed",
+      "name": "Mega Speed Boost",
+      "description": "Quadruple resolution speed for 20 seconds",
+      "ability_type": "speed_burst",
+      "cooldown_seconds": 300,
+      "duration_seconds": 20,
+      "effect_magnitude": 4.0,
+      "unlock_level": 20,
+      "specialty": "Any"
+    },
+    {
+      "id": "triple_reward",
+      "name": "Triple Payment Negotiation",
+      "description": "Triple reward for next incident completion",
+      "ability_type": "reward_multiplier",
+      "cooldown_seconds": 360,
+      "duration_seconds": 0,
+      "effect_magnitude": 3.0,
+      "unlock_level": 18,
+      "specialty": "Any"
+    },
+    {
+      "id": "massive_sla_extension",
+      "name": "Emergency SLA Extension",
+      "description": "Double the SLA deadline time",
+      "ability_type": "sla_extension",
+      "cooldown_seconds": 480,
+      "duration_seconds": 0,
+      "effect_magnitude": 2.0,
+      "unlock_level": 16,
+      "specialty": "Any"
+    },
+    {
+      "id": "perfect_accuracy_burst",
+      "name": "Perfect Execution Mode",
+      "description": "100% accuracy for 90 seconds",
+      "ability_type": "accuracy_boost",
+      "cooldown_seconds": 240,
+      "duration_seconds": 90,
+      "effect_magnitude": 3.0,
+      "unlock_level": 14,
+      "specialty": "Any"
+    },
+    {
+      "id": "chain_resolution",
+      "name": "Chain Resolution",
+      "description": "50% faster on all incidents for 2 minutes",
+      "ability_type": "speed_burst",
+      "cooldown_seconds": 180,
+      "duration_seconds": 120,
+      "effect_magnitude": 1.5,
+      "unlock_level": 11,
+      "specialty": "Any"
+    },
+    {
+      "id": "emergency_patch",
+      "name": "Emergency Patch Deploy",
+      "description": "Instantly resolve critical vulnerability",
+      "ability_type": "auto_complete",
+      "cooldown_seconds": 540,
+      "duration_seconds": 0,
+      "effect_magnitude": 1.0,
+      "unlock_level": 13,
+      "specialty": "Application Security"
+    },
+    {
+      "id": "zero_day_hunter",
+      "name": "Zero-Day Hunter Protocol",
+      "description": "Guaranteed detection of unknown threats",
+      "ability_type": "accuracy_boost",
+      "cooldown_seconds": 300,
+      "duration_seconds": 0,
+      "effect_magnitude": 5.0,
+      "unlock_level": 17,
+      "specialty": "Malware Analysis"
+    }
+  ]
+}
