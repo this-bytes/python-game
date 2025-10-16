@@ -91,6 +91,10 @@ class GameState:
     prestige_points: int = 0  # Prestige points available to spend
     prestige_upgrades: Dict[str, int] = field(default_factory=dict)  # Upgrade ID → level
     total_prestiges: int = 0  # Total number of prestiges performed
+    
+    # Achievement system
+    unlocked_achievements: List[str] = field(default_factory=list)  # Achievement IDs
+    achievement_progress: Dict[str, float] = field(default_factory=dict)  # Achievement ID → progress value
 
     # Game configuration
     max_active_incidents: int = 50
@@ -608,6 +612,8 @@ class GameState:
             "prestige_points": self.prestige_points,
             "prestige_upgrades": self.prestige_upgrades.copy(),
             "total_prestiges": self.total_prestiges,
+            "unlocked_achievements": self.unlocked_achievements.copy(),
+            "achievement_progress": self.achievement_progress.copy(),
             "max_active_incidents": self.max_active_incidents,
             "incident_generation_enabled": self.incident_generation_enabled,
             "metrics": self.metrics.to_dict()
@@ -643,6 +649,8 @@ class GameState:
         instance.prestige_points = data.get("prestige_points", 0)
         instance.prestige_upgrades = data.get("prestige_upgrades", {}).copy()
         instance.total_prestiges = data.get("total_prestiges", 0)
+        instance.unlocked_achievements = data.get("unlocked_achievements", []).copy()
+        instance.achievement_progress = data.get("achievement_progress", {}).copy()
         instance.max_active_incidents = data.get("max_active_incidents", 50)
         instance.incident_generation_enabled = data.get("incident_generation_enabled", True)
         instance.metrics = GameMetrics.from_dict(data.get("metrics", {}))
