@@ -411,4 +411,166 @@ def create_specialists_blueprint(game_state_ref):
         except Exception as e:
             return jsonify({"success": False, "message": str(e)}), 500
     
+    @bp.route('/specialists/<specialist_id>/equip', methods=['POST'])
+    def equip_item(specialist_id):
+        """Equip an item to a specialist."""
+        game_state = get_game_state()
+        if not game_state:
+            return jsonify({"success": False, "message": "Game state not initialized"}), 503
+        
+        try:
+            from src.core.equipment_system import EquipmentSystem
+            from src.utils.json_loader import JSONLoader
+            
+            specialist = game_state.get_specialist_by_id(specialist_id)
+            if not specialist:
+                return jsonify({"success": False, "message": "Specialist not found"}), 404
+            
+            data = request.get_json()
+            equipment_id = data.get('equipment_id')
+            
+            if not equipment_id:
+                return jsonify({"success": False, "message": "equipment_id required"}), 400
+            
+            # Load equipment config
+            json_loader = JSONLoader()
+            equipment_config = json_loader.load_data("equipment")
+            equipment_system = EquipmentSystem(equipment_config)
+            
+            # Get equipment
+            equipment = equipment_system.get_equipment(equipment_id)
+            if not equipment:
+                return jsonify({"success": False, "message": "Equipment not found"}), 404
+            
+            # Equip item
+            success = equipment_system.equip_item(specialist, equipment)
+            
+            if success:
+                return jsonify({
+                    "success": True,
+                    "message": f"Equipped {equipment.name}",
+                    "data": specialist.to_dict(),
+                    "timestamp": datetime.utcnow().isoformat()
+                })
+            else:
+                return jsonify({
+                    "success": False,
+                    "message": "Failed to equip item (not in inventory?)"
+                }), 400
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 500
+    
+    @bp.route('/specialists/<specialist_id>/unequip', methods=['POST'])
+    def unequip_item(specialist_id):
+        """Unequip an item from a specialist."""
+        game_state = get_game_state()
+        if not game_state:
+            return jsonify({"success": False, "message": "Game state not initialized"}), 503
+        
+        try:
+            from src.core.equipment_system import EquipmentSystem
+            from src.utils.json_loader import JSONLoader
+            
+            specialist = game_state.get_specialist_by_id(specialist_id)
+            if not specialist:
+                return jsonify({"success": False, "message": "Specialist not found"}), 404
+            
+            data = request.get_json()
+            slot = data.get('slot')
+            
+            if not slot:
+                return jsonify({"success": False, "message": "slot required"}), 400
+            
+            # Load equipment config
+            json_loader = JSONLoader()
+            equipment_config = json_loader.load_data("equipment")
+            equipment_system = EquipmentSystem(equipment_config)
+            
+            # Unequip item
+            unequipped = equipment_system.unequip_item(specialist, slot)
+            
+            if unequipped:
+                return jsonify({
+                    "success": True,
+                    "message": f"Unequipped {unequipped.name}",
+                    "data": specialist.to_dict(),
+                    "timestamp": datetime.utcnow().isoformat()
+                })
+            else:
+                return jsonify({
+                    "success": False,
+                    "message": "No item equipped in that slot"
+                }), 400
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 500
+    
+    @bp.route('/equipment', methods=['GET'])
+    def list_equipment():
+        """List all equipment in the game."""
+        try:
+            from src.core.equipment_system import EquipmentSystem
+            from src.utils.json_loader import JSONLoader
+            
+            json_loader = JSONLoader()
+            equipment_config = json_loader.load_data("equipment")
+            equipment_system = EquipmentSystem(equipment_config)
+            
+            equipment_data = [eq.to_dict() for eq in equipment_system.equipment_catalog.values()]
+            
+            return jsonify({
+                "success": True,
+                "data": equipment_data,
+                "count": len(equipment_data),
+                "timestamp": datetime.utcnow().isoformat()
+            })
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 500
+    
+    @bp.route('/equipment/drop', methods=['POST'])
+    def force_equipment_drop():
+        """Force an equipment drop (for testing)."""
+        game_state = get_game_state()
+        if not game_state:
+            return jsonify({"success": False, "message": "Game state not initialized"}), 503
+        
+        try:
+            from src.core.equipment_system import EquipmentSystem
+            from src.utils.json_loader import JSONLoader
+            
+            data = request.get_json()
+            difficulty = data.get('difficulty', 3)
+            rarity_boost = data.get('rarity_boost', 0.0)
+            specialist_id = data.get('specialist_id')
+            
+            # Load equipment config
+            json_loader = JSONLoader()
+            equipment_config = json_loader.load_data("equipment")
+            equipment_system = EquipmentSystem(equipment_config)
+            
+            # Generate drop
+            dropped_equipment = equipment_system.generate_equipment_drop(difficulty, rarity_boost)
+            
+            if dropped_equipment:
+                # Add to specialist inventory if specified
+                if specialist_id:
+                    specialist = game_state.get_specialist_by_id(specialist_id)
+                    if specialist:
+                        equipment_system.add_to_inventory(specialist, dropped_equipment)
+                
+                return jsonify({
+                    "success": True,
+                    "message": f"Dropped {dropped_equipment.name}",
+                    "data": dropped_equipment.to_dict(),
+                    "timestamp": datetime.utcnow().isoformat()
+                })
+            else:
+                return jsonify({
+                    "success": True,
+                    "message": "No equipment dropped",
+                    "data": None,
+                    "timestamp": datetime.utcnow().isoformat()
+                })
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 500
+    
     return bp

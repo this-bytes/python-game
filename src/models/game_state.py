@@ -71,6 +71,7 @@ class GameState:
     incidents: List[Incident] = field(default_factory=list)
     clients: List[Client] = field(default_factory=list)
     automation_scripts: List[AutomationScript] = field(default_factory=list)
+    equipment_instances: Dict[str, Any] = field(default_factory=dict)  # equipment_id -> Equipment instance
 
     # Game progression
     game_start_time: float = field(default_factory=time.time)

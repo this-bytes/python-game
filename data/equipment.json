@@ -1,0 +1,334 @@
+{
+  "equipment": [
+    {
+      "id": "basic_laptop",
+      "name": "Basic Laptop",
+      "description": "Standard issue laptop for basic tasks",
+      "equipment_type": "tool",
+      "rarity": "common",
+      "stat_bonuses": {"speed": 5, "accuracy": 2},
+      "unlock_level": 1,
+      "cost": 500
+    },
+    {
+      "id": "advanced_workstation",
+      "name": "Advanced Workstation",
+      "description": "High-performance workstation with dual monitors",
+      "equipment_type": "tool",
+      "rarity": "rare",
+      "stat_bonuses": {"speed": 10, "accuracy": 5},
+      "unlock_level": 5,
+      "cost": 2000
+    },
+    {
+      "id": "forensic_toolkit",
+      "name": "Forensic Analysis Toolkit",
+      "description": "Professional forensics tools and software suite",
+      "equipment_type": "tool",
+      "rarity": "rare",
+      "stat_bonuses": {"speed": 10, "accuracy": 8},
+      "unlock_level": 5,
+      "cost": 2000
+    },
+    {
+      "id": "quantum_processor",
+      "name": "Quantum Processing Unit",
+      "description": "Cutting-edge quantum computer for complex analysis",
+      "equipment_type": "tool",
+      "rarity": "epic",
+      "stat_bonuses": {"speed": 20, "accuracy": 12},
+      "unlock_level": 10,
+      "cost": 8000
+    },
+    {
+      "id": "ai_assistant",
+      "name": "AI Security Assistant",
+      "description": "AI-powered threat detection and response system",
+      "equipment_type": "tool",
+      "rarity": "legendary",
+      "stat_bonuses": {"speed": 30, "accuracy": 20, "xp_bonus": 0.15},
+      "unlock_level": 15,
+      "cost": 20000
+    },
+    {
+      "id": "basic_badge",
+      "name": "Security Clearance Badge",
+      "description": "Basic security clearance for standard operations",
+      "equipment_type": "badge",
+      "rarity": "common",
+      "stat_bonuses": {"accuracy": 3},
+      "unlock_level": 1,
+      "cost": 300
+    },
+    {
+      "id": "silver_badge",
+      "name": "Silver Security Badge",
+      "description": "Mid-level clearance badge",
+      "equipment_type": "badge",
+      "rarity": "rare",
+      "stat_bonuses": {"accuracy": 7, "xp_bonus": 0.05},
+      "unlock_level": 5,
+      "cost": 1500
+    },
+    {
+      "id": "gold_badge",
+      "name": "Gold Security Badge",
+      "description": "High clearance badge with VIP access",
+      "equipment_type": "badge",
+      "rarity": "epic",
+      "stat_bonuses": {"accuracy": 15, "xp_bonus": 0.1},
+      "unlock_level": 10,
+      "cost": 5000
+    },
+    {
+      "id": "platinum_badge",
+      "name": "Platinum Security Badge",
+      "description": "Top-level clearance with unlimited access",
+      "equipment_type": "badge",
+      "rarity": "legendary",
+      "stat_bonuses": {"accuracy": 25, "xp_bonus": 0.2, "speed": 10},
+      "unlock_level": 20,
+      "cost": 15000
+    },
+    {
+      "id": "standard_keyboard",
+      "name": "Standard Keyboard",
+      "description": "Basic mechanical keyboard",
+      "equipment_type": "peripheral",
+      "rarity": "common",
+      "stat_bonuses": {"speed": 3},
+      "unlock_level": 1,
+      "cost": 200
+    },
+    {
+      "id": "gaming_keyboard",
+      "name": "RGB Gaming Keyboard",
+      "description": "High-speed mechanical keyboard with custom macros",
+      "equipment_type": "peripheral",
+      "rarity": "rare",
+      "stat_bonuses": {"speed": 8, "accuracy": 3},
+      "unlock_level": 5,
+      "cost": 1000
+    },
+    {
+      "id": "neural_interface",
+      "name": "Neural Interface Peripheral",
+      "description": "Direct brain-computer interface for instant commands",
+      "equipment_type": "peripheral",
+      "rarity": "legendary",
+      "stat_bonuses": {"speed": 25, "accuracy": 20, "xp_bonus": 0.2},
+      "unlock_level": 20,
+      "cost": 20000
+    },
+    {
+      "id": "network_sniffer",
+      "name": "Network Traffic Analyzer",
+      "description": "Advanced packet sniffer and analyzer",
+      "equipment_type": "tool",
+      "rarity": "rare",
+      "stat_bonuses": {"speed": 12, "accuracy": 6},
+      "unlock_level": 6,
+      "cost": 2500
+    },
+    {
+      "id": "malware_sandbox",
+      "name": "Isolated Malware Sandbox",
+      "description": "Safe environment for malware analysis",
+      "equipment_type": "tool",
+      "rarity": "epic",
+      "stat_bonuses": {"speed": 15, "accuracy": 15},
+      "unlock_level": 12,
+      "cost": 6000
+    },
+    {
+      "id": "threat_intelligence_feed",
+      "name": "Real-Time Threat Intelligence",
+      "description": "Live feed of global threat intelligence",
+      "equipment_type": "tool",
+      "rarity": "epic",
+      "stat_bonuses": {"accuracy": 18, "speed": 8},
+      "unlock_level": 13,
+      "cost": 7000
+    },
+    {
+      "id": "encryption_breaker",
+      "name": "Quantum Encryption Breaker",
+      "description": "Breaks even the strongest encryption",
+      "equipment_type": "tool",
+      "rarity": "legendary",
+      "stat_bonuses": {"speed": 35, "accuracy": 15},
+      "unlock_level": 18,
+      "cost": 25000
+    },
+    {
+      "id": "cloud_security_suite",
+      "name": "Enterprise Cloud Security Suite",
+      "description": "Complete cloud security monitoring platform",
+      "equipment_type": "tool",
+      "rarity": "epic",
+      "stat_bonuses": {"speed": 18, "accuracy": 14},
+      "unlock_level": 11,
+      "cost": 6500
+    },
+    {
+      "id": "vulnerability_scanner",
+      "name": "Automated Vulnerability Scanner",
+      "description": "Scans for vulnerabilities across all systems",
+      "equipment_type": "tool",
+      "rarity": "rare",
+      "stat_bonuses": {"speed": 14, "accuracy": 7},
+      "unlock_level": 7,
+      "cost": 3000
+    },
+    {
+      "id": "incident_response_kit",
+      "name": "Emergency Response Kit",
+      "description": "Everything needed for rapid incident response",
+      "equipment_type": "tool",
+      "rarity": "epic",
+      "stat_bonuses": {"speed": 22, "accuracy": 10},
+      "unlock_level": 14,
+      "cost": 8500
+    },
+    {
+      "id": "code_analysis_engine",
+      "name": "Static Code Analysis Engine",
+      "description": "Automatically detects code vulnerabilities",
+      "equipment_type": "tool",
+      "rarity": "rare",
+      "stat_bonuses": {"speed": 11, "accuracy": 9},
+      "unlock_level": 8,
+      "cost": 3500
+    },
+    {
+      "id": "bronze_badge",
+      "name": "Bronze Achievement Badge",
+      "description": "Recognition of basic competency",
+      "equipment_type": "badge",
+      "rarity": "common",
+      "stat_bonuses": {"xp_bonus": 0.03},
+      "unlock_level": 3,
+      "cost": 800
+    },
+    {
+      "id": "expert_badge",
+      "name": "Expert Certification Badge",
+      "description": "Proves advanced expertise",
+      "equipment_type": "badge",
+      "rarity": "epic",
+      "stat_bonuses": {"accuracy": 12, "xp_bonus": 0.12, "speed": 5},
+      "unlock_level": 15,
+      "cost": 10000
+    },
+    {
+      "id": "ergonomic_mouse",
+      "name": "Precision Ergonomic Mouse",
+      "description": "High-DPI mouse with perfect accuracy",
+      "equipment_type": "peripheral",
+      "rarity": "rare",
+      "stat_bonuses": {"accuracy": 6, "speed": 4},
+      "unlock_level": 4,
+      "cost": 800
+    },
+    {
+      "id": "multi_monitor_setup",
+      "name": "Triple Monitor Array",
+      "description": "Three 4K monitors for maximum visibility",
+      "equipment_type": "peripheral",
+      "rarity": "epic",
+      "stat_bonuses": {"speed": 15, "accuracy": 10},
+      "unlock_level": 10,
+      "cost": 5000
+    },
+    {
+      "id": "vr_headset",
+      "name": "VR Security Visualization Headset",
+      "description": "Visualize threats in 3D virtual space",
+      "equipment_type": "peripheral",
+      "rarity": "legendary",
+      "stat_bonuses": {"speed": 20, "accuracy": 25},
+      "unlock_level": 16,
+      "cost": 18000
+    },
+    {
+      "id": "biometric_scanner",
+      "name": "Advanced Biometric Scanner",
+      "description": "Instant identity verification",
+      "equipment_type": "peripheral",
+      "rarity": "epic",
+      "stat_bonuses": {"accuracy": 14, "speed": 6},
+      "unlock_level": 9,
+      "cost": 4500
+    },
+    {
+      "id": "secure_phone",
+      "name": "Encrypted Secure Phone",
+      "description": "Military-grade encrypted communications",
+      "equipment_type": "peripheral",
+      "rarity": "rare",
+      "stat_bonuses": {"accuracy": 5, "speed": 5},
+      "unlock_level": 6,
+      "cost": 1800
+    },
+    {
+      "id": "backup_generator",
+      "name": "Emergency Backup Power",
+      "description": "Never lose power during critical incidents",
+      "equipment_type": "peripheral",
+      "rarity": "rare",
+      "stat_bonuses": {"speed": 7},
+      "unlock_level": 7,
+      "cost": 2200
+    },
+    {
+      "id": "wifi_jammer",
+      "name": "Signal Jammer",
+      "description": "Block unauthorized wireless communications",
+      "equipment_type": "tool",
+      "rarity": "epic",
+      "stat_bonuses": {"speed": 16, "accuracy": 8},
+      "unlock_level": 11,
+      "cost": 5500
+    },
+    {
+      "id": "digital_forensics_suite",
+      "name": "Complete Digital Forensics Suite",
+      "description": "Everything for evidence collection and analysis",
+      "equipment_type": "tool",
+      "rarity": "legendary",
+      "stat_bonuses": {"speed": 28, "accuracy": 25, "xp_bonus": 0.18},
+      "unlock_level": 17,
+      "cost": 22000
+    },
+    {
+      "id": "penetration_testing_kit",
+      "name": "Penetration Testing Toolkit",
+      "description": "Tools for ethical hacking and security testing",
+      "equipment_type": "tool",
+      "rarity": "epic",
+      "stat_bonuses": {"speed": 17, "accuracy": 13},
+      "unlock_level": 12,
+      "cost": 7500
+    },
+    {
+      "id": "security_operations_console",
+      "name": "SOC Command Console",
+      "description": "Centralized security operations center",
+      "equipment_type": "tool",
+      "rarity": "legendary",
+      "stat_bonuses": {"speed": 32, "accuracy": 22, "xp_bonus": 0.25},
+      "unlock_level": 19,
+      "cost": 30000
+    },
+    {
+      "id": "portable_lab",
+      "name": "Portable Security Lab",
+      "description": "Complete security testing lab in a briefcase",
+      "equipment_type": "tool",
+      "rarity": "epic",
+      "stat_bonuses": {"speed": 19, "accuracy": 16},
+      "unlock_level": 13,
+      "cost": 9000
+    }
+  ]
+}
