@@ -16,6 +16,7 @@ from src.models.client import Client
 from src.models.automation_script import AutomationScript
 from src.core.incident_generator import IncidentGenerator
 from src.core.automation_processor import AutomationProcessor
+from src.core.passive_income_system import PassiveIncomeSystem
 from src.utils.json_loader import JSONLoader
 from src.utils.logger import GameLogger
 
@@ -79,6 +80,7 @@ class GameState:
     # Financial state
     current_money: float = 5000.0  # Starting money
     total_money_earned: float = 0.0
+    investments: Dict[str, float] = field(default_factory=dict)  # Investment type → amount
 
     # Game configuration
     max_active_incidents: int = 50
@@ -92,6 +94,7 @@ class GameState:
     _logger: Optional[GameLogger] = None
     _incident_generator: Optional[IncidentGenerator] = None
     _automation_processor: Optional[AutomationProcessor] = None
+    _passive_income_system: Optional[PassiveIncomeSystem] = None
     _last_incident_generation: float = field(default_factory=time.time)
     _incident_generation_accumulator: float = 0.0
 
@@ -114,6 +117,14 @@ class GameState:
             self._incident_generator = IncidentGenerator(self._logger)
         if self._automation_processor is None:
             self._automation_processor = AutomationProcessor(self._logger)
+        if self._passive_income_system is None:
+            # Load game config for passive income settings
+            try:
+                game_config = self._json_loader.load_data("game_config")
+                self._passive_income_system = PassiveIncomeSystem(game_config, self._logger)
+            except Exception as e:
+                self._logger.logger.warning(f"[GAME_STATE] Could not load game config, using default passive income: {e}")
+                self._passive_income_system = PassiveIncomeSystem({}, self._logger)
 
         # Load initial data if not provided
         if not self.specialists:
@@ -172,6 +183,10 @@ class GameState:
             executed_count = 0
 
         self.metrics.automation_scripts_triggered += executed_count
+        
+        # Apply passive income
+        if self._passive_income_system:
+            passive_income_result = self._passive_income_system.apply_passive_income(self, effective_delta)
 
         # Update metrics
         self._update_metrics()
@@ -518,6 +533,7 @@ class GameState:
             "is_paused": self.is_paused,
             "current_money": self.current_money,
             "total_money_earned": self.total_money_earned,
+            "investments": self.investments.copy(),
             "max_active_incidents": self.max_active_incidents,
             "incident_generation_enabled": self.incident_generation_enabled,
             "metrics": self.metrics.to_dict()
@@ -548,6 +564,7 @@ class GameState:
         instance.is_paused = data.get("is_paused", False)
         instance.current_money = data.get("current_money", 5000.0)
         instance.total_money_earned = data.get("total_money_earned", 0.0)
+        instance.investments = data.get("investments", {}).copy()
         instance.max_active_incidents = data.get("max_active_incidents", 50)
         instance.incident_generation_enabled = data.get("incident_generation_enabled", True)
         instance.metrics = GameMetrics.from_dict(data.get("metrics", {}))
@@ -556,8 +573,16 @@ class GameState:
         instance._json_loader = JSONLoader()
         instance._logger = GameLogger("game_state")
         instance._incident_generator = IncidentGenerator(instance._logger)
+        instance._automation_processor = AutomationProcessor(instance._logger)
         instance._last_incident_generation = time.time()
         instance._incident_generation_accumulator = 0.0
+        
+        # Initialize passive income system
+        try:
+            game_config = instance._json_loader.load_data("game_config")
+            instance._passive_income_system = PassiveIncomeSystem(game_config, instance._logger)
+        except Exception:
+            instance._passive_income_system = PassiveIncomeSystem({}, instance._logger)
 
         # Load automation scripts
         try:

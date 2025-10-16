@@ -85,5 +85,25 @@
       "sla_warning": "#ff9800",
       "sla_critical": "#f44336"
     }
+  },
+  "passive_income": {
+    "retainer_income_multiplier": 1.0,
+    "investment_types": {
+      "low_risk": {
+        "return_rate": 0.02,
+        "risk": 0.0,
+        "description": "Safe investment with 2% annual return"
+      },
+      "medium_risk": {
+        "return_rate": 0.05,
+        "risk": 0.1,
+        "description": "Moderate investment with 5% annual return, 10% risk of loss"
+      },
+      "high_risk": {
+        "return_rate": 0.10,
+        "risk": 0.25,
+        "description": "Risky investment with 10% annual return, 25% risk of loss"
+      }
+    }
   }
 }
