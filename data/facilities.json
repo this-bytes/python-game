@@ -1,0 +1,53 @@
+{
+  "facilities": [
+    {
+      "id": "office_space",
+      "name": "Office Space",
+      "description": "Expand office to hire more specialists",
+      "facility_type": "office_space",
+      "level": 1,
+      "max_level": 10,
+      "upgrade_cost": 5000,
+      "bonuses": {
+        "max_specialists": 2
+      }
+    },
+    {
+      "id": "server_room",
+      "name": "Server Room",
+      "description": "Increased incident handling capacity and resolution speed",
+      "facility_type": "server_room",
+      "level": 1,
+      "max_level": 10,
+      "upgrade_cost": 8000,
+      "bonuses": {
+        "max_active_incidents": 10,
+        "incident_resolution_speed": 0.05
+      }
+    },
+    {
+      "id": "training_center",
+      "name": "Training Center",
+      "description": "Specialists gain XP faster",
+      "facility_type": "training_center",
+      "level": 1,
+      "max_level": 10,
+      "upgrade_cost": 10000,
+      "bonuses": {
+        "xp_multiplier": 0.1
+      }
+    },
+    {
+      "id": "break_room",
+      "name": "Break Room",
+      "description": "Reduces specialist fatigue accumulation",
+      "facility_type": "break_room",
+      "level": 1,
+      "max_level": 10,
+      "upgrade_cost": 6000,
+      "bonuses": {
+        "fatigue_reduction": 0.1
+      }
+    }
+  ]
+}

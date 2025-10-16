@@ -1,0 +1,96 @@
+{
+  "specialist_archetypes": [
+    {
+      "name": "Security Analyst",
+      "specialty": "Network Security",
+      "base_stats": {
+        "speed": 70,
+        "accuracy": 75,
+        "experience_bonus": 1.0
+      },
+      "description": "Specializes in network defense and threat detection"
+    },
+    {
+      "name": "Forensics Expert",
+      "specialty": "Digital Forensics",
+      "base_stats": {
+        "speed": 65,
+        "accuracy": 85,
+        "experience_bonus": 1.0
+      },
+      "description": "Master of evidence analysis and incident investigation"
+    },
+    {
+      "name": "Malware Hunter",
+      "specialty": "Malware Analysis",
+      "base_stats": {
+        "speed": 80,
+        "accuracy": 70,
+        "experience_bonus": 1.0
+      },
+      "description": "Expert in reverse engineering and malware detection"
+    },
+    {
+      "name": "Incident Commander",
+      "specialty": "Incident Response",
+      "base_stats": {
+        "speed": 75,
+        "accuracy": 80,
+        "experience_bonus": 1.0
+      },
+      "description": "Leads rapid response teams and coordinates defenses"
+    },
+    {
+      "name": "Cloud Guardian",
+      "specialty": "Cloud Security",
+      "base_stats": {
+        "speed": 70,
+        "accuracy": 80,
+        "experience_bonus": 1.0
+      },
+      "description": "Protects cloud infrastructure and services"
+    },
+    {
+      "name": "App Sec Specialist",
+      "specialty": "Application Security",
+      "base_stats": {
+        "speed": 75,
+        "accuracy": 75,
+        "experience_bonus": 1.0
+      },
+      "description": "Secures applications and finds vulnerabilities"
+    }
+  ],
+  "recruitment_settings": {
+    "pool_size": 5,
+    "refresh_hours": 24,
+    "quality_distribution": {
+      "novice": 0.5,
+      "experienced": 0.3,
+      "expert": 0.15,
+      "legendary": 0.05
+    },
+    "quality_tiers": {
+      "novice": {
+        "level_range": [1, 1],
+        "stat_range": [60, 70],
+        "cost": 1000
+      },
+      "experienced": {
+        "level_range": [3, 5],
+        "stat_range": [75, 85],
+        "cost": 3000
+      },
+      "expert": {
+        "level_range": [8, 10],
+        "stat_range": [85, 95],
+        "cost": 8000
+      },
+      "legendary": {
+        "level_range": [15, 20],
+        "stat_range": [95, 100],
+        "cost": 20000
+      }
+    }
+  }
+}
