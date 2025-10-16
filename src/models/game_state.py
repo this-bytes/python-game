@@ -248,6 +248,17 @@ class GameState:
         if self._passive_income_system:
             passive_income_result = self._passive_income_system.apply_passive_income(self, effective_delta)
 
+        # Update specialist ability cooldowns
+        self._update_ability_cooldowns(effective_delta)
+        
+        # Check for achievements periodically (every 10 seconds)
+        if not hasattr(self, '_last_achievement_check'):
+            self._last_achievement_check = 0.0
+        self._last_achievement_check += effective_delta
+        if self._last_achievement_check >= 10.0:
+            self._check_achievements()
+            self._last_achievement_check = 0.0
+
         # Update metrics
         self._update_metrics()
 
@@ -337,7 +348,11 @@ class GameState:
             # Award rewards
             self.current_money += reward
             self.total_money_earned += reward
-            specialist.gain_xp(xp_gain)
+            
+            # Award XP and check for level up
+            leveled_up = specialist.gain_xp(xp_gain)
+            if leveled_up:
+                self._process_specialist_level_up(specialist)
 
             # Update client reputation
             client = self.get_client_by_id(incident.client_id)
@@ -351,6 +366,9 @@ class GameState:
             self.metrics.total_xp_awarded += xp_gain
 
             self._logger.logger.info(f"[GAME_STATE] Incident {incident.id} resolved by {specialist.id}: reward=${reward}, XP={xp_gain}, SLA={'met' if sla_met else 'missed'}")
+            
+            # Generate equipment drop
+            self._generate_equipment_drop(incident, specialist)
 
         else:
             # Failed resolution
@@ -390,6 +408,113 @@ class GameState:
         total_incidents = self.metrics.total_incidents_handled + self.metrics.total_incidents_failed
         if total_incidents > 0:
             self.metrics.sla_compliance_rate = (self.metrics.total_incidents_handled / total_incidents) * 100.0
+    
+    def _update_ability_cooldowns(self, delta_time: float):
+        """Update ability cooldowns for all specialists.
+        
+        Args:
+            delta_time: Time elapsed in seconds
+        """
+        try:
+            from src.core.ability_system import AbilitySystem
+            from src.utils.json_loader import JSONLoader
+            
+            # Load abilities config
+            json_loader = JSONLoader()
+            abilities_config = json_loader.load_data("abilities")
+            ability_system = AbilitySystem(abilities_config)
+            
+            # Update cooldowns for all specialists
+            for specialist in self.specialists:
+                ability_system.update_cooldowns(specialist, delta_time)
+                ability_system.update_active_effects(specialist, delta_time)
+        except Exception as e:
+            self._logger.logger.warning(f"[GAME_STATE] Failed to update ability cooldowns: {e}")
+    
+    def _check_achievements(self):
+        """Check for newly unlocked achievements."""
+        try:
+            from src.core.achievement_system import AchievementSystem
+            from src.utils.json_loader import JSONLoader
+            
+            # Load achievements config
+            json_loader = JSONLoader()
+            achievements_config = json_loader.load_data("achievements")
+            achievement_system = AchievementSystem(achievements_config)
+            
+            # Check for newly unlocked achievements
+            newly_unlocked = achievement_system.check_achievements(self)
+            
+            if newly_unlocked:
+                for achievement in newly_unlocked:
+                    self._logger.logger.info(
+                        f"[GAME_STATE] Achievement unlocked: {achievement.name}"
+                    )
+        except Exception as e:
+            self._logger.logger.warning(f"[GAME_STATE] Failed to check achievements: {e}")
+    
+    def _process_specialist_level_up(self, specialist):
+        """Process level-up rewards for a specialist.
+        
+        Args:
+            specialist: The specialist who leveled up
+        """
+        try:
+            from src.core.progression_system import ProgressionSystem
+            from src.core.ability_system import AbilitySystem
+            from src.utils.json_loader import JSONLoader
+            
+            # Load game config
+            json_loader = JSONLoader()
+            game_config = json_loader.load_data("game_config")
+            progression_system = ProgressionSystem(game_config)
+            
+            # Process level up
+            rewards = progression_system.process_level_up(specialist)
+            
+            # Load abilities config and unlock new abilities
+            abilities_config = json_loader.load_data("abilities")
+            ability_system = AbilitySystem(abilities_config)
+            unlocked_abilities = ability_system.unlock_abilities_for_level(specialist, specialist.level)
+            
+            if unlocked_abilities:
+                rewards["unlocked_abilities"] = unlocked_abilities
+            
+            self._logger.logger.info(
+                f"[GAME_STATE] Specialist {specialist.id} leveled up to {specialist.level}: "
+                f"stats={rewards['stat_increases']}, abilities={unlocked_abilities}"
+            )
+        except Exception as e:
+            self._logger.logger.warning(f"[GAME_STATE] Failed to process level up: {e}")
+    
+    def _generate_equipment_drop(self, incident, specialist):
+        """Generate equipment drop from incident resolution.
+        
+        Args:
+            incident: The resolved incident
+            specialist: The specialist who resolved it
+        """
+        try:
+            from src.core.equipment_system import EquipmentSystem
+            from src.utils.json_loader import JSONLoader
+            
+            # Load equipment config
+            json_loader = JSONLoader()
+            equipment_config = json_loader.load_data("equipment")
+            equipment_system = EquipmentSystem(equipment_config)
+            
+            # Generate drop
+            dropped_equipment = equipment_system.generate_equipment_drop(incident.difficulty)
+            
+            if dropped_equipment:
+                # Add to specialist's inventory
+                equipment_system.add_to_inventory(specialist, dropped_equipment)
+                self._logger.logger.info(
+                    f"[GAME_STATE] Equipment drop: {dropped_equipment.name} "
+                    f"({dropped_equipment.rarity}) for {specialist.id}"
+                )
+        except Exception as e:
+            self._logger.logger.warning(f"[GAME_STATE] Failed to generate equipment drop: {e}")
 
     # Public interface methods
 
