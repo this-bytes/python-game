@@ -1,0 +1,211 @@
+{
+  "prestige_upgrades": [
+    {
+      "id": "xp_boost_1",
+      "name": "Experience Mastery I",
+      "description": "Increase XP gain by 10% per level",
+      "cost_prestige_points": 5,
+      "effect_type": "xp_multiplier",
+      "effect_magnitude": 0.10,
+      "max_level": 5
+    },
+    {
+      "id": "xp_boost_2",
+      "name": "Experience Mastery II",
+      "description": "Increase XP gain by 15% per level (requires Mastery I)",
+      "cost_prestige_points": 10,
+      "effect_type": "xp_multiplier",
+      "effect_magnitude": 0.15,
+      "max_level": 5
+    },
+    {
+      "id": "money_boost_1",
+      "name": "Financial Acumen I",
+      "description": "Increase money earned from incidents by 10% per level",
+      "cost_prestige_points": 5,
+      "effect_type": "money_multiplier",
+      "effect_magnitude": 0.10,
+      "max_level": 5
+    },
+    {
+      "id": "money_boost_2",
+      "name": "Financial Acumen II",
+      "description": "Increase money earned from incidents by 15% per level",
+      "cost_prestige_points": 10,
+      "effect_type": "money_multiplier",
+      "effect_magnitude": 0.15,
+      "max_level": 5
+    },
+    {
+      "id": "passive_income_boost_1",
+      "name": "Investment Savvy I",
+      "description": "Increase passive income from all sources by 20% per level",
+      "cost_prestige_points": 8,
+      "effect_type": "passive_income_boost",
+      "effect_magnitude": 0.20,
+      "max_level": 3
+    },
+    {
+      "id": "passive_income_boost_2",
+      "name": "Investment Savvy II",
+      "description": "Increase passive income from all sources by 30% per level",
+      "cost_prestige_points": 15,
+      "effect_type": "passive_income_boost",
+      "effect_magnitude": 0.30,
+      "max_level": 3
+    },
+    {
+      "id": "automation_efficiency_1",
+      "name": "Automation Excellence I",
+      "description": "Increase automation script efficiency by 10% per level",
+      "cost_prestige_points": 7,
+      "effect_type": "automation_efficiency",
+      "effect_magnitude": 0.10,
+      "max_level": 5
+    },
+    {
+      "id": "automation_efficiency_2",
+      "name": "Automation Excellence II",
+      "description": "Increase automation script efficiency by 15% per level",
+      "cost_prestige_points": 12,
+      "effect_type": "automation_efficiency",
+      "effect_magnitude": 0.15,
+      "max_level": 5
+    },
+    {
+      "id": "automation_cooldown_reduction",
+      "name": "Rapid Automation",
+      "description": "Reduce automation cooldowns by 10% per level",
+      "cost_prestige_points": 10,
+      "effect_type": "automation_cooldown_reduction",
+      "effect_magnitude": 0.10,
+      "max_level": 3
+    },
+    {
+      "id": "starting_specialists",
+      "name": "Recruitment Network",
+      "description": "Start with 1 additional specialist per level",
+      "cost_prestige_points": 15,
+      "effect_type": "starting_specialists",
+      "effect_magnitude": 1.0,
+      "max_level": 3
+    },
+    {
+      "id": "incident_reward_boost_1",
+      "name": "Contract Negotiator I",
+      "description": "Increase incident rewards by 15% per level",
+      "cost_prestige_points": 6,
+      "effect_type": "incident_reward_boost",
+      "effect_magnitude": 0.15,
+      "max_level": 4
+    },
+    {
+      "id": "incident_reward_boost_2",
+      "name": "Contract Negotiator II",
+      "description": "Increase incident rewards by 20% per level",
+      "cost_prestige_points": 12,
+      "effect_type": "incident_reward_boost",
+      "effect_magnitude": 0.20,
+      "max_level": 4
+    },
+    {
+      "id": "client_reputation_boost",
+      "name": "Reputation Mastery",
+      "description": "Increase client reputation gains by 25% per level",
+      "cost_prestige_points": 8,
+      "effect_type": "client_reputation_boost",
+      "effect_magnitude": 0.25,
+      "max_level": 4
+    },
+    {
+      "id": "sla_time_extension",
+      "name": "Time Management",
+      "description": "Extend SLA deadlines by 5% per level",
+      "cost_prestige_points": 9,
+      "effect_type": "sla_time_extension",
+      "effect_magnitude": 0.05,
+      "max_level": 5
+    },
+    {
+      "id": "specialist_stat_boost_speed",
+      "name": "Swift Response Training",
+      "description": "Increase all specialist speed by 5% per level",
+      "cost_prestige_points": 7,
+      "effect_type": "specialist_stat_boost",
+      "effect_magnitude": 0.05,
+      "max_level": 5
+    },
+    {
+      "id": "specialist_stat_boost_accuracy",
+      "name": "Precision Training",
+      "description": "Increase all specialist accuracy by 3% per level",
+      "cost_prestige_points": 7,
+      "effect_type": "specialist_stat_boost",
+      "effect_magnitude": 0.03,
+      "max_level": 5
+    },
+    {
+      "id": "ultimate_xp_boost",
+      "name": "Master of Learning",
+      "description": "Massive XP boost: 50% per level (expensive!)",
+      "cost_prestige_points": 25,
+      "effect_type": "xp_multiplier",
+      "effect_magnitude": 0.50,
+      "max_level": 2
+    },
+    {
+      "id": "ultimate_money_boost",
+      "name": "Financial Genius",
+      "description": "Massive money boost: 50% per level (expensive!)",
+      "cost_prestige_points": 25,
+      "effect_type": "money_multiplier",
+      "effect_magnitude": 0.50,
+      "max_level": 2
+    },
+    {
+      "id": "ultimate_automation",
+      "name": "AI Automation",
+      "description": "Ultimate automation efficiency: 40% per level",
+      "cost_prestige_points": 30,
+      "effect_type": "automation_efficiency",
+      "effect_magnitude": 0.40,
+      "max_level": 2
+    },
+    {
+      "id": "ultimate_passive_income",
+      "name": "Passive Income Empire",
+      "description": "Ultimate passive income boost: 100% per level",
+      "cost_prestige_points": 35,
+      "effect_type": "passive_income_boost",
+      "effect_magnitude": 1.00,
+      "max_level": 2
+    },
+    {
+      "id": "legendary_start",
+      "name": "Legendary Beginning",
+      "description": "Start with 2 additional high-level specialists",
+      "cost_prestige_points": 50,
+      "effect_type": "starting_specialists",
+      "effect_magnitude": 2.0,
+      "max_level": 1
+    },
+    {
+      "id": "sla_master",
+      "name": "SLA Master",
+      "description": "Extend SLA deadlines by 20% per level (ultimate)",
+      "cost_prestige_points": 40,
+      "effect_type": "sla_time_extension",
+      "effect_magnitude": 0.20,
+      "max_level": 2
+    },
+    {
+      "id": "reputation_legend",
+      "name": "Industry Legend",
+      "description": "Double reputation gains (ultimate)",
+      "cost_prestige_points": 45,
+      "effect_type": "client_reputation_boost",
+      "effect_magnitude": 1.00,
+      "max_level": 1
+    }
+  ]
+}

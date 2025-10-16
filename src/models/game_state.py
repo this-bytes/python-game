@@ -16,6 +16,8 @@ from src.models.client import Client
 from src.models.automation_script import AutomationScript
 from src.core.incident_generator import IncidentGenerator
 from src.core.automation_processor import AutomationProcessor
+from src.core.passive_income_system import PassiveIncomeSystem
+from src.core.offline_progress import OfflineProgressSystem
 from src.utils.json_loader import JSONLoader
 from src.utils.logger import GameLogger
 
@@ -79,6 +81,15 @@ class GameState:
     # Financial state
     current_money: float = 5000.0  # Starting money
     total_money_earned: float = 0.0
+    investments: Dict[str, float] = field(default_factory=dict)  # Investment type → amount
+    
+    # Offline progress
+    last_save_time: float = field(default_factory=time.time)  # Last time game was saved
+    
+    # Prestige/Rebirth system
+    prestige_points: int = 0  # Prestige points available to spend
+    prestige_upgrades: Dict[str, int] = field(default_factory=dict)  # Upgrade ID → level
+    total_prestiges: int = 0  # Total number of prestiges performed
 
     # Game configuration
     max_active_incidents: int = 50
@@ -92,8 +103,11 @@ class GameState:
     _logger: Optional[GameLogger] = None
     _incident_generator: Optional[IncidentGenerator] = None
     _automation_processor: Optional[AutomationProcessor] = None
+    _passive_income_system: Optional[PassiveIncomeSystem] = None
+    _offline_progress_system: Optional[OfflineProgressSystem] = None
     _last_incident_generation: float = field(default_factory=time.time)
     _incident_generation_accumulator: float = 0.0
+    _offline_progress_calculated: bool = False  # Track if offline progress was calculated
 
     def __post_init__(self):
         """Initialize game state after creation."""
@@ -114,10 +128,29 @@ class GameState:
             self._incident_generator = IncidentGenerator(self._logger)
         if self._automation_processor is None:
             self._automation_processor = AutomationProcessor(self._logger)
+        if self._passive_income_system is None:
+            # Load game config for passive income settings
+            try:
+                game_config = self._json_loader.load_data("game_config")
+                self._passive_income_system = PassiveIncomeSystem(game_config, self._logger)
+            except Exception as e:
+                self._logger.logger.warning(f"[GAME_STATE] Could not load game config, using default passive income: {e}")
+                self._passive_income_system = PassiveIncomeSystem({}, self._logger)
+        if self._offline_progress_system is None:
+            # Load game config for offline progress settings
+            try:
+                game_config = self._json_loader.load_data("game_config")
+                self._offline_progress_system = OfflineProgressSystem(game_config, self._logger)
+            except Exception as e:
+                self._logger.logger.warning(f"[GAME_STATE] Could not load game config, using default offline progress: {e}")
+                self._offline_progress_system = OfflineProgressSystem({}, self._logger)
 
         # Load initial data if not provided
         if not self.specialists:
             self._load_initial_data()
+        
+        # Check for offline progress on initialization
+        self._check_offline_progress()
 
     def _load_initial_data(self):
         """Load initial game data from JSON files."""
@@ -142,6 +175,39 @@ class GameState:
         except Exception as e:
             self._logger.logger.error(f"[GAME_STATE] Failed to load initial data: {str(e)}")
             raise
+
+    def _check_offline_progress(self):
+        """Check if player was offline and calculate offline progress."""
+        if self._offline_progress_calculated:
+            return  # Already calculated
+        
+        current_time = time.time()
+        time_elapsed = current_time - self.last_save_time
+        
+        # Only calculate if more than 5 minutes elapsed
+        min_offline_time = 300  # 5 minutes
+        
+        if time_elapsed > min_offline_time:
+            self._logger.logger.info(
+                f"[GAME_STATE] Player was offline for {time_elapsed/3600:.1f} hours, calculating progress..."
+            )
+            
+            if self._offline_progress_system:
+                offline_report = self._offline_progress_system.calculate_offline_progress(
+                    self, time_elapsed
+                )
+                
+                # Store the report for display
+                self._last_offline_report = offline_report
+                
+                self._logger.logger.info(
+                    f"[GAME_STATE] Offline progress complete: ${offline_report['summary']['total_income']:.2f} earned"
+                )
+            
+            self._offline_progress_calculated = True
+        
+        # Update last save time to now
+        self.last_save_time = current_time
 
     def update(self, delta_time: float):
         """Update game state by the given time delta.
@@ -172,6 +238,10 @@ class GameState:
             executed_count = 0
 
         self.metrics.automation_scripts_triggered += executed_count
+        
+        # Apply passive income
+        if self._passive_income_system:
+            passive_income_result = self._passive_income_system.apply_passive_income(self, effective_delta)
 
         # Update metrics
         self._update_metrics()
@@ -489,7 +559,7 @@ class GameState:
         Returns:
             Dictionary containing game summary data
         """
-        return {
+        summary = {
             "game_time": self.get_game_time_elapsed(),
             "current_money": self.current_money,
             "total_money_earned": self.total_money_earned,
@@ -501,6 +571,20 @@ class GameState:
             "is_paused": self.is_paused,
             "game_speed": self.game_speed_multiplier
         }
+        
+        # Add offline progress report if available
+        if hasattr(self, '_last_offline_report'):
+            summary["offline_progress"] = self._last_offline_report
+        
+        return summary
+
+    def get_offline_progress_report(self) -> Optional[Dict[str, Any]]:
+        """Get the last offline progress report.
+        
+        Returns:
+            Offline progress report or None if no offline progress
+        """
+        return getattr(self, '_last_offline_report', None)
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert game state to dictionary for serialization.
@@ -518,6 +602,11 @@ class GameState:
             "is_paused": self.is_paused,
             "current_money": self.current_money,
             "total_money_earned": self.total_money_earned,
+            "investments": self.investments.copy(),
+            "last_save_time": self.last_save_time,
+            "prestige_points": self.prestige_points,
+            "prestige_upgrades": self.prestige_upgrades.copy(),
+            "total_prestiges": self.total_prestiges,
             "max_active_incidents": self.max_active_incidents,
             "incident_generation_enabled": self.incident_generation_enabled,
             "metrics": self.metrics.to_dict()
@@ -548,6 +637,11 @@ class GameState:
         instance.is_paused = data.get("is_paused", False)
         instance.current_money = data.get("current_money", 5000.0)
         instance.total_money_earned = data.get("total_money_earned", 0.0)
+        instance.investments = data.get("investments", {}).copy()
+        instance.last_save_time = data.get("last_save_time", time.time())
+        instance.prestige_points = data.get("prestige_points", 0)
+        instance.prestige_upgrades = data.get("prestige_upgrades", {}).copy()
+        instance.total_prestiges = data.get("total_prestiges", 0)
         instance.max_active_incidents = data.get("max_active_incidents", 50)
         instance.incident_generation_enabled = data.get("incident_generation_enabled", True)
         instance.metrics = GameMetrics.from_dict(data.get("metrics", {}))
@@ -556,8 +650,24 @@ class GameState:
         instance._json_loader = JSONLoader()
         instance._logger = GameLogger("game_state")
         instance._incident_generator = IncidentGenerator(instance._logger)
+        instance._automation_processor = AutomationProcessor(instance._logger)
         instance._last_incident_generation = time.time()
         instance._incident_generation_accumulator = 0.0
+        instance._offline_progress_calculated = False
+        
+        # Initialize passive income system
+        try:
+            game_config = instance._json_loader.load_data("game_config")
+            instance._passive_income_system = PassiveIncomeSystem(game_config, instance._logger)
+        except Exception:
+            instance._passive_income_system = PassiveIncomeSystem({}, instance._logger)
+        
+        # Initialize offline progress system
+        try:
+            game_config = instance._json_loader.load_data("game_config")
+            instance._offline_progress_system = OfflineProgressSystem(game_config, instance._logger)
+        except Exception:
+            instance._offline_progress_system = OfflineProgressSystem({}, instance._logger)
 
         # Load automation scripts
         try:
