@@ -4,7 +4,7 @@ Draggable, resizable window panel with title bar and control buttons.
 """
 
 import pygame
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Any
 from enum import Enum
 
 
@@ -200,7 +200,7 @@ class Panel:
                            (min_rect.x + 5, min_rect.y + 10),
                            (min_rect.x + 15, min_rect.y + 10), 2)
 
-    def handle_event(self, event: pygame.Event) -> bool:
+    def handle_event(self, event: Any) -> bool:
         """Handle mouse events.
 
         Args:
@@ -221,7 +221,7 @@ class Panel:
 
         return False
 
-    def _handle_mouse_down(self, event: pygame.Event) -> bool:
+    def _handle_mouse_down(self, event: Any) -> bool:
         """Handle mouse button down event."""
         if event.button != 1:  # Left click only
             return False
@@ -275,7 +275,7 @@ class Panel:
         # Event consumed by panel (click inside)
         return True
 
-    def _handle_mouse_up(self, event: pygame.Event) -> bool:
+    def _handle_mouse_up(self, event: Any) -> bool:
         """Handle mouse button up event."""
         if event.button != 1:
             return False
@@ -288,7 +288,7 @@ class Panel:
 
         return was_dragging or was_resizing
 
-    def _handle_mouse_motion(self, event: pygame.Event) -> bool:
+    def _handle_mouse_motion(self, event: Any) -> bool:
         """Handle mouse motion event."""
         if self.is_dragging:
             self.position[0] = event.pos[0] - self.drag_offset[0]

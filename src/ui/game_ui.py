@@ -10,6 +10,13 @@ from dataclasses import dataclass
 
 from src.models.game_state import GameState
 from src.utils.logger import GameLogger
+from src.ui.theme_manager import ThemeManager
+from src.ui.notification_system import NotificationManager
+from src.ui.hotkey_manager import HotkeyManager, HotkeyAction
+from src.ui.panels.specialist_roster_panel import SpecialistRosterPanel
+from src.ui.panels.incident_queue_panel import IncidentQueuePanel
+from src.ui.panels.metrics_panel import MetricsPanel
+from src.ui.components.button import Button, ButtonStyle
 
 
 @dataclass
@@ -21,16 +28,6 @@ class GameAction:
 
 class GameUI:
     """Main UI class handling Pygame rendering and input."""
-
-    # Colors
-    BLACK = (0, 0, 0)
-    WHITE = (255, 255, 255)
-    GRAY = (128, 128, 128)
-    DARK_GRAY = (64, 64, 64)
-    BLUE = (0, 100, 200)
-    GREEN = (0, 200, 100)
-    RED = (200, 50, 50)
-    YELLOW = (200, 200, 0)
 
     # Window settings
     WINDOW_WIDTH = 1280
@@ -53,11 +50,100 @@ class GameUI:
         self.font = pygame.font.SysFont('Arial', 24)
         self.small_font = pygame.font.SysFont('Arial', 16)
 
-        # UI state
-        self.selected_specialist = None
-        self.selected_incident = None
+        # Initialize managers
+        self.theme_manager = ThemeManager()
+        self.notification_manager = NotificationManager(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
+        self.hotkey_manager = HotkeyManager()
 
-        self.logger.logger.info("[GAME_UI] Game UI initialized")
+        # Register hotkey callbacks
+        self._register_hotkey_callbacks()
+
+        # Initialize panels
+        self.specialist_roster_panel = SpecialistRosterPanel(self.game_state)
+        self.incident_queue_panel = IncidentQueuePanel(self.game_state)
+        self.metrics_panel = MetricsPanel(self.game_state)
+
+        # Apply theme to panels
+        self._apply_theme_to_panels()
+
+        # Panels list for z-order management
+        self.panels = [
+            self.specialist_roster_panel,
+            self.incident_queue_panel,
+            self.metrics_panel,
+        ]
+
+        # Create assign button
+        self.assign_button = Button(
+            text="Assign Specialist",
+            position=(20, 600),
+            size=(200, 40),
+            callback=self._handle_assign_button,
+            style=ButtonStyle.PRIMARY,
+            enabled=False,
+        )
+
+        # UI state
+        self.show_help_overlay = False
+
+        self.logger.logger.info("[GAME_UI] Game UI initialized with new panel system")
+
+    def _register_hotkey_callbacks(self) -> None:
+        """Register hotkey callbacks."""
+        self.hotkey_manager.register_callback(
+            HotkeyAction.PAUSE_TOGGLE,
+            lambda: self._toggle_pause()
+        )
+        self.hotkey_manager.register_callback(
+            HotkeyAction.TOGGLE_SPECIALIST_PANEL,
+            lambda: self._toggle_panel(self.specialist_roster_panel)
+        )
+        self.hotkey_manager.register_callback(
+            HotkeyAction.TOGGLE_INCIDENT_PANEL,
+            lambda: self._toggle_panel(self.incident_queue_panel)
+        )
+        self.hotkey_manager.register_callback(
+            HotkeyAction.TOGGLE_METRICS_PANEL,
+            lambda: self._toggle_panel(self.metrics_panel)
+        )
+
+    def _apply_theme_to_panels(self) -> None:
+        """Apply current theme to all panels."""
+        theme = self.theme_manager.get_current_theme()
+        if theme:
+            theme_dict = {"colors": theme.colors}
+            self.specialist_roster_panel.set_theme_colors(theme_dict)
+            self.incident_queue_panel.set_theme_colors(theme_dict)
+            self.metrics_panel.set_theme_colors(theme_dict)
+
+    def _toggle_pause(self) -> None:
+        """Toggle game pause state."""
+        self.game_state.paused = not self.game_state.paused
+        status = "paused" if self.game_state.paused else "resumed"
+        self.notification_manager.show_info("Game", f"Game {status}")
+
+    def _toggle_panel(self, panel) -> None:
+        """Toggle panel visibility."""
+        panel.visible = not panel.visible
+
+    def _handle_assign_button(self) -> None:
+        """Handle assign button click."""
+        specialist = self.specialist_roster_panel.get_selected_specialist()
+        incident = self.incident_queue_panel.get_selected_incident()
+
+        if specialist and incident:
+            # Try to assign
+            success = self.game_state.assign_incident_to_specialist(incident.id, specialist.id)
+            if success:
+                self.notification_manager.show_success(
+                    "Assignment",
+                    f"{specialist.name} assigned to {incident.incident_type}"
+                )
+            else:
+                self.notification_manager.show_error(
+                    "Assignment Failed",
+                    "Could not assign specialist to incident"
+                )
 
     def handle_input(self, events: List[pygame.event.Event]) -> List[GameAction]:
         """Process input events and return game actions.
@@ -71,66 +157,34 @@ class GameUI:
         actions = []
 
         for event in events:
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                action = self._handle_mouse_click(event.pos)
-                if action:
-                    actions.append(action)
-            elif event.type == pygame.KEYDOWN:
-                action = self._handle_key_press(event.key)
-                if action:
-                    actions.append(action)
+            # Handle hotkeys first
+            if self.hotkey_manager.handle_key_event(event):
+                continue
+
+            # Handle panel events (in reverse z-order)
+            event_consumed = False
+            for panel in reversed(self.panels):
+                if panel.handle_event(event):
+                    # Bring panel to front if clicked
+                    if event.type == pygame.MOUSEBUTTONDOWN:
+                        self.panels.remove(panel)
+                        self.panels.append(panel)
+                    event_consumed = True
+                    break
+
+            if event_consumed:
+                continue
+
+            # Handle button events
+            if self.assign_button.handle_event(event):
+                continue
+
+            # Handle other inputs
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_h:
+                    self.show_help_overlay = not self.show_help_overlay
 
         return actions
-
-    def _handle_mouse_click(self, pos: tuple) -> Optional[GameAction]:
-        """Handle mouse click at position.
-
-        Args:
-            pos: Mouse position (x, y)
-
-        Returns:
-            Game action if click handled, None otherwise
-        """
-        x, y = pos
-
-        # Check if click is in specialist panel
-        if self._is_in_specialist_panel(x, y):
-            specialist = self._get_specialist_at_pos(x, y)
-            if specialist:
-                self.selected_specialist = specialist
-                return GameAction("select_specialist", {"specialist_id": specialist.id})
-
-        # Check if click is in incident panel
-        elif self._is_in_incident_panel(x, y):
-            incident = self._get_incident_at_pos(x, y)
-            if incident:
-                self.selected_incident = incident
-                return GameAction("select_incident", {"incident_id": incident.id})
-
-        # Check if click is assign button
-        elif self._is_in_assign_button(x, y) and self.selected_specialist and self.selected_incident:
-            return GameAction("assign_incident", {
-                "specialist_id": self.selected_specialist.id,
-                "incident_id": self.selected_incident.id
-            })
-
-        return None
-
-    def _handle_key_press(self, key: int) -> Optional[GameAction]:
-        """Handle key press.
-
-        Args:
-            key: Pygame key code
-
-        Returns:
-            Game action if key handled, None otherwise
-        """
-        if key == pygame.K_ESCAPE:
-            return GameAction("quit", {})
-        elif key == pygame.K_SPACE:
-            return GameAction("pause_toggle", {})
-
-        return None
 
     def update(self, delta_time: float) -> None:
         """Update UI state.
@@ -138,165 +192,125 @@ class GameUI:
         Args:
             delta_time: Time elapsed since last update
         """
-        # Update any animations or UI state changes
-        pass
+        # Update notification manager
+        self.notification_manager.update(delta_time)
+
+        # Update button enabled state
+        specialist = self.specialist_roster_panel.get_selected_specialist()
+        incident = self.incident_queue_panel.get_selected_incident()
+        self.assign_button.set_enabled(specialist is not None and incident is not None)
 
     def render(self) -> None:
         """Render the game UI."""
-        self.screen.fill(self.DARK_GRAY)
+        # Get background color from theme
+        bg_color = self.theme_manager.get_color("background", (15, 15, 25))
+        self.screen.fill(bg_color)
 
         # Render main panels
         self._render_header()
-        self._render_specialist_panel()
-        self._render_incident_panel()
-        self._render_metrics_panel()
+
+        # Render all panels (in z-order)
+        for panel in self.panels:
+            panel.render(self.screen)
+
+        # Render controls
         self._render_controls()
+
+        # Render notifications (always on top)
+        self.notification_manager.render(self.screen)
+
+        # Render help overlay if active
+        if self.show_help_overlay:
+            self._render_help_overlay()
 
         # Update display
         pygame.display.flip()
 
     def _render_header(self) -> None:
         """Render the game header with basic info."""
-        header_rect = pygame.Rect(0, 0, self.WINDOW_WIDTH, 60)
-        pygame.draw.rect(self.screen, self.BLUE, header_rect)
+        header_height = 60
+        header_rect = pygame.Rect(0, 0, self.WINDOW_WIDTH, header_height)
+        
+        # Get colors from theme
+        primary_color = self.theme_manager.get_color("primary", (0, 180, 255))
+        text_color = self.theme_manager.get_color("text", (220, 220, 230))
+        
+        pygame.draw.rect(self.screen, primary_color, header_rect)
 
         # Title
-        title_text = self.font.render("Cybersecurity Firm - Idle/Tycoon/RPG", True, self.WHITE)
+        title_text = self.font.render("Cybersecurity Firm - Idle/Tycoon/RPG", True, text_color)
         self.screen.blit(title_text, (20, 15))
 
-        # Money and time
-        money_text = self.font.render(f"Money: ${self.game_state.current_money:,.0f}", True, self.WHITE)
+        # Money
+        money_text = self.font.render(f"Money: ${self.game_state.current_money:,.0f}", True, text_color)
         self.screen.blit(money_text, (self.WINDOW_WIDTH - 300, 15))
 
-        time_text = self.font.render(f"Time: {self.game_state.get_game_time_elapsed():.1f}s", True, self.WHITE)
-        self.screen.blit(time_text, (self.WINDOW_WIDTH - 300, 35))
-
-    def _render_specialist_panel(self) -> None:
-        """Render the specialist roster panel."""
-        panel_rect = pygame.Rect(20, 80, 400, 300)
-        pygame.draw.rect(self.screen, self.WHITE, panel_rect, 2)
-
-        # Panel title
-        title_text = self.font.render("Specialists", True, self.WHITE)
-        self.screen.blit(title_text, (30, 85))
-
-        # Render specialists
-        y_offset = 110
-        for i, specialist in enumerate(self.game_state.specialists[:8]):  # Show first 8
-            color = self.GREEN if specialist.is_available() else self.RED
-            if specialist == self.selected_specialist:
-                color = self.YELLOW
-
-            spec_text = self.small_font.render(
-                f"{specialist.name} (Lv.{specialist.level}) - {specialist.status}",
-                True, color
-            )
-            self.screen.blit(spec_text, (30, y_offset + i * 25))
-
-    def _render_incident_panel(self) -> None:
-        """Render the active incidents panel."""
-        panel_rect = pygame.Rect(440, 80, 400, 300)
-        pygame.draw.rect(self.screen, self.WHITE, panel_rect, 2)
-
-        # Panel title
-        title_text = self.font.render("Active Incidents", True, self.WHITE)
-        self.screen.blit(title_text, (450, 85))
-
-        # Render incidents
-        y_offset = 110
-        for i, incident in enumerate(self.incidents[:8]):  # Show first 8
-            color = self.YELLOW if incident.status == "pending" else self.RED
-            if incident == self.selected_incident:
-                color = self.BLUE
-
-            inc_text = self.small_font.render(
-                f"{incident.incident_type} (Diff:{incident.difficulty}) - {incident.status}",
-                True, color
-            )
-            self.screen.blit(inc_text, (450, y_offset + i * 25))
-
-    def _render_metrics_panel(self) -> None:
-        """Render the game metrics panel."""
-        panel_rect = pygame.Rect(860, 80, 400, 300)
-        pygame.draw.rect(self.screen, self.WHITE, panel_rect, 2)
-
-        # Panel title
-        title_text = self.font.render("Game Metrics", True, self.WHITE)
-        self.screen.blit(title_text, (870, 85))
-
-        # Render metrics
-        metrics = [
-            f"Incidents Handled: {self.game_state.metrics.total_incidents_handled}",
-            f"Incidents Failed: {self.game_state.metrics.total_incidents_failed}",
-            f"Total XP Awarded: {self.game_state.metrics.total_xp_awarded}",
-            f"Specialist Utilization: {self.game_state.metrics.specialist_utilization_rate:.1f}%",
-            f"Active Clients: {len([c for c in self.game_state.clients if c.active])}",
-        ]
-
-        y_offset = 110
-        for i, metric in enumerate(metrics):
-            metric_text = self.small_font.render(metric, True, self.WHITE)
-            self.screen.blit(metric_text, (870, y_offset + i * 25))
+        # Time and pause status
+        time_text = f"Time: {self.game_state.get_game_time_elapsed():.1f}s"
+        if self.game_state.paused:
+            time_text += " [PAUSED]"
+        time_surface = self.font.render(time_text, True, text_color)
+        self.screen.blit(time_surface, (self.WINDOW_WIDTH - 300, 35))
 
     def _render_controls(self) -> None:
         """Render control buttons and instructions."""
-        # Assign button
-        assign_rect = pygame.Rect(20, 400, 200, 40)
-        color = self.GREEN if (self.selected_specialist and self.selected_incident) else self.GRAY
-        pygame.draw.rect(self.screen, color, assign_rect)
-
-        assign_text = self.font.render("Assign Incident", True, self.BLACK)
-        self.screen.blit(assign_text, (30, 405))
+        # Render assign button
+        self.assign_button.render(self.screen)
 
         # Instructions
+        text_color = self.theme_manager.get_color("text", (220, 220, 230))
+        
         instructions = [
-            "Click specialists and incidents to select them",
-            "Press Assign to assign selected specialist to incident",
-            "Space: Pause/Resume | ESC: Quit"
+            "Hotkeys: 1-6: Toggle Panels | SPACE: Pause | H: Help | +/-: Speed",
+            "Click specialists and incidents in panels to select them",
+            "Press Assign button to assign selected specialist to incident",
         ]
 
-        y_offset = 460
+        y_offset = 650
         for instruction in instructions:
-            inst_text = self.small_font.render(instruction, True, self.WHITE)
-            self.screen.blit(inst_text, (20, y_offset))
+            inst_text = self.small_font.render(instruction, True, text_color)
+            self.screen.blit(inst_text, (240, y_offset))
             y_offset += 20
 
-    def _is_in_specialist_panel(self, x: int, y: int) -> bool:
-        """Check if position is in specialist panel."""
-        return 20 <= x <= 420 and 80 <= y <= 380
+    def _render_help_overlay(self) -> None:
+        """Render help overlay with all hotkeys."""
+        # Semi-transparent overlay
+        overlay = pygame.Surface((400, 400))
+        overlay.set_alpha(220)
+        overlay.fill((30, 30, 40))
 
-    def _is_in_incident_panel(self, x: int, y: int) -> bool:
-        """Check if position is in incident panel."""
-        return 440 <= x <= 840 and 80 <= y <= 380
+        # Position in center
+        overlay_x = (self.WINDOW_WIDTH - 400) // 2
+        overlay_y = (self.WINDOW_HEIGHT - 400) // 2
 
-    def _is_in_assign_button(self, x: int, y: int) -> bool:
-        """Check if position is in assign button."""
-        return 20 <= x <= 220 and 400 <= y <= 440
+        # Title
+        title_font = pygame.font.SysFont('Arial', 18, bold=True)
+        title_text = title_font.render("Hotkey Reference", True, (255, 255, 255))
+        overlay.blit(title_text, (20, 20))
 
-    def _get_specialist_at_pos(self, x: int, y: int) -> Optional[Any]:
-        """Get specialist at mouse position."""
-        if not self._is_in_specialist_panel(x, y):
-            return None
+        # Hotkeys
+        help_font = pygame.font.SysFont('Arial', 14)
+        hotkeys = [
+            ("1", "Toggle Specialist Roster"),
+            ("2", "Toggle Incident Queue"),
+            ("3", "Toggle Metrics Panel"),
+            ("SPACE", "Pause/Resume Game"),
+            ("+", "Increase Game Speed"),
+            ("-", "Decrease Game Speed"),
+            ("H", "Toggle This Help"),
+            ("ESC", "Close Panels"),
+        ]
 
-        index = (y - 110) // 25
-        if 0 <= index < len(self.game_state.specialists):
-            return self.game_state.specialists[index]
-        return None
+        y_offset = 60
+        for key, description in hotkeys:
+            key_text = help_font.render(f"{key:10s} - {description}", True, (220, 220, 220))
+            overlay.blit(key_text, (20, y_offset))
+            y_offset += 25
 
-    def _get_incident_at_pos(self, x: int, y: int) -> Optional[Any]:
-        """Get incident at mouse position."""
-        if not self._is_in_incident_panel(x, y):
-            return None
+        # Draw border
+        pygame.draw.rect(overlay, (0, 180, 255), overlay.get_rect(), 2, border_radius=4)
 
-        index = (y - 110) // 25
-        if 0 <= index < len(self.incidents):
-            return self.incidents[index]
-        return None
-
-    @property
-    def incidents(self):
-        """Get active incidents from game state."""
-        return [inc for inc in self.game_state.incidents if inc.status in ["pending", "assigned"]]
+        self.screen.blit(overlay, (overlay_x, overlay_y))
 
     def shutdown(self) -> None:
         """Clean shutdown of UI systems."""

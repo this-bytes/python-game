@@ -1,7 +1,7 @@
 """Specialist Roster Panel for displaying all specialists."""
 
 import pygame
-from typing import Optional
+from typing import Optional, Any
 from src.ui.components.panel import Panel
 from src.ui.components.progress_bar import ProgressBar
 from src.ui.components.scroll_container import ScrollContainer
@@ -143,7 +143,7 @@ class SpecialistRosterPanel(Panel):
         xp_bar.fill_color = (0, 150, 255)
         xp_bar.render(screen)
 
-    def handle_event(self, event: pygame.Event) -> bool:
+    def handle_event(self, event: Any) -> bool:
         """Handle events for specialist roster panel.
 
         Args:

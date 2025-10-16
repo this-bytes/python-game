@@ -1,7 +1,7 @@
 """Incident Queue Panel for displaying active incidents."""
 
 import pygame
-from typing import Optional
+from typing import Optional, Any
 from src.ui.components.panel import Panel
 from src.ui.components.scroll_container import ScrollContainer
 from src.models.game_state import GameState
@@ -158,7 +158,7 @@ class IncidentQueuePanel(Panel):
         reward_text = self.small_font.render(f"${incident.reward:,.0f}", True, (0, 255, 100))
         screen.blit(reward_text, (rect.right - 80, rect.y + 54))
 
-    def handle_event(self, event: pygame.Event) -> bool:
+    def handle_event(self, event: Any) -> bool:
         """Handle events for incident queue panel.
 
         Args:

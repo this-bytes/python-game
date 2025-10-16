@@ -1,7 +1,7 @@
 """Scroll container component for game UI."""
 
 import pygame
-from typing import Tuple, List
+from typing import Tuple, List, Any
 
 
 class ScrollContainer:
@@ -55,7 +55,7 @@ class ScrollContainer:
             )
             pygame.draw.rect(screen, self.scroll_handle_color, handle_rect, border_radius=2)
 
-    def handle_event(self, event: pygame.Event) -> bool:
+    def handle_event(self, event: Any) -> bool:
         """Handle scroll events."""
         rect = pygame.Rect(self.position[0], self.position[1], self.size[0], self.size[1])
 

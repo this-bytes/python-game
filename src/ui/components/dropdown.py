@@ -1,7 +1,7 @@
 """Dropdown component for game UI."""
 
 import pygame
-from typing import Tuple, List, Optional, Callable
+from typing import Tuple, List, Optional, Callable, Any
 
 
 class Dropdown:
@@ -71,7 +71,7 @@ class Dropdown:
                 text_surface = self.font.render(option, True, self.text_color)
                 screen.blit(text_surface, (option_rect.x + 5, option_rect.y + 7))
 
-    def handle_event(self, event: pygame.Event) -> bool:
+    def handle_event(self, event: Any) -> bool:
         """Handle mouse events."""
         rect = pygame.Rect(self.position[0], self.position[1], self.width, self.height)
 

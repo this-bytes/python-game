@@ -4,7 +4,7 @@ Interactive button with multiple states and styles.
 """
 
 import pygame
-from typing import Tuple, Callable, Optional
+from typing import Tuple, Callable, Optional, Any
 from enum import Enum
 
 
@@ -119,7 +119,7 @@ class Button:
         text_rect = text_surface.get_rect(center=rect.center)
         screen.blit(text_surface, text_rect)
 
-    def handle_event(self, event: pygame.Event) -> bool:
+    def handle_event(self, event: Any) -> bool:
         """Handle mouse events.
 
         Args:

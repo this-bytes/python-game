@@ -1,7 +1,7 @@
 """Text input component for game UI."""
 
 import pygame
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Any
 
 
 class TextInput:
@@ -75,7 +75,7 @@ class TextInput:
                 2
             )
 
-    def handle_event(self, event: pygame.Event) -> bool:
+    def handle_event(self, event: Any) -> bool:
         """Handle keyboard/mouse events."""
         rect = pygame.Rect(self.position[0], self.position[1], self.width, self.height)
 
