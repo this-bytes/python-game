@@ -203,4 +203,120 @@ def create_specialists_blueprint(game_state_ref):
         except Exception as e:
             return jsonify({"success": False, "message": str(e)}), 500
     
+    @bp.route('/specialists/<specialist_id>/gain-xp', methods=['POST'])
+    def gain_xp(specialist_id):
+        """Award XP to a specialist."""
+        game_state = get_game_state()
+        if not game_state:
+            return jsonify({"success": False, "message": "Game state not initialized"}), 503
+        
+        try:
+            specialist = game_state.get_specialist_by_id(specialist_id)
+            if not specialist:
+                return jsonify({"success": False, "message": "Specialist not found"}), 404
+            
+            data = request.get_json()
+            xp_amount = data.get('xp', 0)
+            
+            if xp_amount <= 0:
+                return jsonify({"success": False, "message": "XP amount must be positive"}), 400
+            
+            leveled_up = specialist.gain_xp(xp_amount)
+            
+            return jsonify({
+                "success": True,
+                "message": f"Awarded {xp_amount} XP",
+                "data": {
+                    "leveled_up": leveled_up,
+                    "current_xp": specialist.xp,
+                    "current_level": specialist.level
+                },
+                "timestamp": datetime.utcnow().isoformat()
+            })
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 500
+    
+    @bp.route('/specialists/<specialist_id>/level-up', methods=['POST'])
+    def force_level_up(specialist_id):
+        """Force a specialist to level up (for testing/admin)."""
+        game_state = get_game_state()
+        if not game_state:
+            return jsonify({"success": False, "message": "Game state not initialized"}), 503
+        
+        try:
+            from src.core.progression_system import ProgressionSystem
+            from src.utils.json_loader import JSONLoader
+            
+            specialist = game_state.get_specialist_by_id(specialist_id)
+            if not specialist:
+                return jsonify({"success": False, "message": "Specialist not found"}), 404
+            
+            # Load game config and create progression system
+            json_loader = JSONLoader()
+            game_config = json_loader.load_data("game_config")
+            progression_system = ProgressionSystem(game_config)
+            
+            # Set XP to next level threshold
+            next_level_xp = progression_system.calculate_xp_for_level(specialist.level + 1)
+            specialist.xp = next_level_xp
+            
+            # Trigger level up
+            leveled_up = specialist.check_level_up()
+            
+            if leveled_up:
+                # Process level up rewards
+                rewards = progression_system.process_level_up(specialist)
+                
+                return jsonify({
+                    "success": True,
+                    "message": "Specialist leveled up",
+                    "data": {
+                        "specialist": specialist.to_dict(),
+                        "rewards": rewards
+                    },
+                    "timestamp": datetime.utcnow().isoformat()
+                })
+            else:
+                return jsonify({
+                    "success": False,
+                    "message": "Specialist already at max level"
+                }), 400
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 500
+    
+    @bp.route('/specialists/<specialist_id>/allocate-skill', methods=['POST'])
+    def allocate_skill(specialist_id):
+        """Allocate a skill point to a stat."""
+        game_state = get_game_state()
+        if not game_state:
+            return jsonify({"success": False, "message": "Game state not initialized"}), 503
+        
+        try:
+            specialist = game_state.get_specialist_by_id(specialist_id)
+            if not specialist:
+                return jsonify({"success": False, "message": "Specialist not found"}), 404
+            
+            data = request.get_json()
+            stat = data.get('stat')
+            
+            if not stat:
+                return jsonify({"success": False, "message": "stat parameter required"}), 400
+            
+            success = specialist.allocate_skill_point(stat)
+            
+            if success:
+                return jsonify({
+                    "success": True,
+                    "message": f"Skill point allocated to {stat}",
+                    "data": specialist.to_dict(),
+                    "timestamp": datetime.utcnow().isoformat()
+                })
+            else:
+                return jsonify({
+                    "success": False,
+                    "message": "Failed to allocate skill point (no points available or invalid stat?)"
+                }), 400
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 500
+    
     return bp
