@@ -118,8 +118,8 @@ class GameUI:
 
     def _toggle_pause(self) -> None:
         """Toggle game pause state."""
-        self.game_state.paused = not self.game_state.paused
-        status = "paused" if self.game_state.paused else "resumed"
+        self.game_state.is_paused = not self.game_state.is_paused
+        status = "paused" if self.game_state.is_paused else "resumed"
         self.notification_manager.show_info("Game", f"Game {status}")
 
     def _toggle_panel(self, panel) -> None:
@@ -247,7 +247,7 @@ class GameUI:
 
         # Time and pause status
         time_text = f"Time: {self.game_state.get_game_time_elapsed():.1f}s"
-        if self.game_state.paused:
+        if self.game_state.is_paused:
             time_text += " [PAUSED]"
         time_surface = self.font.render(time_text, True, text_color)
         self.screen.blit(time_surface, (self.WINDOW_WIDTH - 300, 35))
