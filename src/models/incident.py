@@ -248,6 +248,24 @@ class Incident:
         """
         return time.time() - self.spawn_time
     
+    @property
+    def time_remaining(self) -> float:
+        """Property for UI compatibility - get time remaining until SLA deadline.
+        
+        Returns:
+            Time remaining in seconds (negative if overdue)
+        """
+        return self.get_time_remaining()
+    
+    @property
+    def sla_time(self) -> int:
+        """Property for UI compatibility - return sla_seconds.
+        
+        Returns:
+            SLA time in seconds
+        """
+        return self.sla_seconds
+    
     def matches_specialty(self, specialist_specialty: str) -> bool:
         """Check if incident specialty matches specialist specialty.
         

@@ -472,12 +472,60 @@ curl -X PUT http://localhost:5000/specialists/spec_001 \
   -d '{"level": 10, "xp": 5000}'
 ```
 
+## ANTI-PATTERNS - DUMB CODE TO AVOID
+
+### ❌ **REDUNDANT CONSTANT DEFINITIONS**
+**NEVER** create constants that duplicate their own value:
+
+```python
+# ❌ DUMB - Writing the same thing twice
+INCIDENT_RESOLVED = "incident_resolved"
+SPECIALIST_LEVELED_UP = "specialist_leveled_up"
+
+# ❌ EQUALLY DUMB - Enum wrapper around strings
+class Events(Enum):
+    INCIDENT_RESOLVED = "incident_resolved"  # WTF is this?
+
+# ✅ CORRECT - Just use the damn strings
+event_bus.emit("incident_resolved", data)
+event_bus.subscribe("specialist_leveled_up", callback)
+
+# ✅ OR if you need constants, make them useful
+# (e.g., for autocomplete/refactoring), but they MUST add value
+```
+
+**WHY THIS IS DUMB:**
+- You're literally typing the same thing twice
+- Zero type safety gained
+- Zero refactoring benefit
+- Just cargo cult programming
+
+**WHEN TO USE CONSTANTS:**
+- When the display value differs from the key: `SUCCESS = 200`
+- When you need computed values: `MAX_INT = 2**31 - 1`
+- When grouping related config: `class Colors: RED = (255, 0, 0)`
+
+**WHEN TO JUST USE STRINGS:**
+- Event names
+- Dictionary keys that match their string value
+- Status codes that are self-documenting
+
+### ❌ **PATTERN MATCHING WITHOUT PURPOSE**
+Don't blindly follow patterns from other codebases without understanding WHY they exist.
+
+### 🔄 **CONTINUOUS IMPROVEMENT**
+This section will be updated with every dumb pattern identified. Learn from mistakes, don't repeat them.
+
+---
+
 ## Final Reminders
 
 - **NO hardcoded game values** - always use JSON configuration
+- **NO redundant constants** - don't type the same thing twice
 - **Pygame renders, doesn't think** - keep it dumb and fast
 - **Backend is your debugging superpower** - use it liberally
 - **Iterate fast, polish later** - vibe coding philosophy
 - **When in doubt, make it configurable** - JSON-first approach
+- **Question every line** - if it feels redundant, it probably is
 
 Happy coding! 🚀🔒

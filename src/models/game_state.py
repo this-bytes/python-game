@@ -104,6 +104,10 @@ class GameState:
     unlocked_achievements: List[str] = field(default_factory=list)  # Achievement IDs
     achievement_progress: Dict[str, float] = field(default_factory=dict)  # Achievement ID → progress value
 
+    # Dopamine/addictive mechanics
+    dopamine_feedback_queue: List[Dict] = field(default_factory=list)  # Visual feedback queue
+    active_risk_contracts: Dict[str, Any] = field(default_factory=dict)  # incident_id -> contract
+
     # Game configuration
     max_active_incidents: int = 50
     max_specialists: int = 10  # Affected by office space facility
@@ -119,6 +123,8 @@ class GameState:
     _automation_processor: Optional[AutomationProcessor] = None
     _passive_income_system: Optional[PassiveIncomeSystem] = None
     _offline_progress_system: Optional[OfflineProgressSystem] = None
+    _dopamine_system: Optional[Any] = None  # DopamineSystem - lazy imported
+    _idle_core: Optional[Any] = None  # IdleCore - TRUE idle game mechanics
     _last_incident_generation: float = field(default_factory=time.time)
     _incident_generation_accumulator: float = 0.0
     _offline_progress_calculated: bool = False  # Track if offline progress was calculated
@@ -138,6 +144,17 @@ class GameState:
             self._json_loader = JSONLoader(data_dir=data_dir)
         if self._logger is None:
             self._logger = GameLogger("game_state")
+        
+        # Initialize dopamine system for addictive gameplay
+        if self._dopamine_system is None:
+            from src.core.dopamine_system import DopamineSystem
+            self._dopamine_system = DopamineSystem()
+        
+        # Initialize idle core for TRUE idle game mechanics
+        if self._idle_core is None:
+            from src.core.idle_core import IdleCore
+            self._idle_core = IdleCore()
+        
         if self._incident_generator is None:
             self._incident_generator = IncidentGenerator(self._logger)
         if self._automation_processor is None:
@@ -145,7 +162,7 @@ class GameState:
         if self._passive_income_system is None:
             # Load game config for passive income settings
             try:
-                game_config = self._json_loader.load_data("game_config")
+                game_config = self._json_loader.load_data("game_config.json")
                 self._passive_income_system = PassiveIncomeSystem(game_config, self._logger)
             except Exception as e:
                 self._logger.logger.warning(f"[GAME_STATE] Could not load game config, using default passive income: {e}")
@@ -153,7 +170,7 @@ class GameState:
         if self._offline_progress_system is None:
             # Load game config for offline progress settings
             try:
-                game_config = self._json_loader.load_data("game_config")
+                game_config = self._json_loader.load_data("game_config.json")
                 self._offline_progress_system = OfflineProgressSystem(game_config, self._logger)
             except Exception as e:
                 self._logger.logger.warning(f"[GAME_STATE] Could not load game config, using default offline progress: {e}")
@@ -173,6 +190,14 @@ class GameState:
             specialists_data = self._json_loader.load_data("specialists.json")
             if "specialists" in specialists_data:
                 self.specialists = [Specialist.from_dict(s) for s in specialists_data["specialists"]]
+                
+                # IDLE GAME: Generate synergies for all specialists (strategic depth)
+                if self._idle_core:
+                    self._logger.logger.info(f"[GAME_STATE] Generating synergies for {len(self.specialists)} specialists")
+                    for specialist in self.specialists:
+                        if not hasattr(specialist, 'synergies') or not specialist.synergies:
+                            specialist.synergies = self._idle_core.generate_specialist_synergies(specialist)
+                            self._logger.logger.info(f"[GAME_STATE] Generated {len(specialist.synergies)} synergies for {specialist.name}")
 
             # Load clients
             clients_data = self._json_loader.load_data("clients.json")
@@ -251,6 +276,16 @@ class GameState:
 
         # Generate new incidents
         self._generate_incidents(effective_delta)
+        
+        # AUTO-ASSIGN INCIDENTS (TRUE IDLE GAME MECHANIC)
+        # This makes the game play itself - the core of idle games
+        if self._idle_core and self._idle_core.config.enabled:
+            auto_assignments = self._idle_core.auto_assign_incidents(self)
+            for assignment in auto_assignments:
+                self._logger.logger.debug(
+                    f"[IDLE] Auto-assigned {assignment['incident_id']} to {assignment['specialist_id']}"
+                    f" (synergy: {assignment['synergy_active']}, quality: {assignment['match_quality']})"
+                )
 
         # Process automation scripts (pass full GameState)
         automation_results = self._automation_processor.process_automation(self, effective_delta)
@@ -269,6 +304,9 @@ class GameState:
 
         # Update specialist ability cooldowns
         self._update_ability_cooldowns(effective_delta)
+        
+        # Update dopamine system (combo timers, etc.)
+        self._dopamine_system.update(effective_delta)
         
         # Check for achievements periodically (every 10 seconds)
         if not hasattr(self, '_last_achievement_check'):
@@ -332,6 +370,21 @@ class GameState:
                 incident = self._incident_generator.generate_incident(client)
                 if incident:
                     self.incidents.append(incident)
+                    
+                    # DOPAMINE INJECTION: Offer risk/reward contracts randomly
+                    # Check if incident has difficulty attribute and is a proper Incident object
+                    if hasattr(incident, 'difficulty') and isinstance(incident.difficulty, int):
+                        risk_contract = self._dopamine_system.offer_risk_contract(incident, incident.difficulty)
+                        if risk_contract:
+                            self.active_risk_contracts[incident.id] = risk_contract
+                            # Visual marker will be added by UI
+                            self.dopamine_feedback_queue.append({
+                                "type": "risk_contract_offer",
+                                "timestamp": time.time(),
+                                "incident_id": incident.id,
+                                "contract": risk_contract
+                            })
+                    
                     self._logger.logger.info(f"[GAME_STATE] Incident {incident.id} generated for client {client.id}")
 
     def _resolve_incident(self, incident: Incident, specialist: Specialist):
@@ -354,15 +407,48 @@ class GameState:
 
         if success:
             # Successful resolution
-            reward = incident.base_reward
-            xp_gain = incident.xp_reward
+            base_reward = incident.base_reward
+            base_xp = incident.xp_reward
 
             # Apply SLA bonus/penalty
             sla_met = self.current_time <= incident.sla_deadline
+            
+            # IDLE CORE: Check for synergy bonuses (strategic depth)
+            synergy_bonuses = None
+            if self._idle_core:
+                synergy_bonuses = self._idle_core.apply_synergy_bonuses(specialist, incident, self)
+            
+            # Apply synergy multipliers if present
+            if synergy_bonuses:
+                base_xp = int(base_xp * synergy_bonuses["xp_multiplier"])
+                base_reward = int(base_reward * synergy_bonuses["reward_multiplier"])
+                # Speed multiplier affects completion time (already handled in simulation)
+                self._logger.logger.info(
+                    f"[IDLE] Synergy bonus applied! {synergy_bonuses['synergy_name']}: "
+                    f"{synergy_bonuses['xp_multiplier']}x XP, {synergy_bonuses['reward_multiplier']}x Reward"
+                )
+            
+            # DOPAMINE INJECTION: Get feedback and apply combo multipliers
+            dopamine_feedback = self._dopamine_system.register_incident_completion(
+                incident, specialist, success=True, is_sla_met=sla_met
+            )
+            
+            # Use dopamine system rewards (includes combo multipliers)
+            reward = dopamine_feedback["final_reward"]
+            xp_gain = dopamine_feedback["final_xp"]
+            
+            # Apply SLA bonus/penalty to base
             if sla_met:
                 reward = int(reward * 1.2)  # 20% bonus for SLA compliance
             else:
                 reward = int(reward * 0.5)  # 50% penalty for SLA violation
+                
+            # Check for risk contract completion
+            if hasattr(incident, 'risk_contract'):
+                risk_reward = self._dopamine_system.calculate_risk_reward(incident, success, sla_met)
+                reward = risk_reward  # Override with risk reward
+                dopamine_feedback["risk_contract_completed"] = True
+                dopamine_feedback["risk_reward"] = risk_reward
 
             # Award rewards
             self.current_money += reward
@@ -372,6 +458,7 @@ class GameState:
             leveled_up = specialist.gain_xp(xp_gain)
             if leveled_up:
                 self._process_specialist_level_up(specialist)
+                dopamine_feedback["level_up"] = True
 
             # Update client reputation
             client = self.get_client_by_id(incident.client_id)
@@ -383,14 +470,29 @@ class GameState:
 
             self.metrics.total_incidents_handled += 1
             self.metrics.total_xp_awarded += xp_gain
+            
+            # Add dopamine feedback to queue for visual display
+            self.dopamine_feedback_queue.append({
+                "type": "completion",
+                "timestamp": time.time(),
+                "feedback": dopamine_feedback,
+                "incident_id": incident.id,
+                "specialist_id": specialist.id
+            })
 
-            self._logger.logger.info(f"[GAME_STATE] Incident {incident.id} resolved by {specialist.id}: reward=${reward}, XP={xp_gain}, SLA={'met' if sla_met else 'missed'}")
+            self._logger.logger.info(f"[GAME_STATE] Incident {incident.id} resolved by {specialist.id}: reward=${reward}, XP={xp_gain}, SLA={'met' if sla_met else 'missed'}, combo={dopamine_feedback.get('combo_count', 0)}")
             
             # Generate equipment drop
             self._generate_equipment_drop(incident, specialist)
 
         else:
-            # Failed resolution
+            # Failed resolution - break combo
+            self._dopamine_system.combo_state.break_combo()
+            self.dopamine_feedback_queue.append({
+                "type": "combo_broken",
+                "timestamp": time.time(),
+                "incident_id": incident.id
+            })
             self._fail_incident(incident)
 
     def _fail_incident(self, incident: Incident):
@@ -440,7 +542,7 @@ class GameState:
             
             # Load abilities config
             json_loader = JSONLoader()
-            abilities_config = json_loader.load_data("abilities")
+            abilities_config = json_loader.load_data("abilities.json")
             ability_system = AbilitySystem(abilities_config)
             
             # Update cooldowns for all specialists
@@ -458,7 +560,7 @@ class GameState:
             
             # Load achievements config
             json_loader = JSONLoader()
-            achievements_config = json_loader.load_data("achievements")
+            achievements_config = json_loader.load_data("achievements.json")
             achievement_system = AchievementSystem(achievements_config)
             
             # Check for newly unlocked achievements
@@ -485,14 +587,14 @@ class GameState:
             
             # Load game config
             json_loader = JSONLoader()
-            game_config = json_loader.load_data("game_config")
+            game_config = json_loader.load_data("game_config.json")
             progression_system = ProgressionSystem(game_config)
             
             # Process level up
             rewards = progression_system.process_level_up(specialist)
             
             # Load abilities config and unlock new abilities
-            abilities_config = json_loader.load_data("abilities")
+            abilities_config = json_loader.load_data("abilities.json")
             ability_system = AbilitySystem(abilities_config)
             unlocked_abilities = ability_system.unlock_abilities_for_level(specialist, specialist.level)
             
@@ -519,7 +621,7 @@ class GameState:
             
             # Load equipment config
             json_loader = JSONLoader()
-            equipment_config = json_loader.load_data("equipment")
+            equipment_config = json_loader.load_data("equipment.json")
             equipment_system = EquipmentSystem(equipment_config)
             
             # Generate drop
@@ -566,6 +668,16 @@ class GameState:
             incident.status = "assigned"
             incident.assigned_specialist_id = specialist_id
             incident.assignment_time = self.current_time
+
+            # DOPAMINE INJECTION: Register assignment for combo system
+            feedback = self._dopamine_system.register_incident_assignment(incident, specialist)
+            self.dopamine_feedback_queue.append({
+                "type": "assignment",
+                "timestamp": time.time(),
+                "feedback": feedback,
+                "incident_id": incident_id,
+                "specialist_id": specialist_id
+            })
 
             self._logger.logger.info(f"[GAME_STATE] Manual assignment: incident {incident_id} to specialist {specialist_id}")
 
@@ -840,21 +952,21 @@ class GameState:
         
         # Initialize passive income system
         try:
-            game_config = instance._json_loader.load_data("game_config")
+            game_config = instance._json_loader.load_data("game_config.json")
             instance._passive_income_system = PassiveIncomeSystem(game_config, instance._logger)
         except Exception:
             instance._passive_income_system = PassiveIncomeSystem({}, instance._logger)
         
         # Initialize offline progress system
         try:
-            game_config = instance._json_loader.load_data("game_config")
+            game_config = instance._json_loader.load_data("game_config.json")
             instance._offline_progress_system = OfflineProgressSystem(game_config, instance._logger)
         except Exception:
             instance._offline_progress_system = OfflineProgressSystem({}, instance._logger)
 
         # Load automation scripts
         try:
-            automation_data = instance._json_loader.load_data("automation_scripts")
+            automation_data = instance._json_loader.load_data("automation_scripts.json")
             if "automation_scripts" in automation_data:
                 instance.automation_scripts = [AutomationScript.from_dict(a) for a in automation_data["automation_scripts"]]
         except Exception:

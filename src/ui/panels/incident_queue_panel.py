@@ -155,7 +155,7 @@ class IncidentQueuePanel(Panel):
         screen.blit(sla_text, (rect.right - 80, rect.y + 42))
 
         # Reward
-        reward_text = self.small_font.render(f"${incident.reward:,.0f}", True, (0, 255, 100))
+        reward_text = self.small_font.render(f"${incident.base_reward:,.0f}", True, (0, 255, 100))
         screen.blit(reward_text, (rect.right - 80, rect.y + 54))
 
     def handle_event(self, event: Any) -> bool:

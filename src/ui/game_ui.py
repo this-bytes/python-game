@@ -17,6 +17,8 @@ from src.ui.panels.specialist_roster_panel import SpecialistRosterPanel
 from src.ui.panels.incident_queue_panel import IncidentQueuePanel
 from src.ui.panels.metrics_panel import MetricsPanel
 from src.ui.components.button import Button, ButtonStyle
+from src.ui.dopamine_overlay import DopamineFeedbackOverlay
+from src.ui.synergy_overlay import SynergySuggestionOverlay, AutoPlayIndicator
 
 
 @dataclass
@@ -54,6 +56,13 @@ class GameUI:
         self.theme_manager = ThemeManager()
         self.notification_manager = NotificationManager(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
         self.hotkey_manager = HotkeyManager()
+        
+        # Initialize dopamine feedback overlay for addictive gameplay
+        self.dopamine_overlay = DopamineFeedbackOverlay(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
+        
+        # Initialize synergy overlay for STRATEGIC DEPTH (Balatro-style)
+        self.synergy_overlay = SynergySuggestionOverlay(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
+        self.autoplay_indicator = AutoPlayIndicator()
 
         # Register hotkey callbacks
         self._register_hotkey_callbacks()
@@ -93,6 +102,18 @@ class GameUI:
         self.hotkey_manager.register_callback(
             HotkeyAction.PAUSE_TOGGLE,
             lambda: self._toggle_pause()
+        )
+        self.hotkey_manager.register_callback(
+            HotkeyAction.TOGGLE_SPECIALIST_PANEL,
+            lambda: self._toggle_panel(self.specialist_roster_panel)
+        )
+        self.hotkey_manager.register_callback(
+            HotkeyAction.TOGGLE_INCIDENT_PANEL,
+            lambda: self._toggle_panel(self.incident_queue_panel)
+        )
+        self.hotkey_manager.register_callback(
+            HotkeyAction.TOGGLE_METRICS_PANEL,
+            lambda: self._toggle_panel(self.metrics_panel)
         )
         self.hotkey_manager.register_callback(
             HotkeyAction.TOGGLE_SPECIALIST_PANEL,
@@ -183,6 +204,16 @@ class GameUI:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_h:
                     self.show_help_overlay = not self.show_help_overlay
+                elif event.key == pygame.K_s:
+                    # Toggle synergy suggestions panel (strategic intervention UI)
+                    self.synergy_overlay.toggle_visibility()
+                elif event.key == pygame.K_a:
+                    # Toggle auto-play on/off
+                    if hasattr(self.game_state, '_idle_core') and self.game_state._idle_core:
+                        self.game_state._idle_core.config.enabled = not self.game_state._idle_core.config.enabled
+                        status = "enabled" if self.game_state._idle_core.config.enabled else "disabled"
+                        self.notification_manager.show_info("Auto-Play", f"Auto-assignment {status}")
+
 
         return actions
 
@@ -194,6 +225,20 @@ class GameUI:
         """
         # Update notification manager
         self.notification_manager.update(delta_time)
+        
+        # Update dopamine overlay with feedback from game state
+        self.dopamine_overlay.process_feedback(
+            self.game_state.dopamine_feedback_queue,
+            self.game_state._dopamine_system
+        )
+        self.dopamine_overlay.update(delta_time)
+        
+        # Update synergy overlay with strategic suggestions (IDLE GAME DEPTH)
+        if hasattr(self.game_state, '_idle_core') and self.game_state._idle_core:
+            self.synergy_overlay.update_suggestions(
+                self.game_state._idle_core,
+                self.game_state
+            )
 
         # Update button enabled state
         specialist = self.specialist_roster_panel.get_selected_specialist()
@@ -215,6 +260,26 @@ class GameUI:
 
         # Render controls
         self._render_controls()
+        
+        # Render AUTO-PLAY INDICATOR (always visible - core idle mechanic)
+        if hasattr(self.game_state, '_idle_core') and self.game_state._idle_core:
+            self.autoplay_indicator.render(
+                self.screen,
+                self.game_state._idle_core,
+                self.WINDOW_WIDTH
+            )
+        
+        # Render SYNERGY SUGGESTIONS (strategic depth UI)
+        if hasattr(self.game_state, '_idle_core') and self.game_state._idle_core:
+            num_suggestions = len(self.synergy_overlay.suggestions)
+            if self.synergy_overlay.visible:
+                self.synergy_overlay.render(self.screen)
+            else:
+                # Show compact indicator when panel hidden but suggestions exist
+                self.synergy_overlay.render_compact_indicator(self.screen, num_suggestions)
+        
+        # Render dopamine overlay (combo counter, celebrations, risk contracts)
+        self.dopamine_overlay.render(self.screen, self.game_state._dopamine_system)
 
         # Render notifications (always on top)
         self.notification_manager.render(self.screen)
@@ -261,9 +326,9 @@ class GameUI:
         text_color = self.theme_manager.get_color("text", (220, 220, 230))
         
         instructions = [
-            "Hotkeys: 1-6: Toggle Panels | SPACE: Pause | H: Help | +/-: Speed",
-            "Click specialists and incidents in panels to select them",
-            "Press Assign button to assign selected specialist to incident",
+            "🤖 AUTO-PLAY: Specialists auto-assign to incidents (Press A to toggle)",
+            "⚡ STRATEGIC: Press S to view synergy opportunities for bonus multipliers",
+            "Hotkeys: 1-6: Panels | SPACE: Pause | H: Help | +/-: Speed",
         ]
 
         y_offset = 650
@@ -294,6 +359,8 @@ class GameUI:
             ("1", "Toggle Specialist Roster"),
             ("2", "Toggle Incident Queue"),
             ("3", "Toggle Metrics Panel"),
+            ("A", "Toggle Auto-Play ON/OFF"),
+            ("S", "Toggle Synergy Suggestions"),
             ("SPACE", "Pause/Resume Game"),
             ("+", "Increase Game Speed"),
             ("-", "Decrease Game Speed"),

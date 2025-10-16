@@ -12,7 +12,7 @@ Usage:
 
 from typing import Callable, Dict, List, Any, Optional
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import Enum  # Keep for EventPriority only
 import logging
 from collections import defaultdict
 import time
@@ -26,63 +26,26 @@ class EventPriority(Enum):
     CRITICAL = 3
 
 
-class GameEvent(Enum):
-    """Standard game events that systems can emit/subscribe to."""
-    
-    # Incident events
-    INCIDENT_GENERATED = "incident_generated"
-    INCIDENT_ASSIGNED = "incident_assigned"
-    INCIDENT_RESOLVED = "incident_resolved"
-    INCIDENT_FAILED = "incident_failed"
-    INCIDENT_SLA_WARNING = "incident_sla_warning"
-    
-    # Specialist events
-    SPECIALIST_ASSIGNED = "specialist_assigned"
-    SPECIALIST_AVAILABLE = "specialist_available"
-    SPECIALIST_LEVELED_UP = "specialist_leveled_up"
-    SPECIALIST_XP_GAINED = "specialist_xp_gained"
-    SPECIALIST_HIRED = "specialist_hired"
-    SPECIALIST_RETIRED = "specialist_retired"
-    
-    # Contract/Client events
-    CONTRACT_SIGNED = "contract_signed"
-    CONTRACT_COMPLETED = "contract_completed"
-    CONTRACT_LOST = "contract_lost"
-    CLIENT_REPUTATION_CHANGED = "client_reputation_changed"
-    
-    # Money/Economy events
-    MONEY_EARNED = "money_earned"
-    MONEY_SPENT = "money_spent"
-    MONEY_MILESTONE = "money_milestone"
-    
-    # Progression events
-    ACHIEVEMENT_UNLOCKED = "achievement_unlocked"
-    PRESTIGE_TRIGGERED = "prestige_triggered"
-    LEVEL_MILESTONE = "level_milestone"
-    
-    # Relationship events (future)
-    RELATIONSHIP_CHANGED = "relationship_changed"
-    RIVALRY_TRIGGERED = "rivalry_triggered"
-    ROMANCE_STARTED = "romance_started"
-    
-    # Office/Facility events (future)
-    FURNITURE_PLACED = "furniture_placed"
-    ROOM_UPGRADED = "room_upgraded"
-    
-    # System events
-    GAME_PAUSED = "game_paused"
-    GAME_RESUMED = "game_resumed"
-    GAME_SAVED = "game_saved"
-    GAME_LOADED = "game_loaded"
-    
-    # Synergy events (already implemented)
-    SYNERGY_BONUS_APPLIED = "synergy_bonus_applied"
-    AUTO_ASSIGNMENT_TRIGGERED = "auto_assignment_triggered"
-    
-    # Dopamine events (already implemented)
-    COMBO_TRIGGERED = "combo_triggered"
-    PERFECT_COMPLETION = "perfect_completion"
-    RISK_CONTRACT_ACCEPTED = "risk_contract_accepted"
+# Standard game event types - use strings directly, no constants needed
+# 
+# Usage: 
+#   event_bus.emit("incident_resolved", {"incident_id": "123"})
+#   event_bus.subscribe("specialist_leveled_up", my_callback)
+#
+# Common Event Types (for reference):
+#   Incidents: "incident_generated", "incident_assigned", "incident_resolved", 
+#              "incident_failed", "incident_sla_warning"
+#   Specialists: "specialist_assigned", "specialist_available", "specialist_leveled_up",
+#                "specialist_xp_gained", "specialist_hired", "specialist_retired"
+#   Contracts: "contract_signed", "contract_completed", "contract_lost"
+#   Clients: "client_reputation_changed"
+#   Money: "money_earned", "money_spent", "money_milestone"
+#   Progression: "achievement_unlocked", "prestige_triggered", "level_milestone"
+#   Relationships: "relationship_changed", "rivalry_triggered", "romance_started"
+#   Office: "furniture_placed", "room_upgraded"
+#   System: "game_paused", "game_resumed", "game_saved", "game_loaded"
+#   Synergy: "synergy_bonus_applied", "auto_assignment_triggered"
+#   Dopamine: "combo_triggered", "perfect_completion", "risk_contract_accepted"
 
 
 @dataclass

@@ -72,6 +72,11 @@ class Specialist:
     equipped_items: Dict[str, str] = field(default_factory=dict)  # Slot -> equipment ID
     inventory: List[str] = field(default_factory=list)  # Owned equipment IDs
     
+    # Idle/Strategic mechanics
+    fatigue: float = 0.0  # 0.0 to 1.0, affects performance when overworked
+    synergies: List = field(default_factory=list)  # List of SpecialistSynergy objects for strategic bonuses
+    total_incidents_resolved: int = 0  # Career statistics
+    
     def __post_init__(self):
         """Validate and normalize data after initialization."""
         # Convert stats dict to SpecialistStats if needed
