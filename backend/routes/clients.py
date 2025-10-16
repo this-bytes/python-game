@@ -175,6 +175,202 @@ def create_clients_blueprint(game_state_ref):
     return bp
 
 
+def create_contracts_blueprint(game_state_ref):
+    """Create the contracts blueprint."""
+    bp = Blueprint('contracts', __name__)
+    state_container = {'game_state': game_state_ref}
+    
+    # Import here to avoid circular dependencies
+    from src.core.contract_manager import ContractManager
+    from src.utils.json_loader import JSONLoader
+    
+    contract_manager = ContractManager()
+    
+    # Load contract templates
+    try:
+        json_loader = JSONLoader()
+        contracts_data = json_loader.load_data("contracts.json")
+        if "contract_templates" in contracts_data:
+            contract_manager.load_templates(contracts_data["contract_templates"])
+    except Exception as e:
+        print(f"Warning: Could not load contract templates: {e}")
+    
+    def get_game_state():
+        return state_container.get('game_state')
+    
+    @bp.route('/contracts', methods=['GET'])
+    def list_contracts():
+        """List all contracts."""
+        game_state = get_game_state()
+        if not game_state:
+            return jsonify({"success": False, "message": "Game state not initialized"}), 503
+        
+        try:
+            contracts = getattr(game_state, 'contracts', [])
+            contracts_data = [contract_manager.get_contract_summary(c) for c in contracts]
+            
+            return jsonify({
+                "success": True,
+                "data": contracts_data,
+                "count": len(contracts_data),
+                "active_count": contract_manager.get_active_contracts_count(contracts),
+                "total_retainer_value": contract_manager.get_total_retainer_value(contracts),
+                "timestamp": datetime.utcnow().isoformat()
+            })
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 500
+    
+    @bp.route('/contracts/<contract_id>', methods=['GET'])
+    def get_contract(contract_id):
+        """Get specific contract details."""
+        game_state = get_game_state()
+        if not game_state:
+            return jsonify({"success": False, "message": "Game state not initialized"}), 503
+        
+        try:
+            contracts = getattr(game_state, 'contracts', [])
+            contract = next((c for c in contracts if c.id == contract_id), None)
+            
+            if not contract:
+                return jsonify({"success": False, "message": "Contract not found"}), 404
+            
+            summary = contract_manager.get_contract_summary(contract)
+            
+            return jsonify({
+                "success": True,
+                "data": summary,
+                "timestamp": datetime.utcnow().isoformat()
+            })
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 500
+    
+    @bp.route('/contracts/negotiate', methods=['POST'])
+    def negotiate_contract():
+        """Negotiate a new contract with a client."""
+        game_state = get_game_state()
+        if not game_state:
+            return jsonify({"success": False, "message": "Game state not initialized"}), 503
+        
+        try:
+            data = request.get_json()
+            client_id = data.get('client_id')
+            template_id = data.get('template_id')
+            terms = data.get('terms', {})
+            
+            client = game_state.get_client_by_id(client_id)
+            if not client:
+                return jsonify({"success": False, "message": "Client not found"}), 404
+            
+            contract = contract_manager.negotiate_contract(client, template_id, terms, game_state)
+            
+            if not contract:
+                return jsonify({
+                    "success": False,
+                    "message": "Contract negotiation failed. Client reputation may be too low."
+                }), 400
+            
+            # Add contract to game state
+            if not hasattr(game_state, 'contracts'):
+                game_state.contracts = []
+            game_state.contracts.append(contract)
+            
+            return jsonify({
+                "success": True,
+                "message": "Contract negotiated successfully",
+                "data": contract_manager.get_contract_summary(contract),
+                "timestamp": datetime.utcnow().isoformat()
+            })
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 500
+    
+    @bp.route('/contracts/<contract_id>/renew', methods=['PUT'])
+    def renew_contract(contract_id):
+        """Renew an existing contract."""
+        game_state = get_game_state()
+        if not game_state:
+            return jsonify({"success": False, "message": "Game state not initialized"}), 503
+        
+        try:
+            contracts = getattr(game_state, 'contracts', [])
+            contract = next((c for c in contracts if c.id == contract_id), None)
+            
+            if not contract:
+                return jsonify({"success": False, "message": "Contract not found"}), 404
+            
+            old_rate = contract.base_rate
+            old_duration = contract.duration_days
+            
+            renewed = contract_manager.renew_contract(contract, game_state)
+            
+            return jsonify({
+                "success": True,
+                "message": "Contract renewed successfully",
+                "data": {
+                    "old_rate": old_rate,
+                    "new_rate": renewed.base_rate,
+                    "old_duration": old_duration,
+                    "new_duration": renewed.duration_days,
+                    "contract": contract_manager.get_contract_summary(renewed)
+                },
+                "timestamp": datetime.utcnow().isoformat()
+            })
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 500
+    
+    @bp.route('/contracts/<contract_id>', methods=['DELETE'])
+    def terminate_contract(contract_id):
+        """Terminate a contract."""
+        game_state = get_game_state()
+        if not game_state:
+            return jsonify({"success": False, "message": "Game state not initialized"}), 503
+        
+        try:
+            contracts = getattr(game_state, 'contracts', [])
+            contract = next((c for c in contracts if c.id == contract_id), None)
+            
+            if not contract:
+                return jsonify({"success": False, "message": "Contract not found"}), 404
+            
+            data = request.get_json() or {}
+            reason = data.get('reason', 'firm_termination')
+            
+            penalty = contract_manager.terminate_contract(contract, reason, game_state)
+            
+            # Apply penalty to game state
+            if penalty > 0:
+                game_state.current_money = max(0, game_state.current_money - penalty)
+            
+            return jsonify({
+                "success": True,
+                "message": "Contract terminated",
+                "data": {
+                    "contract_id": contract_id,
+                    "reason": reason,
+                    "penalty": penalty,
+                    "remaining_money": game_state.current_money
+                },
+                "timestamp": datetime.utcnow().isoformat()
+            })
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 500
+    
+    @bp.route('/contracts/templates', methods=['GET'])
+    def list_templates():
+        """List available contract templates."""
+        try:
+            templates = list(contract_manager.contract_templates.values())
+            return jsonify({
+                "success": True,
+                "data": templates,
+                "count": len(templates),
+                "timestamp": datetime.utcnow().isoformat()
+            })
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 500
+    
+    return bp
+
+
 def create_economy_blueprint(game_state_ref):
     """Create the economy blueprint."""
     bp = Blueprint('economy', __name__)

@@ -1,0 +1,127 @@
+{
+  "contract_templates": [
+    {
+      "id": "retainer_basic",
+      "name": "Basic Retainer",
+      "contract_type": "retainer",
+      "base_rate": 1000,
+      "sla_terms": {
+        "max_response_time": 300
+      },
+      "duration_days": 30,
+      "penalties": {
+        "sla_failure": 0.5
+      },
+      "bonuses": {
+        "perfect_month": 1.5
+      }
+    },
+    {
+      "id": "retainer_premium",
+      "name": "Premium Retainer",
+      "contract_type": "retainer",
+      "base_rate": 5000,
+      "sla_terms": {
+        "max_response_time": 180
+      },
+      "duration_days": 60,
+      "penalties": {
+        "sla_failure": 0.3
+      },
+      "bonuses": {
+        "perfect_month": 1.8
+      }
+    },
+    {
+      "id": "per_incident_standard",
+      "name": "Standard Per-Incident",
+      "contract_type": "per_incident",
+      "base_rate": 500,
+      "sla_terms": {
+        "max_response_time": 240
+      },
+      "duration_days": 45,
+      "penalties": {
+        "sla_failure": 0.4
+      },
+      "bonuses": {
+        "fast_resolution": 1.2
+      }
+    },
+    {
+      "id": "per_incident_premium",
+      "name": "Premium Per-Incident",
+      "contract_type": "per_incident",
+      "base_rate": 2000,
+      "sla_terms": {
+        "max_response_time": 180
+      },
+      "duration_days": 60,
+      "penalties": {
+        "sla_failure": 0.3
+      },
+      "bonuses": {
+        "fast_resolution": 1.3,
+        "perfect_resolution": 1.5
+      }
+    },
+    {
+      "id": "project_forensics",
+      "name": "Forensics Project",
+      "contract_type": "project",
+      "base_rate": 50000,
+      "sla_terms": {
+        "max_incidents": 50,
+        "completion_deadline": 86400
+      },
+      "duration_days": 7,
+      "penalties": {
+        "deadline_miss": 0.2,
+        "sla_failure": 0.1
+      },
+      "bonuses": {
+        "early_completion": 2.0,
+        "perfect_completion": 2.5
+      }
+    },
+    {
+      "id": "project_security_audit",
+      "name": "Security Audit Project",
+      "contract_type": "project",
+      "base_rate": 75000,
+      "sla_terms": {
+        "max_incidents": 100,
+        "completion_deadline": 172800
+      },
+      "duration_days": 14,
+      "penalties": {
+        "deadline_miss": 0.15,
+        "sla_failure": 0.1
+      },
+      "bonuses": {
+        "early_completion": 1.5,
+        "perfect_completion": 2.0,
+        "fast_resolution": 1.2
+      }
+    },
+    {
+      "id": "project_incident_response",
+      "name": "Incident Response Project",
+      "contract_type": "project",
+      "base_rate": 30000,
+      "sla_terms": {
+        "max_incidents": 25,
+        "completion_deadline": 43200
+      },
+      "duration_days": 3,
+      "penalties": {
+        "deadline_miss": 0.3,
+        "sla_failure": 0.2
+      },
+      "bonuses": {
+        "early_completion": 2.2,
+        "perfect_completion": 3.0
+      }
+    }
+  ]
+}
