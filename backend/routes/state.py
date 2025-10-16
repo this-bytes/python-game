@@ -96,7 +96,14 @@ def create_state_blueprint(game_state_ref):
         
         try:
             # Reload initial data
-            game_state._load_initial_data()
+            # Prefer public API for resetting game state
+            if hasattr(game_state, "reset") and callable(getattr(game_state, "reset")):
+                game_state.reset()
+            elif hasattr(game_state, "reload_initial_data") and callable(getattr(game_state, "reload_initial_data")):
+                game_state.reload_initial_data()
+            else:
+                # Fallback: direct call to private method (should be replaced with public API)
+                game_state._load_initial_data()
             
             return jsonify({
                 "success": True,
