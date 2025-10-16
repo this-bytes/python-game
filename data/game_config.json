@@ -93,18 +93,50 @@
       "low_risk": {
         "return_rate": 0.02,
         "risk": 0.0,
+        "min_investment": 10000,
         "description": "Safe investment with 2% annual return"
       },
       "medium_risk": {
         "return_rate": 0.05,
         "risk": 0.1,
+        "min_investment": 50000,
         "description": "Moderate investment with 5% annual return, 10% risk of loss"
       },
       "high_risk": {
         "return_rate": 0.10,
         "risk": 0.25,
+        "min_investment": 100000,
         "description": "Risky investment with 10% annual return, 25% risk of loss"
       }
+    },
+    "reputation_bonus_threshold": 80,
+    "reputation_bonus_multiplier": 0.1
+  },
+  "offline_progress": {
+    "max_offline_hours": 24,
+    "incident_rate_multiplier": 0.5,
+    "automation_only": true,
+    "sla_penalty_reduction": 0.5
+  },
+  "difficulty": {
+    "scaling_enabled": true,
+    "time_scaling_factor": 0.01,
+    "level_scaling_factor": 0.05,
+    "difficulty_modes": {
+      "easy": 0.7,
+      "normal": 1.0,
+      "hard": 1.5
     }
+  },
+  "save_settings": {
+    "auto_save_interval_seconds": 300,
+    "max_save_slots": 10
+  },
+  "fatigue": {
+    "enabled": false,
+    "accumulation_rate": 1.0,
+    "recovery_rate": 0.5,
+    "max_penalty": 0.5,
+    "auto_rest_threshold": 80
   }
 }

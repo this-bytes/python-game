@@ -94,4 +94,117 @@ def create_automation_blueprint(game_state_ref):
         except Exception as e:
             return jsonify({"success": False, "message": str(e)}), 500
     
+    @bp.route('/automation-scripts/<script_id>/upgrade', methods=['POST'])
+    def upgrade_automation_script(script_id):
+        """Upgrade automation script to next level."""
+        game_state = get_game_state()
+        if not game_state:
+            return jsonify({"success": False, "message": "Game state not initialized"}), 503
+        
+        try:
+            # Use automation processor to upgrade
+            if hasattr(game_state, '_automation_processor'):
+                result = game_state._automation_processor.upgrade_automation_script(game_state, script_id)
+                if result['success']:
+                    return jsonify({
+                        "success": True,
+                        "message": f"Automation script upgraded to level {result['new_level']}",
+                        "data": result,
+                        "timestamp": datetime.utcnow().isoformat()
+                    })
+                else:
+                    return jsonify({
+                        "success": False,
+                        "message": result.get('error', 'Upgrade failed'),
+                        "data": result,
+                        "timestamp": datetime.utcnow().isoformat()
+                    }), 400
+            else:
+                return jsonify({"success": False, "message": "Automation processor not available"}), 503
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 500
+    
+    @bp.route('/automation-scripts/<script_id>/set-priority', methods=['PUT'])
+    def set_automation_priority(script_id):
+        """Set automation script priority."""
+        game_state = get_game_state()
+        if not game_state:
+            return jsonify({"success": False, "message": "Game state not initialized"}), 503
+        
+        try:
+            script = game_state.get_automation_script_by_id(script_id)
+            if not script:
+                return jsonify({"success": False, "message": "Automation script not found"}), 404
+            
+            data = request.get_json()
+            if 'priority' not in data:
+                return jsonify({"success": False, "message": "Priority value required"}), 400
+            
+            priority = int(data['priority'])
+            script.priority = priority
+            
+            return jsonify({
+                "success": True,
+                "message": f"Priority set to {priority}",
+                "data": {"script_id": script_id, "priority": priority},
+                "timestamp": datetime.utcnow().isoformat()
+            })
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 500
+    
+    @bp.route('/automation-scripts/<script_id>/set-cooldown', methods=['PUT'])
+    def set_automation_cooldown(script_id):
+        """Set automation script cooldown (admin only)."""
+        game_state = get_game_state()
+        if not game_state:
+            return jsonify({"success": False, "message": "Game state not initialized"}), 503
+        
+        try:
+            script = game_state.get_automation_script_by_id(script_id)
+            if not script:
+                return jsonify({"success": False, "message": "Automation script not found"}), 404
+            
+            data = request.get_json()
+            if 'cooldown_seconds' not in data:
+                return jsonify({"success": False, "message": "Cooldown value required"}), 400
+            
+            cooldown = float(data['cooldown_seconds'])
+            if cooldown < 0:
+                return jsonify({"success": False, "message": "Cooldown must be non-negative"}), 400
+            
+            script.cooldown_seconds = cooldown
+            
+            return jsonify({
+                "success": True,
+                "message": f"Cooldown set to {cooldown}s",
+                "data": {
+                    "script_id": script_id,
+                    "cooldown_seconds": cooldown,
+                    "effective_cooldown": script.get_effective_cooldown()
+                },
+                "timestamp": datetime.utcnow().isoformat()
+            })
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 500
+    
+    @bp.route('/automation-scripts/stats', methods=['GET'])
+    def get_automation_stats():
+        """Get automation processor statistics."""
+        game_state = get_game_state()
+        if not game_state:
+            return jsonify({"success": False, "message": "Game state not initialized"}), 503
+        
+        try:
+            if hasattr(game_state, '_automation_processor'):
+                stats = game_state._automation_processor.get_statistics()
+                return jsonify({
+                    "success": True,
+                    "data": stats,
+                    "timestamp": datetime.utcnow().isoformat()
+                })
+            else:
+                return jsonify({"success": False, "message": "Automation processor not available"}), 503
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 500
+    
     return bp
