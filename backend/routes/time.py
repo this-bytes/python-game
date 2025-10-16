@@ -93,9 +93,14 @@ def create_time_blueprint(game_state_ref):
             
             # Call update multiple times to simulate passage of time
             # Use small delta_time increments for accuracy
-            increment = 1.0  # 1 second increments
-            for _ in range(int(seconds / increment)):
+            # Use larger increments for efficiency, but not more than 10 seconds
+            increment = min(10.0, seconds)
+            num_full_steps = int(seconds // increment)
+            remainder = seconds % increment
+            for _ in range(num_full_steps):
                 game_state.update(increment)
+            if remainder > 0:
+                game_state.update(remainder)
             
             return jsonify({
                 "success": True,
