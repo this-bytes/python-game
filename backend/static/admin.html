@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cybersecurity Firm - Admin Dashboard</title>
+    <link rel="stylesheet" href="/static/admin.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔒 Cybersecurity Firm - Admin Dashboard</h1>
+            <div id="connection-status" class="status-indicator">
+                <span class="status-dot"></span>
+                <span class="status-text">Connecting...</span>
+            </div>
+        </header>
+
+        <div class="dashboard">
+            <!-- Game State Summary -->
+            <section class="panel">
+                <h2>Game State</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Money</div>
+                        <div class="stat-value" id="stat-money">$0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Active Incidents</div>
+                        <div class="stat-value" id="stat-incidents">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Specialists</div>
+                        <div class="stat-value" id="stat-specialists">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">SLA Compliance</div>
+                        <div class="stat-value" id="stat-sla">100%</div>
+                    </div>
+                </div>
+                <div class="button-group">
+                    <button onclick="pauseGame()" class="btn btn-warning">⏸ Pause</button>
+                    <button onclick="resumeGame()" class="btn btn-success">▶ Resume</button>
+                    <button onclick="refreshData()" class="btn btn-primary">🔄 Refresh</button>
+                </div>
+            </section>
+
+            <!-- Time Controls -->
+            <section class="panel">
+                <h2>Time Controls</h2>
+                <div class="control-group">
+                    <label for="speed-slider">Game Speed: <span id="speed-value">1.0x</span></label>
+                    <input type="range" id="speed-slider" min="0.1" max="5" step="0.1" value="1.0" 
+                           onchange="setGameSpeed(this.value)">
+                </div>
+                <div class="control-group">
+                    <label for="fast-forward-time">Fast Forward (seconds):</label>
+                    <input type="number" id="fast-forward-time" value="60" min="1" max="3600">
+                    <button onclick="fastForward()" class="btn btn-info">⏩ Fast Forward</button>
+                </div>
+            </section>
+
+            <!-- Money Controls -->
+            <section class="panel">
+                <h2>Economy</h2>
+                <div class="control-group">
+                    <label for="money-amount">Adjust Money:</label>
+                    <input type="number" id="money-amount" value="1000" step="100">
+                    <button onclick="adjustMoney()" class="btn btn-success">💰 Add Money</button>
+                    <button onclick="adjustMoney(true)" class="btn btn-danger">💸 Subtract Money</button>
+                </div>
+            </section>
+
+            <!-- Incident Controls -->
+            <section class="panel">
+                <h2>Incident Management</h2>
+                <div class="control-group">
+                    <button onclick="spawnIncident()" class="btn btn-primary">🚨 Spawn Single Incident</button>
+                    <button onclick="batchSpawn(10)" class="btn btn-warning">🚨🚨 Spawn 10 Incidents</button>
+                    <button onclick="batchSpawn(50)" class="btn btn-danger">🚨🚨🚨 Spawn 50 Incidents</button>
+                </div>
+                <div id="incidents-list" class="list-container">
+                    <p class="loading">Loading incidents...</p>
+                </div>
+            </section>
+
+            <!-- Specialists -->
+            <section class="panel">
+                <h2>Specialists</h2>
+                <div id="specialists-list" class="list-container">
+                    <p class="loading">Loading specialists...</p>
+                </div>
+            </section>
+
+            <!-- Clients -->
+            <section class="panel">
+                <h2>Clients</h2>
+                <div id="clients-list" class="list-container">
+                    <p class="loading">Loading clients...</p>
+                </div>
+            </section>
+
+            <!-- Config Management -->
+            <section class="panel">
+                <h2>Configuration</h2>
+                <div class="button-group">
+                    <button onclick="reloadConfig()" class="btn btn-warning">🔄 Hot Reload All Configs</button>
+                    <button onclick="resetGameState()" class="btn btn-danger">⚠️ Reset Game State</button>
+                </div>
+                <div id="config-status" class="status-message"></div>
+            </section>
+
+            <!-- Logs -->
+            <section class="panel">
+                <h2>Activity Log</h2>
+                <div id="activity-log" class="log-container">
+                    <p class="log-entry">Dashboard initialized</p>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script src="/static/admin.js"></script>
+</body>
+</html>
