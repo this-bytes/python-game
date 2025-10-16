@@ -72,6 +72,14 @@ class GameState:
     clients: List[Client] = field(default_factory=list)
     automation_scripts: List[AutomationScript] = field(default_factory=list)
     equipment_instances: Dict[str, Any] = field(default_factory=dict)  # equipment_id -> Equipment instance
+    
+    # Tycoon system entities
+    contracts: List = field(default_factory=list)  # List[Contract]
+    facilities: List = field(default_factory=list)  # List[Facility]
+    recruitment_pool: List[Dict] = field(default_factory=list)  # Candidate data
+    recruitment_refresh_time: float = 0.0
+    active_events: List[Dict] = field(default_factory=list)  # {event_id, remaining_time}
+    event_cooldowns: Dict[str, float] = field(default_factory=dict)  # event_id -> next_allowed_time
 
     # Game progression
     game_start_time: float = field(default_factory=time.time)
@@ -98,6 +106,7 @@ class GameState:
 
     # Game configuration
     max_active_incidents: int = 50
+    max_specialists: int = 10  # Affected by office space facility
     incident_generation_enabled: bool = True
 
     # Metrics and statistics
@@ -174,8 +183,18 @@ class GameState:
             automation_data = self._json_loader.load_data("automation_scripts.json")
             if "automation_scripts" in automation_data:
                 self.automation_scripts = [AutomationScript.from_dict(a) for a in automation_data["automation_scripts"]]
+            
+            # Load facilities
+            try:
+                facilities_data = self._json_loader.load_data("facilities.json")
+                if "facilities" in facilities_data:
+                    from src.models.facility import Facility
+                    self.facilities = [Facility.from_dict(f) for f in facilities_data["facilities"]]
+            except Exception as e:
+                self._logger.logger.warning(f"[GAME_STATE] Could not load facilities: {e}")
+                self.facilities = []
 
-            self._logger.logger.info(f"[GAME_STATE] Initial data loaded: specialists={len(self.specialists)}, clients={len(self.clients)}, automation_scripts={len(self.automation_scripts)}")
+            self._logger.logger.info(f"[GAME_STATE] Initial data loaded: specialists={len(self.specialists)}, clients={len(self.clients)}, automation_scripts={len(self.automation_scripts)}, facilities={len(self.facilities)}")
 
         except Exception as e:
             self._logger.logger.error(f"[GAME_STATE] Failed to load initial data: {str(e)}")
@@ -726,6 +745,12 @@ class GameState:
             "specialists": [s.to_dict() for s in self.specialists],
             "incidents": [i.to_dict() for i in self.incidents],
             "clients": [c.to_dict() for c in self.clients],
+            "contracts": [c.to_dict() for c in self.contracts] if hasattr(self, 'contracts') else [],
+            "facilities": [f.to_dict() for f in self.facilities] if hasattr(self, 'facilities') else [],
+            "recruitment_pool": self.recruitment_pool if hasattr(self, 'recruitment_pool') else [],
+            "recruitment_refresh_time": self.recruitment_refresh_time if hasattr(self, 'recruitment_refresh_time') else 0.0,
+            "active_events": self.active_events if hasattr(self, 'active_events') else [],
+            "event_cooldowns": self.event_cooldowns.copy() if hasattr(self, 'event_cooldowns') else {},
             "game_start_time": self.game_start_time,
             "current_time": self.current_time,
             "game_speed_multiplier": self.game_speed_multiplier,
@@ -740,6 +765,7 @@ class GameState:
             "unlocked_achievements": self.unlocked_achievements.copy(),
             "achievement_progress": self.achievement_progress.copy(),
             "max_active_incidents": self.max_active_incidents,
+            "max_specialists": self.max_specialists if hasattr(self, 'max_specialists') else 10,
             "incident_generation_enabled": self.incident_generation_enabled,
             "metrics": self.metrics.to_dict()
         }
@@ -761,6 +787,28 @@ class GameState:
         instance.specialists = [Specialist.from_dict(s) for s in data.get("specialists", [])]
         instance.incidents = [Incident.from_dict(i) for i in data.get("incidents", [])]
         instance.clients = [Client.from_dict(c) for c in data.get("clients", [])]
+        
+        # Load tycoon system entities (imported inline to avoid circular dependencies)
+        instance.contracts = []
+        if "contracts" in data:
+            try:
+                from src.models.contract import Contract
+                instance.contracts = [Contract.from_dict(c) for c in data["contracts"]]
+            except ImportError:
+                pass
+        
+        instance.facilities = []
+        if "facilities" in data:
+            try:
+                from src.models.facility import Facility
+                instance.facilities = [Facility.from_dict(f) for f in data["facilities"]]
+            except ImportError:
+                pass
+        
+        instance.recruitment_pool = data.get("recruitment_pool", []).copy()
+        instance.recruitment_refresh_time = data.get("recruitment_refresh_time", 0.0)
+        instance.active_events = data.get("active_events", []).copy()
+        instance.event_cooldowns = data.get("event_cooldowns", {}).copy()
 
         # Load game state
         instance.game_start_time = data.get("game_start_time", time.time())
@@ -777,6 +825,7 @@ class GameState:
         instance.unlocked_achievements = data.get("unlocked_achievements", []).copy()
         instance.achievement_progress = data.get("achievement_progress", {}).copy()
         instance.max_active_incidents = data.get("max_active_incidents", 50)
+        instance.max_specialists = data.get("max_specialists", 10)
         instance.incident_generation_enabled = data.get("incident_generation_enabled", True)
         instance.metrics = GameMetrics.from_dict(data.get("metrics", {}))
 

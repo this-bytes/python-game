@@ -4,8 +4,8 @@ Clients generate incidents at configured rates and have SLA requirements.
 Reputation with clients affects contract renewals and bonuses.
 """
 
-from dataclasses import dataclass
-from typing import Dict, Optional
+from dataclasses import dataclass, field
+from typing import Dict, Optional, List
 from enum import Enum
 
 
@@ -33,6 +33,14 @@ class Client:
     reputation: int  # Reputation score (0-100)
     contract_value: int  # Monthly contract value in dollars
     active: bool = True
+    
+    # Tycoon system fields
+    satisfaction_history: List[float] = field(default_factory=list)  # Last 10 incidents
+    tier: int = 1  # 1-5 (calculated from reputation)
+    contracts: List[str] = field(default_factory=list)  # Contract IDs
+    total_incidents_assigned: int = 0
+    total_incidents_resolved: int = 0
+    total_sla_failures: int = 0
     
     def __post_init__(self):
         """Validate data after initialization."""
@@ -244,7 +252,13 @@ class Client:
             "sla_multiplier": self.sla_multiplier,
             "reputation": self.reputation,
             "contract_value": self.contract_value,
-            "active": self.active
+            "active": self.active,
+            "satisfaction_history": self.satisfaction_history.copy(),
+            "tier": self.tier,
+            "contracts": self.contracts.copy(),
+            "total_incidents_assigned": self.total_incidents_assigned,
+            "total_incidents_resolved": self.total_incidents_resolved,
+            "total_sla_failures": self.total_sla_failures
         }
     
     @classmethod
@@ -265,7 +279,13 @@ class Client:
             sla_multiplier=data["sla_multiplier"],
             reputation=data["reputation"],
             contract_value=data["contract_value"],
-            active=data.get("active", True)
+            active=data.get("active", True),
+            satisfaction_history=data.get("satisfaction_history", []).copy(),
+            tier=data.get("tier", 1),
+            contracts=data.get("contracts", []).copy(),
+            total_incidents_assigned=data.get("total_incidents_assigned", 0),
+            total_incidents_resolved=data.get("total_incidents_resolved", 0),
+            total_sla_failures=data.get("total_sla_failures", 0)
         )
     
     def __repr__(self) -> str:

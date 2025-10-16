@@ -74,11 +74,34 @@ Open your browser to:
 ### Economy
 - `POST /api/economy/money` - Adjust money
 - `GET /api/economy/metrics` - Get financial metrics
+- `POST /api/economy/invest` - Make investment (low/medium/high risk)
+- `POST /api/economy/withdraw` - Withdraw from investment
+- `GET /api/economy/passive-income` - Get passive income breakdown
+
+### Prestige & Rebirth
+- `GET /api/prestige/calculate` - Calculate prestige points if reset now
+- `POST /api/prestige/perform` - Perform prestige reset
+- `GET /api/prestige/upgrades` - List all prestige upgrades
+- `POST /api/prestige/upgrades/{id}/purchase` - Purchase prestige upgrade
+
+### Offline Progress
+- `GET /api/offline-progress` - Get offline progress report
+- `POST /api/offline-progress/simulate` - Simulate offline time (testing)
+
+### Save/Load
+- `POST /api/state/save` - Save game to slot
+- `POST /api/state/load` - Load game from slot
+- `GET /api/saves` - List all save files with metadata
+- `DELETE /api/saves/{slot}` - Delete save file
 
 ### Automation
 - `GET /api/automation-scripts` - List automation scripts
 - `GET /api/automation-scripts/{id}` - Get specific script
 - `PUT /api/automation-scripts/{id}` - Update script parameters
+- `POST /api/automation-scripts/{id}/upgrade` - Upgrade script to next level
+- `PUT /api/automation-scripts/{id}/set-priority` - Change script priority
+- `PUT /api/automation-scripts/{id}/set-cooldown` - Adjust cooldown (admin)
+- `GET /api/automation-scripts/stats` - Get automation statistics
 
 ### Configuration
 - `POST /api/config/reload` - Hot-reload all JSON configs
@@ -108,6 +131,28 @@ curl http://localhost:5000/api/state/summary
 curl -X POST http://localhost:5000/api/economy/money \
   -H "Content-Type: application/json" \
   -d '{"amount": 1000, "reason": "Testing"}'
+
+# Make an investment
+curl -X POST http://localhost:5000/api/economy/invest \
+  -H "Content-Type: application/json" \
+  -d '{"investment_type": "medium_risk", "amount": 10000}'
+
+# Upgrade automation script
+curl -X POST http://localhost:5000/api/automation-scripts/auto_assign_network_low/upgrade
+
+# Save game to slot 1
+curl -X POST http://localhost:5000/api/state/save \
+  -H "Content-Type: application/json" \
+  -d '{"slot": 1}'
+
+# List all saves
+curl http://localhost:5000/api/saves
+
+# Calculate prestige points
+curl http://localhost:5000/api/prestige/calculate
+
+# Purchase prestige upgrade
+curl -X POST http://localhost:5000/api/prestige/upgrades/xp_boost_1/purchase
 
 # Spawn an incident
 curl -X POST http://localhost:5000/api/incidents/spawn \

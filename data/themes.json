@@ -1,0 +1,61 @@
+{
+  "themes": {
+    "dark_cyber": {
+      "name": "Dark Cyber",
+      "colors": {
+        "primary": [0, 180, 255],
+        "secondary": [255, 0, 180],
+        "background": [15, 15, 25],
+        "panel_bg": [25, 25, 40],
+        "text": [220, 220, 230],
+        "success": [0, 255, 100],
+        "warning": [255, 200, 0],
+        "danger": [255, 50, 50],
+        "border": [50, 50, 80]
+      },
+      "fonts": {
+        "title": 24,
+        "normal": 14,
+        "small": 10
+      }
+    },
+    "light_professional": {
+      "name": "Light Professional",
+      "colors": {
+        "primary": [0, 120, 215],
+        "secondary": [100, 100, 100],
+        "background": [240, 240, 245],
+        "panel_bg": [255, 255, 255],
+        "text": [30, 30, 30],
+        "success": [0, 150, 0],
+        "warning": [200, 150, 0],
+        "danger": [200, 0, 0],
+        "border": [200, 200, 210]
+      },
+      "fonts": {
+        "title": 24,
+        "normal": 14,
+        "small": 10
+      }
+    },
+    "hacker_green": {
+      "name": "Hacker Green",
+      "colors": {
+        "primary": [0, 255, 0],
+        "secondary": [0, 200, 0],
+        "background": [0, 0, 0],
+        "panel_bg": [5, 10, 5],
+        "text": [0, 255, 0],
+        "success": [0, 255, 100],
+        "warning": [255, 255, 0],
+        "danger": [255, 0, 0],
+        "border": [0, 150, 0]
+      },
+      "fonts": {
+        "title": 24,
+        "normal": 14,
+        "small": 10
+      }
+    }
+  }
+}
