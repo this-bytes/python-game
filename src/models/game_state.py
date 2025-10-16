@@ -85,6 +85,11 @@ class GameState:
     
     # Offline progress
     last_save_time: float = field(default_factory=time.time)  # Last time game was saved
+    
+    # Prestige/Rebirth system
+    prestige_points: int = 0  # Prestige points available to spend
+    prestige_upgrades: Dict[str, int] = field(default_factory=dict)  # Upgrade ID → level
+    total_prestiges: int = 0  # Total number of prestiges performed
 
     # Game configuration
     max_active_incidents: int = 50
@@ -599,6 +604,9 @@ class GameState:
             "total_money_earned": self.total_money_earned,
             "investments": self.investments.copy(),
             "last_save_time": self.last_save_time,
+            "prestige_points": self.prestige_points,
+            "prestige_upgrades": self.prestige_upgrades.copy(),
+            "total_prestiges": self.total_prestiges,
             "max_active_incidents": self.max_active_incidents,
             "incident_generation_enabled": self.incident_generation_enabled,
             "metrics": self.metrics.to_dict()
@@ -631,6 +639,9 @@ class GameState:
         instance.total_money_earned = data.get("total_money_earned", 0.0)
         instance.investments = data.get("investments", {}).copy()
         instance.last_save_time = data.get("last_save_time", time.time())
+        instance.prestige_points = data.get("prestige_points", 0)
+        instance.prestige_upgrades = data.get("prestige_upgrades", {}).copy()
+        instance.total_prestiges = data.get("total_prestiges", 0)
         instance.max_active_incidents = data.get("max_active_incidents", 50)
         instance.incident_generation_enabled = data.get("incident_generation_enabled", True)
         instance.metrics = GameMetrics.from_dict(data.get("metrics", {}))
