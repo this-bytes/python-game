@@ -62,7 +62,10 @@ class TestGameState:
 
     def _mock_load_data(self, filename):
         """Mock data loading for tests."""
-        if filename == "specialists":
+        # Handle both with and without .json extension
+        filename_base = filename.replace('.json', '')
+        
+        if filename_base == "specialists":
             return {
                 "specialists": [
                     {
@@ -76,7 +79,7 @@ class TestGameState:
                     }
                 ]
             }
-        elif filename == "clients":
+        elif filename_base == "clients":
             return {
                 "clients": [
                     {
@@ -90,7 +93,7 @@ class TestGameState:
                     }
                 ]
             }
-        elif filename == "automation_scripts":
+        elif filename_base == "automation_scripts":
             return {
                 "automation_scripts": [
                     {
@@ -105,7 +108,7 @@ class TestGameState:
                     }
                 ]
             }
-        elif filename == "incidents":
+        elif filename_base == "incidents":
             return {
                 "incident_types": [
                     {

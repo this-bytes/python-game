@@ -123,17 +123,17 @@ class GameState:
         """Load initial game data from JSON files."""
         try:
             # Load specialists
-            specialists_data = self._json_loader.load_data("specialists")
+            specialists_data = self._json_loader.load_data("specialists.json")
             if "specialists" in specialists_data:
                 self.specialists = [Specialist.from_dict(s) for s in specialists_data["specialists"]]
 
             # Load clients
-            clients_data = self._json_loader.load_data("clients")
+            clients_data = self._json_loader.load_data("clients.json")
             if "clients" in clients_data:
                 self.clients = [Client.from_dict(c) for c in clients_data["clients"]]
 
             # Load automation scripts
-            automation_data = self._json_loader.load_data("automation_scripts")
+            automation_data = self._json_loader.load_data("automation_scripts.json")
             if "automation_scripts" in automation_data:
                 self.automation_scripts = [AutomationScript.from_dict(a) for a in automation_data["automation_scripts"]]
 
@@ -568,6 +568,11 @@ class GameState:
             instance.automation_scripts = []
 
         return instance
+    
+    @property
+    def incident_generator(self) -> IncidentGenerator:
+        """Get the incident generator instance."""
+        return self._incident_generator
 
     def __repr__(self) -> str:
         """String representation of game state."""
