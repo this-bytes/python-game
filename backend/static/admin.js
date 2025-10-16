@@ -69,7 +69,7 @@ async function loadGameState() {
         
         if (data.success) {
             const summary = data.data;
-            document.getElementById('stat-money').textContent = `$${summary.money.toFixed(2)}`;
+            document.getElementById('stat-money').textContent = `$${summary.current_money.toFixed(2)}`;
             document.getElementById('stat-incidents').textContent = summary.active_incidents;
             document.getElementById('stat-specialists').textContent = summary.total_specialists;
             document.getElementById('stat-sla').textContent = `${summary.sla_compliance_rate.toFixed(1)}%`;
