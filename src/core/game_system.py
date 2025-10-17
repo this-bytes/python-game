@@ -1,320 +1,174 @@
-"""GameSystem Interface - Abstract base for all game plugins.
+"""GameSystem interface for plugin-based game architecture.
 
-All game systems (idle, prestige, achievements, etc) implement this
-interface to work seamlessly with the System Manager.
+All game systems (idle mechanics, prestige, achievements, etc.) should inherit
+from GameSystem to enable consistent lifecycle management and integration.
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional, List
-import logging
+from typing import Dict, Any, Optional
+from src.models.game_state import GameState
 
 
 class GameSystem(ABC):
     """Abstract base class for all game systems.
     
-    Each system should:
-    1. Initialize itself with required dependencies
-    2. Update its state each frame
-    3. Respond to game events
-    4. Provide serializable state
-    5. Load state from saves
+    Game systems are self-contained plugins that:
+    - Have clear lifecycle methods (initialize, update, shutdown)
+    - Can save/load their state independently
+    - Integrate via event bus (publish/subscribe)
+    - Can be enabled/disabled via feature flags
     
     Example:
-        class PrestigeSystem(GameSystem):
+        ```python
+        class MySystem(GameSystem):
             def initialize(self, game_state):
-                self.game_state = game_state
-                self.prestige_level = 0
-            
-            def update(self, dt: float):
-                # Update prestige calculations
+                self.some_data = []
+                
+            def update(self, game_state, delta_time):
+                # Update logic here
                 pass
-            
-            def on_event(self, event_type: str, data: dict):
-                if event_type == "game_reset":
-                    self.calculate_prestige()
+                
+            def get_name(self):
+                return "my_system"
+        ```
     """
     
-    def __init__(self, name: str, priority: int = 100):
-        """Initialize game system.
-        
-        Args:
-            name: Unique identifier for this system
-            priority: Update priority (lower = earlier, 0-1000)
-        """
-        self.name = name
-        self.priority = priority
-        self.enabled = True
-        self.logger = logging.getLogger(f"system.{name}")
+    def __init__(self):
+        """Initialize the game system."""
         self._initialized = False
+        self._enabled = True
     
     @abstractmethod
-    def initialize(self, game_state: Any, **dependencies):
-        """Initialize the system with game state and dependencies.
-        
-        Called once when the system is registered. Use this to set up
-        subscriptions to events, load initial data, etc.
-        
-        Args:
-            game_state: Main GameState instance
-            **dependencies: Other systems this one depends on
-        
-        Example:
-            def initialize(self, game_state, event_bus=None, feature_manager=None):
-                self.game_state = game_state
-                self.event_bus = event_bus
-                if self.event_bus:
-                    self.event_bus.subscribe("incident_resolved", self.on_incident)
-        """
-        pass
-    
-    @abstractmethod
-    def update(self, dt: float):
-        """Update system state.
-        
-        Called every frame by the System Manager.
-        
-        Args:
-            dt: Delta time since last update (seconds)
-        
-        Example:
-            def update(self, dt: float):
-                if not self.enabled:
-                    return
-                
-                # Update cooldowns
-                self.ability_cooldown -= dt
-                
-                # Process queued actions
-                self.process_queue()
-        """
-        pass
-    
-    @abstractmethod
-    def on_event(self, event_type: str, data: Dict[str, Any]):
-        """Handle game events.
-        
-        Called by the Event Bus when subscribed events occur.
-        
-        Args:
-            event_type: Type of event (e.g., "incident_resolved")
-            data: Event data dictionary
-        
-        Example:
-            def on_event(self, event_type: str, data: dict):
-                if event_type == "specialist_leveled_up":
-                    specialist_id = data["specialist_id"]
-                    self.unlock_new_abilities(specialist_id)
-        """
-        pass
-    
-    @abstractmethod
-    def get_state(self) -> Dict[str, Any]:
-        """Get serializable state for saving.
+    def get_name(self) -> str:
+        """Get the unique name of this system.
         
         Returns:
-            Dictionary containing all state to persist
-        
-        Example:
-            def get_state(self) -> dict:
-                return {
-                    "prestige_level": self.prestige_level,
-                    "prestige_points": self.prestige_points,
-                    "unlocked_bonuses": self.unlocked_bonuses
-                }
+            System name (e.g., "idle_core", "prestige_system")
         """
         pass
     
     @abstractmethod
-    def set_state(self, state: Dict[str, Any]):
-        """Load state from save data.
+    def initialize(self, game_state: GameState):
+        """Initialize the system with game state.
+        
+        Called once when the system is first added to the game.
+        Use this to set up initial state, subscribe to events, etc.
         
         Args:
-            state: State dictionary from save file
-        
-        Example:
-            def set_state(self, state: dict):
-                self.prestige_level = state.get("prestige_level", 0)
-                self.prestige_points = state.get("prestige_points", 0)
-                self.unlocked_bonuses = state.get("unlocked_bonuses", [])
+            game_state: Current game state
         """
         pass
     
-    def enable(self):
-        """Enable this system."""
-        self.enabled = True
-        self.logger.info(f"System {self.name} enabled")
+    @abstractmethod
+    def update(self, game_state: GameState, delta_time: float):
+        """Update the system for one game frame.
+        
+        Called every frame while the system is enabled.
+        
+        Args:
+            game_state: Current game state
+            delta_time: Time elapsed since last update (seconds)
+        """
+        pass
     
-    def disable(self):
-        """Disable this system."""
-        self.enabled = False
-        self.logger.info(f"System {self.name} disabled")
+    def shutdown(self, game_state: GameState):
+        """Shutdown the system and cleanup resources.
+        
+        Called when the system is removed or game is closing.
+        Use this to unsubscribe from events, save data, etc.
+        
+        Args:
+            game_state: Current game state
+        """
+        pass
+    
+    def save_state(self, game_state: GameState) -> Dict[str, Any]:
+        """Save system-specific state.
+        
+        Override to save custom data that isn't in GameState.
+        
+        Args:
+            game_state: Current game state
+            
+        Returns:
+            Dictionary with system state data
+        """
+        return {}
+    
+    def load_state(self, game_state: GameState, state_data: Dict[str, Any]):
+        """Load system-specific state.
+        
+        Override to restore custom data that isn't in GameState.
+        
+        Args:
+            game_state: Current game state
+            state_data: State data from save_state()
+        """
+        pass
     
     def is_initialized(self) -> bool:
-        """Check if system has been initialized.
+        """Check if system is initialized.
         
         Returns:
-            True if initialized
+            True if initialize() was called
         """
         return self._initialized
     
-    def mark_initialized(self):
-        """Mark system as initialized."""
-        self._initialized = True
+    def set_initialized(self, initialized: bool):
+        """Set initialized state.
+        
+        Args:
+            initialized: New initialized state
+        """
+        self._initialized = initialized
     
-    def get_dependencies(self) -> List[str]:
+    def is_enabled(self) -> bool:
+        """Check if system is enabled.
+        
+        Returns:
+            True if system is enabled and should update
+        """
+        return self._enabled
+    
+    def set_enabled(self, enabled: bool):
+        """Enable or disable the system.
+        
+        Disabled systems don't receive update() calls.
+        
+        Args:
+            enabled: True to enable, False to disable
+        """
+        self._enabled = enabled
+    
+    def get_feature_id(self) -> Optional[str]:
+        """Get feature flag ID for this system.
+        
+        Override to link system to a feature flag.
+        If feature is disabled, system won't be initialized.
+        
+        Returns:
+            Feature ID or None (always enabled)
+        """
+        return None
+    
+    def get_dependencies(self) -> list:
         """Get list of system names this system depends on.
         
-        Override this to specify dependencies. System Manager will
-        ensure dependencies are initialized first.
+        Override to specify dependencies. Dependent systems
+        will be initialized before this system.
         
         Returns:
-            List of system names (default: empty)
-        
-        Example:
-            def get_dependencies(self) -> List[str]:
-                return ["event_bus", "feature_manager", "idle_core"]
+            List of system names (e.g., ["idle_core"])
         """
         return []
     
-    def get_required_features(self) -> List[str]:
-        """Get list of feature flags required for this system.
+    def on_event(self, event):
+        """Handle an event from the event bus.
         
-        Override this to specify feature requirements. System Manager will
-        only initialize if all required features are enabled.
+        Override to respond to specific events.
+        Subscribe to events in initialize().
         
-        Returns:
-            List of feature names (default: empty)
-        
-        Example:
-            def get_required_features(self) -> List[str]:
-                return ["prestige_system"]
+        Args:
+            event: Event object from event bus
         """
-        return []
-    
-    def on_shutdown(self):
-        """Called when system is being shut down.
-        
-        Use this to clean up resources, save data, unsubscribe from events.
-        
-        Example:
-            def on_shutdown(self):
-                if self.event_bus:
-                    self.event_bus.unsubscribe_all(self.on_event)
-                self.save_cache()
-        """
-        pass
-    
-    def get_info(self) -> Dict[str, Any]:
-        """Get system information for debugging.
-        
-        Returns:
-            Dictionary with system metadata
-        """
-        return {
-            "name": self.name,
-            "priority": self.priority,
-            "enabled": self.enabled,
-            "initialized": self._initialized,
-            "dependencies": self.get_dependencies(),
-            "required_features": self.get_required_features()
-        }
-
-
-class SimpleGameSystem(GameSystem):
-    """Simplified base class for basic game systems.
-    
-    Use this when you don't need event handling or complex state management.
-    Just override update() and you're good to go.
-    
-    Example:
-        class AutoSaveSystem(SimpleGameSystem):
-            def __init__(self):
-                super().__init__("auto_save")
-                self.save_timer = 0
-            
-            def update(self, dt: float):
-                self.save_timer += dt
-                if self.save_timer >= 60:  # Save every minute
-                    self.game_state.save()
-                    self.save_timer = 0
-    """
-    
-    def __init__(self, name: str, priority: int = 100):
-        super().__init__(name, priority)
-        self.game_state = None
-    
-    def initialize(self, game_state: Any, **dependencies):
-        """Initialize with game state."""
-        self.game_state = game_state
-        self.mark_initialized()
-    
-    def on_event(self, event_type: str, data: Dict[str, Any]):
-        """Default: ignore events."""
-        pass
-    
-    def get_state(self) -> Dict[str, Any]:
-        """Default: no state to save."""
-        return {}
-    
-    def set_state(self, state: Dict[str, Any]):
-        """Default: no state to load."""
-        pass
-
-
-class EventDrivenGameSystem(GameSystem):
-    """Base class for event-driven game systems.
-    
-    Automatically subscribes to specified events during initialization.
-    
-    Example:
-        class AchievementSystem(EventDrivenGameSystem):
-            def get_subscribed_events(self) -> List[str]:
-                return ["incident_resolved", "specialist_leveled_up", "contract_completed"]
-            
-            def on_event(self, event_type: str, data: dict):
-                if event_type == "incident_resolved":
-                    self.check_achievement("speed_demon", data)
-    """
-    
-    def __init__(self, name: str, priority: int = 100):
-        super().__init__(name, priority)
-        self.game_state = None
-        self.event_bus = None
-    
-    def initialize(self, game_state: Any, **dependencies):
-        """Initialize and subscribe to events."""
-        self.game_state = game_state
-        self.event_bus = dependencies.get("event_bus")
-        
-        if self.event_bus:
-            for event_type in self.get_subscribed_events():
-                self.event_bus.subscribe(event_type, self.on_event)
-        
-        self.mark_initialized()
-    
-    @abstractmethod
-    def get_subscribed_events(self) -> List[str]:
-        """Get list of events to subscribe to.
-        
-        Returns:
-            List of event type strings
-        """
-        pass
-    
-    def on_shutdown(self):
-        """Unsubscribe from all events."""
-        if self.event_bus:
-            for event_type in self.get_subscribed_events():
-                self.event_bus.unsubscribe(event_type, self.on_event)
-    
-    def update(self, dt: float):
-        """Default: event-driven systems don't need updates."""
-        pass
-    
-    def get_state(self) -> Dict[str, Any]:
-        """Default: no state to save."""
-        return {}
-    
-    def set_state(self, state: Dict[str, Any]):
-        """Default: no state to load."""
         pass

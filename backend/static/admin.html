@@ -3,23 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cybersecurity Firm - Admin Dashboard</title>
+    <title>🔒 CYBERSECURITY FIRM - CONTROL CENTER</title>
     <link rel="stylesheet" href="/static/admin.css">
+    <!-- Socket.IO for real-time updates -->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>🔒 Cybersecurity Firm - Admin Dashboard</h1>
+            <h1>🔒 CYBERSECURITY FIRM - CONTROL CENTER</h1>
             <div id="connection-status" class="status-indicator">
                 <span class="status-dot"></span>
-                <span class="status-text">Connecting...</span>
+                <span class="status-text">INITIALIZING...</span>
             </div>
         </header>
 
         <div class="dashboard">
             <!-- Game State Summary -->
             <section class="panel">
-                <h2>Game State</h2>
+                <h2>⚡ GAME STATE</h2>
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-label">Money</div>
@@ -39,15 +41,15 @@
                     </div>
                 </div>
                 <div class="button-group">
-                    <button onclick="pauseGame()" class="btn btn-warning">⏸ Pause</button>
-                    <button onclick="resumeGame()" class="btn btn-success">▶ Resume</button>
-                    <button onclick="refreshData()" class="btn btn-primary">🔄 Refresh</button>
+                    <button onclick="pauseGame()" class="btn btn-warning">⏸ PAUSE</button>
+                    <button onclick="resumeGame()" class="btn btn-success">▶ RESUME</button>
+                    <button onclick="refreshData()" class="btn btn-primary">🔄 REFRESH</button>
                 </div>
             </section>
 
             <!-- Time Controls -->
             <section class="panel">
-                <h2>Time Controls</h2>
+                <h2>⏱️ TIME CONTROLS</h2>
                 <div class="control-group">
                     <label for="speed-slider">Game Speed: <span id="speed-value">1.0x</span></label>
                     <input type="range" id="speed-slider" min="0.1" max="5" step="0.1" value="1.0" 
@@ -62,22 +64,34 @@
 
             <!-- Money Controls -->
             <section class="panel">
-                <h2>Economy</h2>
+                <h2>💰 ECONOMY</h2>
                 <div class="control-group">
                     <label for="money-amount">Adjust Money:</label>
                     <input type="number" id="money-amount" value="1000" step="100">
-                    <button onclick="adjustMoney()" class="btn btn-success">💰 Add Money</button>
-                    <button onclick="adjustMoney(true)" class="btn btn-danger">💸 Subtract Money</button>
+                    <button onclick="adjustMoney()" class="btn btn-success">💰 ADD MONEY</button>
+                    <button onclick="adjustMoney(true)" class="btn btn-danger">💸 SUBTRACT</button>
+                </div>
+            </section>
+
+            <!-- God Mode Controls -->
+            <section class="panel">
+                <h2>👑 GOD MODE</h2>
+                <div class="button-group">
+                    <button onclick="spawnWave(50)" class="btn btn-warning">🌊 SPAWN WAVE (50)</button>
+                    <button onclick="completeAll()" class="btn btn-success">✅ COMPLETE ALL</button>
+                    <button onclick="levelUpAll()" class="btn btn-info">⬆️ LEVEL UP ALL</button>
+                    <button onclick="maxStats()" class="btn btn-primary">⚡ MAX STATS</button>
+                    <button onclick="clearIncidents()" class="btn btn-danger">🧹 CLEAR ALL</button>
                 </div>
             </section>
 
             <!-- Incident Controls -->
             <section class="panel">
-                <h2>Incident Management</h2>
+                <h2>🚨 INCIDENT MANAGEMENT</h2>
                 <div class="control-group">
-                    <button onclick="spawnIncident()" class="btn btn-primary">🚨 Spawn Single Incident</button>
-                    <button onclick="batchSpawn(10)" class="btn btn-warning">🚨🚨 Spawn 10 Incidents</button>
-                    <button onclick="batchSpawn(50)" class="btn btn-danger">🚨🚨🚨 Spawn 50 Incidents</button>
+                    <button onclick="spawnIncident()" class="btn btn-primary">🚨 SPAWN SINGLE</button>
+                    <button onclick="batchSpawn(10)" class="btn btn-warning">🚨🚨 SPAWN 10</button>
+                    <button onclick="batchSpawn(50)" class="btn btn-danger">🚨🚨🚨 SPAWN 50</button>
                 </div>
                 <div id="incidents-list" class="list-container">
                     <p class="loading">Loading incidents...</p>
@@ -86,7 +100,7 @@
 
             <!-- Specialists -->
             <section class="panel">
-                <h2>Specialists</h2>
+                <h2>👥 SPECIALISTS</h2>
                 <div id="specialists-list" class="list-container">
                     <p class="loading">Loading specialists...</p>
                 </div>
@@ -94,7 +108,7 @@
 
             <!-- Clients -->
             <section class="panel">
-                <h2>Clients</h2>
+                <h2>🏢 CLIENTS</h2>
                 <div id="clients-list" class="list-container">
                     <p class="loading">Loading clients...</p>
                 </div>
@@ -102,24 +116,24 @@
 
             <!-- Config Management -->
             <section class="panel">
-                <h2>Configuration</h2>
+                <h2>⚙️ CONFIGURATION</h2>
                 <div class="button-group">
-                    <button onclick="reloadConfig()" class="btn btn-warning">🔄 Hot Reload All Configs</button>
-                    <button onclick="resetGameState()" class="btn btn-danger">⚠️ Reset Game State</button>
+                    <button onclick="reloadConfig()" class="btn btn-warning">🔄 HOT RELOAD</button>
+                    <button onclick="resetGameState()" class="btn btn-danger">⚠️ RESET STATE</button>
                 </div>
                 <div id="config-status" class="status-message"></div>
             </section>
 
             <!-- Logs -->
             <section class="panel">
-                <h2>Activity Log</h2>
+                <h2>📡 LIVE EVENT FEED</h2>
                 <div id="activity-log" class="log-container">
-                    <p class="log-entry">Dashboard initialized</p>
+                    <p class="log-entry">System online...</p>
                 </div>
             </section>
         </div>
     </div>
 
-    <script src="/static/admin.js"></script>
+    <script src="/static/admin_enhanced.js"></script>
 </body>
 </html>

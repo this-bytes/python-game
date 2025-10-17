@@ -521,7 +521,6 @@ This section will be updated with every dumb pattern identified. Learn from mist
 ## Final Reminders
 
 - **NO hardcoded game values** - always use JSON configuration
-- **NO redundant constants** - don't type the same thing twice
 - **Pygame renders, doesn't think** - keep it dumb and fast
 - **Backend is your debugging superpower** - use it liberally
 - **Iterate fast, polish later** - vibe coding philosophy

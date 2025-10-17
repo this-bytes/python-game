@@ -1,270 +1,249 @@
-"""Event Bus System - Decoupled communication between game systems.
+"""Event Bus System for decoupled communication between game systems.
 
-This enables features to communicate without tight coupling, allowing
-plug-and-play architecture where systems can be added/removed without
-modifying existing code.
+The Event Bus provides a publish-subscribe mechanism for game systems to communicate
+without direct dependencies. Events are priority-based and processed in order.
 
-Usage:
-    event_bus = EventBus()
-    event_bus.subscribe("incident_resolved", my_callback)
-    event_bus.emit("incident_resolved", {"incident_id": "123"})
+Event Types (use these strings when publishing/subscribing):
+    - "incident_generated" - New incident created
+    - "incident_assigned" - Incident assigned to specialist
+    - "incident_resolved" - Incident successfully resolved
+    - "incident_failed" - Incident failed (SLA breach)
+    - "specialist_hired" - New specialist added to roster
+    - "specialist_level_up" - Specialist gained a level
+    - "automation_unlocked" - Automation script unlocked
+    - "money_earned" - Money added to game state
+    - "money_spent" - Money deducted from game state
+    - "game_paused" - Game paused by player
+    - "game_resumed" - Game resumed by player
+    - "prestige_performed" - Player performed prestige reset
+    - "achievement_unlocked" - Achievement completed
+    - "feature_toggled" - Feature flag changed
 """
 
-from typing import Callable, Dict, List, Any, Optional
+from typing import Callable, Dict, List, Any
 from dataclasses import dataclass, field
-from enum import Enum  # Keep for EventPriority only
-import logging
-from collections import defaultdict
+from enum import IntEnum
 import time
 
 
-class EventPriority(Enum):
-    """Event handler priority levels."""
+class EventPriority(IntEnum):
+    """Priority levels for event processing."""
     LOW = 0
     NORMAL = 1
     HIGH = 2
     CRITICAL = 3
 
 
-# Standard game event types - use strings directly, no constants needed
-# 
-# Usage: 
-#   event_bus.emit("incident_resolved", {"incident_id": "123"})
-#   event_bus.subscribe("specialist_leveled_up", my_callback)
-#
-# Common Event Types (for reference):
-#   Incidents: "incident_generated", "incident_assigned", "incident_resolved", 
-#              "incident_failed", "incident_sla_warning"
-#   Specialists: "specialist_assigned", "specialist_available", "specialist_leveled_up",
-#                "specialist_xp_gained", "specialist_hired", "specialist_retired"
-#   Contracts: "contract_signed", "contract_completed", "contract_lost"
-#   Clients: "client_reputation_changed"
-#   Money: "money_earned", "money_spent", "money_milestone"
-#   Progression: "achievement_unlocked", "prestige_triggered", "level_milestone"
-#   Relationships: "relationship_changed", "rivalry_triggered", "romance_started"
-#   Office: "furniture_placed", "room_upgraded"
-#   System: "game_paused", "game_resumed", "game_saved", "game_loaded"
-#   Synergy: "synergy_bonus_applied", "auto_assignment_triggered"
-#   Dopamine: "combo_triggered", "perfect_completion", "risk_contract_accepted"
+@dataclass
+class EventSubscription:
+    """Represents a subscription to an event type."""
+    event_type: str
+    callback: Callable
+    priority: EventPriority = EventPriority.NORMAL
+    subscription_id: str = ""
+    
+    def __post_init__(self):
+        """Generate subscription ID if not provided."""
+        if not self.subscription_id:
+            self.subscription_id = f"{self.event_type}_{id(self.callback)}"
 
 
 @dataclass
-class EventSubscription:
-    """Represents a subscription to an event."""
+class Event:
+    """Represents a single event in the system."""
     event_type: str
-    callback: Callable
-    priority: EventPriority
-    subscriber_id: str
-    created_at: float = field(default_factory=time.time)
+    data: Dict[str, Any]
+    timestamp: float = field(default_factory=time.time)
+    source: str = "unknown"
 
 
 class EventBus:
-    """Central event bus for game-wide communication.
+    """Central event bus for publish-subscribe communication.
     
     Features:
-    - Priority-based event handling
-    - Async event queuing
-    - Event history/replay
-    - Subscription management
-    - Performance metrics
+    - Priority-based event handling (LOW → NORMAL → HIGH → CRITICAL)
+    - Event history tracking for debugging
+    - Performance statistics
+    - Hot-reloadable subscriptions
+    
+    Example:
+        ```python
+        # Subscribe to events
+        event_bus.subscribe("incident_generated", handle_new_incident, EventPriority.HIGH)
+        
+        # Publish events
+        event_bus.publish("incident_generated", {"incident_id": "inc_001"}, source="generator")
+        
+        # Process events
+        event_bus.process_events()
+        ```
     """
     
-    def __init__(self, enable_history: bool = False, max_history: int = 1000):
-        """Initialize event bus.
+    def __init__(self, max_history: int = 100):
+        """Initialize the event bus.
         
         Args:
-            enable_history: Whether to store event history
-            max_history: Maximum events to store in history
+            max_history: Maximum number of events to keep in history
         """
-        self._subscriptions: Dict[str, List[EventSubscription]] = defaultdict(list)
-        self._event_queue: List[tuple] = []
-        self._enable_history = enable_history
+        self._subscriptions: Dict[str, List[EventSubscription]] = {}
+        self._pending_events: List[Event] = []
+        self._event_history: List[Event] = []
         self._max_history = max_history
-        self._event_history: List[Dict] = []
+        
+        # Performance tracking
         self._stats = {
-            "events_emitted": 0,
-            "events_handled": 0,
-            "errors": 0
+            "total_events_published": 0,
+            "total_events_processed": 0,
+            "events_by_type": {},
+            "average_processing_time": 0.0
         }
-        self.logger = logging.getLogger("event_bus")
     
     def subscribe(
-        self,
-        event_type: str,
-        callback: Callable,
-        priority: EventPriority = EventPriority.NORMAL,
-        subscriber_id: Optional[str] = None
+        self, 
+        event_type: str, 
+        callback: Callable, 
+        priority: EventPriority = EventPriority.NORMAL
     ) -> str:
-        """Subscribe to an event.
+        """Subscribe to an event type.
         
         Args:
-            event_type: Event type to subscribe to
-            callback: Function to call when event fires
-            priority: Handler priority (higher = called first)
-            subscriber_id: Optional ID for the subscriber
+            event_type: Type of event to subscribe to (e.g., "incident_generated")
+            callback: Function to call when event occurs
+            priority: Priority level for this subscription
             
         Returns:
-            Subscription ID for unsubscribing
+            Subscription ID (for unsubscribing later)
         """
-        if subscriber_id is None:
-            subscriber_id = f"sub_{id(callback)}_{time.time()}"
+        subscription = EventSubscription(event_type, callback, priority)
         
-        subscription = EventSubscription(
-            event_type=event_type,
-            callback=callback,
-            priority=priority,
-            subscriber_id=subscriber_id
-        )
+        if event_type not in self._subscriptions:
+            self._subscriptions[event_type] = []
         
         self._subscriptions[event_type].append(subscription)
         
         # Sort by priority (highest first)
-        self._subscriptions[event_type].sort(
-            key=lambda s: s.priority.value,
-            reverse=True
-        )
+        self._subscriptions[event_type].sort(key=lambda s: s.priority, reverse=True)
         
-        self.logger.debug(
-            f"Subscription added: {subscriber_id} -> {event_type} "
-            f"(priority: {priority.name})"
-        )
-        
-        return subscriber_id
+        return subscription.subscription_id
     
-    def unsubscribe(self, event_type: str, subscriber_id: str) -> bool:
+    def unsubscribe(self, subscription_id: str) -> bool:
         """Unsubscribe from an event.
         
         Args:
-            event_type: Event type to unsubscribe from
-            subscriber_id: Subscriber ID from subscribe()
+            subscription_id: ID returned from subscribe()
             
         Returns:
-            True if unsubscribed, False if not found
+            True if subscription was removed, False if not found
         """
-        if event_type not in self._subscriptions:
-            return False
-        
-        original_count = len(self._subscriptions[event_type])
-        self._subscriptions[event_type] = [
-            sub for sub in self._subscriptions[event_type]
-            if sub.subscriber_id != subscriber_id
-        ]
-        
-        removed = len(self._subscriptions[event_type]) < original_count
-        
-        if removed:
-            self.logger.debug(f"Unsubscribed: {subscriber_id} from {event_type}")
-        
-        return removed
+        for event_type, subscriptions in self._subscriptions.items():
+            for i, sub in enumerate(subscriptions):
+                if sub.subscription_id == subscription_id:
+                    subscriptions.pop(i)
+                    return True
+        return False
     
-    def unsubscribe_all(self, subscriber_id: str) -> int:
-        """Unsubscribe from all events.
+    def publish(
+        self, 
+        event_type: str, 
+        data: Dict[str, Any], 
+        source: str = "unknown"
+    ):
+        """Publish an event to the bus.
+        
+        Events are queued and processed during process_events().
         
         Args:
-            subscriber_id: Subscriber ID to remove
-            
-        Returns:
-            Number of subscriptions removed
+            event_type: Type of event (e.g., "incident_generated")
+            data: Event payload data
+            source: Source system publishing the event
         """
-        count = 0
-        for event_type in list(self._subscriptions.keys()):
-            if self.unsubscribe(event_type, subscriber_id):
-                count += 1
-        return count
+        event = Event(event_type, data, source=source)
+        self._pending_events.append(event)
+        
+        # Track statistics
+        self._stats["total_events_published"] += 1
+        if event_type not in self._stats["events_by_type"]:
+            self._stats["events_by_type"][event_type] = 0
+        self._stats["events_by_type"][event_type] += 1
     
-    def emit(self, event_type: str, data: Optional[Dict[str, Any]] = None, immediate: bool = True):
-        """Emit an event.
+    def process_events(self):
+        """Process all pending events in priority order.
         
-        Args:
-            event_type: Type of event to emit
-            data: Event data payload
-            immediate: If True, handle immediately. If False, queue for later.
+        Should be called once per game frame to handle queued events.
         """
-        if data is None:
-            data = {}
-        
-        self._stats["events_emitted"] += 1
-        
-        # Store in history
-        if self._enable_history:
-            self._add_to_history(event_type, data)
-        
-        if immediate:
-            self._handle_event(event_type, data)
-        else:
-            self._event_queue.append((event_type, data, time.time()))
-    
-    def _handle_event(self, event_type: str, data: Dict[str, Any]):
-        """Handle an event by calling all subscribers.
-        
-        Args:
-            event_type: Event type
-            data: Event data
-        """
-        if event_type not in self._subscriptions:
+        if not self._pending_events:
             return
         
-        for subscription in self._subscriptions[event_type]:
+        start_time = time.time()
+        events_processed = 0
+        
+        # Process all pending events
+        while self._pending_events:
+            event = self._pending_events.pop(0)
+            self._dispatch_event(event)
+            events_processed += 1
+            
+            # Add to history
+            self._event_history.append(event)
+            if len(self._event_history) > self._max_history:
+                self._event_history.pop(0)
+        
+        # Update statistics
+        if events_processed > 0:
+            processing_time = time.time() - start_time
+            self._stats["total_events_processed"] += events_processed
+            
+            # Update running average
+            total_processed = self._stats["total_events_processed"]
+            current_avg = self._stats["average_processing_time"]
+            self._stats["average_processing_time"] = (
+                (current_avg * (total_processed - events_processed) + processing_time) 
+                / total_processed
+            )
+    
+    def _dispatch_event(self, event: Event):
+        """Dispatch an event to all subscribers.
+        
+        Args:
+            event: Event to dispatch
+        """
+        if event.event_type not in self._subscriptions:
+            return
+        
+        # Call all subscribers in priority order
+        for subscription in self._subscriptions[event.event_type]:
             try:
-                subscription.callback(event_type, data)
-                self._stats["events_handled"] += 1
+                subscription.callback(event)
             except Exception as e:
-                self._stats["errors"] += 1
-                self.logger.error(
-                    f"Error handling event {event_type} in {subscription.subscriber_id}: {e}",
-                    exc_info=True
-                )
+                # Log error but continue processing other subscriptions
+                print(f"Error in event handler for {event.event_type}: {e}")
     
-    def process_queue(self, max_events: Optional[int] = None):
-        """Process queued events.
+    def get_pending_count(self) -> int:
+        """Get number of pending events."""
+        return len(self._pending_events)
+    
+    def get_history(self, event_type: str = None, limit: int = 10) -> List[Event]:
+        """Get recent event history.
         
         Args:
-            max_events: Maximum number of events to process (None = all)
-        """
-        count = 0
-        while self._event_queue and (max_events is None or count < max_events):
-            event_type, data, timestamp = self._event_queue.pop(0)
-            self._handle_event(event_type, data)
-            count += 1
-    
-    def _add_to_history(self, event_type: str, data: Dict[str, Any]):
-        """Add event to history.
-        
-        Args:
-            event_type: Event type
-            data: Event data
-        """
-        self._event_history.append({
-            "type": event_type,
-            "data": data,
-            "timestamp": time.time()
-        })
-        
-        # Trim history if too long
-        if len(self._event_history) > self._max_history:
-            self._event_history = self._event_history[-self._max_history:]
-    
-    def get_history(self, event_type: Optional[str] = None, limit: int = 100) -> List[Dict]:
-        """Get event history.
-        
-        Args:
-            event_type: Filter by event type (None = all)
-            limit: Maximum events to return
+            event_type: Filter by event type (None = all types)
+            limit: Maximum number of events to return
             
         Returns:
-            List of historical events
+            List of recent events (newest first)
         """
-        history = self._event_history
+        history = self._event_history[::-1]  # Reverse to get newest first
         
         if event_type:
-            history = [e for e in history if e["type"] == event_type]
+            history = [e for e in history if e.event_type == event_type]
         
-        return history[-limit:]
+        return history[:limit]
     
     def get_stats(self) -> Dict[str, Any]:
         """Get event bus statistics.
         
         Returns:
+<<<<<<< HEAD
             Statistics dictionary
         """
         return {
@@ -272,11 +251,25 @@ class EventBus:
             "active_subscriptions": sum(len(subs) for subs in self._subscriptions.values()),
             "event_types": len(self._subscriptions),
             "queued_events": len(self._event_queue)
+=======
+            Dictionary with performance stats
+        """
+        return self._stats.copy()
+    
+    def clear_stats(self):
+        """Reset statistics counters."""
+        self._stats = {
+            "total_events_published": 0,
+            "total_events_processed": 0,
+            "events_by_type": {},
+            "average_processing_time": 0.0
+>>>>>>> 85fcd8effe1ad5c44782728200d8b5d2a32a6ed5
         }
     
     def clear_history(self):
         """Clear event history."""
         self._event_history.clear()
+<<<<<<< HEAD
     
     def reset_stats(self):
         """Reset statistics."""
@@ -289,15 +282,29 @@ class EventBus:
 
 # Global event bus instance
 _global_event_bus: Optional[EventBus] = None
+=======
+
+
+# Global event bus instance (singleton pattern)
+_global_event_bus: EventBus = None
+>>>>>>> 85fcd8effe1ad5c44782728200d8b5d2a32a6ed5
 
 
 def get_event_bus() -> EventBus:
     """Get the global event bus instance.
     
     Returns:
+<<<<<<< HEAD
         Global EventBus instance
     """
     global _global_event_bus
     if _global_event_bus is None:
         _global_event_bus = EventBus(enable_history=True)
+=======
+        Global EventBus singleton
+    """
+    global _global_event_bus
+    if _global_event_bus is None:
+        _global_event_bus = EventBus()
+>>>>>>> 85fcd8effe1ad5c44782728200d8b5d2a32a6ed5
     return _global_event_bus

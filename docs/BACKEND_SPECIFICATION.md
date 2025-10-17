@@ -1,274 +1,158 @@
-# Backend Specification for Coding Agent
+# 🎮 Backend Admin Panel - Complete Specification
 
-## 🎯 MISSION: Build the MOST EPIC Game Panel and Backend EVER
+## Overview
 
-You are tasked with creating a **legendary backend system** that gives the developer god-mode powers over the game while providing real-time analytics, live ops capabilities, and an admin panel so beautiful it makes you cry.
+The Cybersecurity Firm game backend provides a **god-mode admin panel** for rapid development, testing, and debugging. Built with Flask, SocketIO, and a cyberpunk aesthetic, it offers real-time control over all game systems.
 
-## 🏗️ Architecture Overview
+## 🚀 Quick Start
 
-### Core Technologies
-- **Framework**: Flask or FastAPI (recommend FastAPI for async + auto docs)
-- **Database**: SQLite for dev, PostgreSQL ready for production
-- **Real-time**: WebSockets for live game state updates
-- **API Docs**: Auto-generated OpenAPI/Swagger docs
-- **Frontend**: Vue.js or React admin panel (your choice)
+### Start the Backend Server
 
-### Design Principles
-1. **JSON-First**: All game data lives in JSON files, backend just reads/writes them
-2. **Hot-Reload**: Changes take effect immediately without game restart
-3. **Live Ops**: Schedule events, adjust drop rates, send gifts to players
-4. **Analytics**: Track everything, visualize everything
-5. **God Mode**: Developer can manipulate ANY game state in real-time
-
-## 📦 Components to Build
-
-### 1. Core API Server
-
-#### 1.1 Game Data CRUD API
-Full CRUD operations for all game JSON files:
-
-**Endpoints:**
-```
-GET    /api/specialists                  List all specialists
-GET    /api/specialists/{id}             Get specific specialist
-PUT    /api/specialists/{id}             Update specialist
-POST   /api/specialists                  Create new specialist
-DELETE /api/specialists/{id}             Delete specialist
-
-GET    /api/incidents                    List all incident types
-POST   /api/incidents/spawn              Manually spawn incident
-DELETE /api/incidents/{id}               Remove incident
-
-GET    /api/clients                      List all clients
-PUT    /api/clients/{id}                 Update client (adjust incident rates, SLA, etc.)
-
-GET    /api/contracts                    List contract templates
-POST   /api/contracts                    Create new contract type
-
-GET    /api/features                     List feature flags
-PUT    /api/features/{id}                Toggle/configure feature
-POST   /api/config/reload                Hot-reload all JSON files
+```bash
+cd backend
+python run_backend.py
 ```
 
-#### 1.2 Live Game State API
-Real-time access to running game state:
+Server starts on `http://localhost:5000`
 
-**Endpoints:**
+### Access the Admin Panel
+
+Open browser to: **http://localhost:5000/admin**
+
+## 🏗️ Architecture
+
+### Technology Stack
+
+**Backend:**
+- Flask 3.0+ (Web framework)
+- Flask-SocketIO (WebSocket support)
+- Flask-CORS (Cross-origin requests)
+- Pydantic 2.0+ (Data validation)
+- Python-dotenv (Configuration)
+- Watchdog (File monitoring)
+
+**Frontend:**
+- Vanilla JavaScript (No framework overhead)
+- Socket.IO client (Real-time updates)
+- Cyberpunk CSS theme (Neon effects, CRT simulation)
+
+### Directory Structure
+
 ```
-GET    /api/game/state                   Full game state snapshot
-GET    /api/game/stats                   Performance metrics
-POST   /api/game/pause                   Pause game
-POST   /api/game/resume                  Resume game
-POST   /api/game/save                    Force save
-POST   /api/game/load                    Load save
-
-GET    /api/game/active-incidents        Currently active incidents
-GET    /api/game/available-specialists   Available specialists
-
-POST   /api/game/inject-money            Add money (god mode)
-POST   /api/game/inject-xp               Give specialist XP
-POST   /api/game/inject-incident         Spawn specific incident
-POST   /api/game/complete-incident       Instantly complete incident
-```
-
-#### 1.3 Analytics API
-Track and query game metrics:
-
-**Endpoints:**
-```
-GET    /api/analytics/revenue            Revenue over time
-GET    /api/analytics/incidents          Incident resolution stats
-GET    /api/analytics/specialists        Specialist performance
-GET    /api/analytics/engagement         Player engagement metrics
-GET    /api/analytics/funnel             Progression funnel analysis
-
-GET    /api/analytics/export             Export all analytics as CSV
-```
-
-#### 1.4 Live Ops API
-Schedule events and adjust game economy:
-
-**Endpoints:**
-```
-GET    /api/events                       List scheduled events
-POST   /api/events                       Create new event
-PUT    /api/events/{id}                  Update event
-DELETE /api/events/{id}                  Cancel event
-
-POST   /api/rewards/send                 Send reward to player
-POST   /api/economy/adjust               Adjust drop rates, prices, etc.
-POST   /api/announcement                 Send in-game announcement
-```
-
-#### 1.5 Testing API
-Tools for rapid testing and balancing:
-
-**Endpoints:**
-```
-POST   /api/test/simulate-run            Simulate N hours of gameplay
-POST   /api/test/balance-check           Test economy balance
-POST   /api/test/stress-test             Generate high load
-POST   /api/test/reset                   Reset to fresh game state
+/backend/
+├── app.py                      # Main Flask application
+├── config.py                   # Configuration management
+├── run_backend.py              # Server launcher
+├── models/
+│   ├── __init__.py
+│   └── game_models.py          # Pydantic data models
+├── routes/
+│   ├── analytics.py            # Analytics endpoints
+│   ├── godmode.py              # God mode commands
+│   ├── state.py                # Game state management
+│   ├── specialists.py          # Specialist CRUD
+│   ├── incidents.py            # Incident management
+│   ├── clients.py              # Client management
+│   ├── economy.py              # Economy controls
+│   ├── automation.py           # Automation scripts
+│   ├── config_routes.py        # Config hot-reload
+│   └── time.py                 # Time control
+├── services/
+│   ├── websocket_service.py    # WebSocket broadcasting
+│   ├── analytics_service.py    # Metrics calculation
+│   └── json_service.py         # JSON file operations
+└── static/
+    ├── admin.html              # Admin dashboard
+    ├── admin.css               # Cyberpunk styling
+    └── admin_enhanced.js       # Dashboard logic
 ```
 
-### 2. Admin Panel (Web UI)
+## 📡 API Endpoints
 
-#### 2.1 Dashboard
-**Main overview screen:**
-- Real-time revenue graph (last hour, day, week)
-- Active specialists count and status
-- Current incidents (pending, in-progress, resolved)
-- Recent achievements unlocked
-- Prestige level and points
-- Live event log (scrolling feed of game events)
+### Core Endpoints
 
-#### 2.2 JSON Editor
-**Visual editor for all JSON configs:**
-- Tree view of all JSON files
-- Syntax highlighting and validation
-- Real-time preview of changes
-- Hot-reload button (apply changes instantly)
-- Diff view (see what changed)
-- Backup/restore functionality
+#### Game State
+- `GET /api/state` - Full game state snapshot
+- `GET /api/state/summary` - Lightweight summary
+- `PUT /api/state` - Update game state
+- `POST /api/state/reset` - Reset to initial state
+- `POST /api/state/save` - Save game state
+- `POST /api/state/load` - Load game state
 
-**Features:**
-- Drag-and-drop to reorder arrays
-- Form-based editing (no raw JSON for common tasks)
-- Validation errors highlighted inline
-- Auto-save with undo/redo
+#### Time Control
+- `POST /api/time/pause` - Pause game
+- `POST /api/time/resume` - Resume game
+- `POST /api/time/speed` - Set game speed (0.1x - 10x)
+- `POST /api/time/advance` - Fast-forward time
+- `GET /api/time/status` - Get time status
 
-#### 2.3 Specialist Manager
-**Manage all specialists:**
-- Grid view of all specialists
-- Quick filters (by specialty, level, status)
-- Bulk actions (fire all, level up all, etc.)
-- Individual specialist editor:
-  - Stats sliders (speed, accuracy, XP)
-  - Synergy assignment (checkboxes for threat types)
-  - Equipment/abilities management
-  - Status override (force available/busy/burnout)
+#### Economy
+- `POST /api/economy/money` - Adjust money
+- `GET /api/economy/metrics` - Get financial metrics
 
-#### 2.4 Incident Controller
-**Control incident generation:**
-- Spawn incident manually (choose type, difficulty, client)
-- Incident generation rate control (global multiplier slider)
-- Active incidents table:
-  - View current incidents
-  - Force complete/fail buttons
-  - Extend SLA time
-  - Reassign to different specialist
-- Incident type editor:
-  - Create new incident types
-  - Adjust base rewards, SLA, difficulty
+### Analytics Endpoints
 
-#### 2.5 Client Manager
-**Manage clients and contracts:**
-- Client list with key metrics
-- Adjust client parameters:
-  - Incident rate (incidents per minute)
-  - SLA multiplier (make clients more/less demanding)
-  - Reputation (current standing)
-  - Contract value (revenue per incident)
-- Contract simulator (test potential earnings)
+#### Performance Metrics
+- `GET /api/analytics/summary` - Comprehensive analytics
+- `GET /api/analytics/revenue` - Revenue metrics
+- `GET /api/analytics/incidents` - Incident statistics
+- `GET /api/analytics/specialists` - Specialist metrics
+- `GET /api/analytics/sla` - SLA compliance
+- `GET /api/analytics/history/{metric}` - Historical data
 
-#### 2.6 Economy Balancer
-**Visual economy tuning:**
-- Revenue vs time graph
-- XP progression curve visualization
-- Prestige point calculator
-- Balance presets:
-  - "Generous" (faster progression)
-  - "Balanced" (default)
-  - "Hardcore" (slow grind)
-  - "Testing" (instant everything)
-- Live adjustment sliders:
-  - Global money multiplier
-  - Global XP multiplier
-  - Incident spawn rate
-  - SLA difficulty
-
-#### 2.7 Live Event Scheduler
-**Schedule and manage timed events:**
-- Calendar view of scheduled events
-- Event types:
-  - Double XP weekend
-  - Incident surge (more spawns)
-  - Contract bonuses
-  - Special incidents (unique rewards)
-- Create event wizard:
-  - Choose type
-  - Set start/end time
-  - Configure parameters
-  - Preview impact
-
-#### 2.8 Analytics Dashboard
-**Data visualization:**
-- Revenue over time (line chart)
-- Incidents by type (pie chart)
-- Specialist performance comparison (bar chart)
-- Prestige funnel (how many players reach each milestone)
-- Heatmap of active play times
-- Retention curve (play sessions over time)
-
-**Export options:**
-- CSV download
-- JSON export
-- PDF report generation
-
-#### 2.9 God Mode Console
-**Raw power for the developer:**
-- Command-line style interface
-- Quick commands:
-  - `give_money 100000` - Add $100k
-  - `level_up specialist_001 10` - Add 10 levels
-  - `spawn_incident ddos_attack critical` - Spawn specific incident
-  - `prestige_now` - Trigger prestige
-  - `unlock_achievement millionaire` - Force unlock achievement
-  - `time_warp 3600` - Simulate 1 hour of play
-- Command history and autocomplete
-- Macro support (save command sequences)
-
-#### 2.10 Feature Flag Manager
-**Control feature rollout:**
-- List all features with current status
-- Toggle switches for enable/disable
-- Rollout percentage slider (A/B testing)
-- Dependency graph visualization
-- Feature usage metrics (how many players see each feature)
-
-### 3. WebSocket Integration
-
-#### 3.1 Real-Time Updates
-**Push updates to admin panel:**
-- Game state changes
-- New incidents spawned
-- Specialist leveled up
-- Achievement unlocked
-- Money earned/spent
-- Prestige triggered
-
-**WebSocket Events:**
-```javascript
-// Client subscribes to events:
-ws.send({
-  type: "subscribe",
-  events: ["incident_generated", "money_earned", "specialist_leveled_up"]
-})
-
-// Server pushes updates:
+**Response Format:**
+```json
 {
-  type: "event",
-  event_type: "incident_generated",
-  timestamp: "2025-10-17T10:30:00Z",
-  data: {
-    incident_id: "inc_042",
-    type: "DDoS Attack",
-    difficulty: 3,
-    client: "TechCorp Inc."
+  "success": true,
+  "data": {
+    "revenue": {
+      "current_money": 15000.50,
+      "total_earned": 50000,
+      "total_spent": 35000,
+      "net_profit": 15000
+    },
+    "incidents": {
+      "total_incidents": 150,
+      "active": 5,
+      "completed": 140,
+      "failed": 5,
+      "success_rate": 93.3
+    }
+  },
+  "timestamp": "2025-10-17T02:00:00Z"
+}
+```
+
+### God Mode Endpoints
+
+#### Powerful Testing Commands
+- `POST /api/godmode/spawn-wave` - Spawn wave of incidents
+- `POST /api/godmode/complete-all-incidents` - Instantly complete all
+- `POST /api/godmode/level-up-all` - Level up all specialists
+- `POST /api/godmode/max-all-stats` - Max out all stats
+- `POST /api/godmode/set-money` - Set exact money amount
+- `POST /api/godmode/clear-incidents` - Clear all incidents
+
+**Example: Spawn Wave**
+```bash
+curl -X POST http://localhost:5000/api/godmode/spawn-wave \
+  -H "Content-Type: application/json" \
+  -d '{"count": 50}'
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Spawned 50 incidents",
+  "data": {
+    "count": 50,
+    "incidents": [...]
   }
 }
 ```
 
+<<<<<<< HEAD
 #### 3.2 Live Event Log
 **Real-time scrolling feed:**
 - Color-coded events (green = good, red = bad, blue = info)
@@ -491,3 +375,345 @@ This backend is the **control center** for the entire game. Make it powerful, ma
 Remember: The admin panel should feel like you're piloting a spaceship, not filling out a form.
 
 **Now go build something LEGENDARY.** 🚀🔥💯
+=======
+### Configuration Management
+- `POST /api/config/reload` - Hot-reload all JSON configs
+- `GET /api/config/files` - List config files
+- `GET /api/config/files/{name}` - Get config file content
+- `PUT /api/config/files/{name}` - Update config file
+
+## 🎨 Admin Panel Features
+
+### Real-Time Dashboard
+
+**Live Metrics:**
+- Current money (updates instantly)
+- Active incidents count
+- Specialist availability
+- SLA compliance rate
+
+**WebSocket Events:**
+- Game state updates
+- Incident spawned/completed
+- Specialist actions
+- Money changes
+- Level ups
+
+### God Mode Controls
+
+**5 Powerful Commands:**
+1. **Spawn Wave** - Create 50 incidents instantly
+2. **Complete All** - Finish all active incidents
+3. **Level Up All** - Boost all specialists
+4. **Max Stats** - Set all stats to 100
+5. **Clear All** - Remove all incidents
+
+### Time Manipulation
+
+**Controls:**
+- Pause/Resume game
+- Adjust speed (0.1x to 5x)
+- Fast-forward by seconds
+- Precise time control
+
+### Economy Controls
+
+**Money Management:**
+- Add/subtract any amount
+- Instant balance updates
+- Real-time visual feedback
+
+### Cyberpunk Aesthetic
+
+**Visual Effects:**
+- CRT screen scanlines
+- Neon green/blue/pink borders
+- Glitch animations on hover
+- Pulsing status indicators
+- Matrix-style activity log
+- Monospace fonts throughout
+
+**Color Scheme:**
+```css
+--cyber-black: #000000
+--cyber-green: #00ff00  (primary)
+--cyber-blue: #00ffff   (secondary)
+--cyber-pink: #ff00ff   (accents)
+--cyber-red: #ff0000    (warnings)
+--cyber-yellow: #ffff00 (caution)
+```
+
+## 🔧 Services
+
+### WebSocket Service
+
+**Broadcasts:**
+- `game_state_update` - Full state changes
+- `incident_spawned` - New incident created
+- `specialist_action` - Specialist events
+- `money_change` - Balance updates
+- `wave_spawned` - Batch incidents
+- `incidents_completed` - Mass completion
+- `specialists_leveled` - Level up events
+
+**Event Format:**
+```javascript
+{
+  type: "incident_spawned",
+  data: {
+    incident: {...},
+    message: "Incident spawned: DDoS Attack"
+  },
+  timestamp: "2025-10-17T02:00:00Z"
+}
+```
+
+### Analytics Service
+
+**Metrics Tracked:**
+- Revenue (current, earned, spent, profit)
+- Incidents (total, active, completed, failed, success rate)
+- Specialists (total, available, busy, avg level)
+- SLA (compliance rate, violations)
+
+**Historical Data:**
+- Configurable time ranges (1h, 24h, 7d)
+- Up to 1000 data points per metric
+- Automatic cleanup of old data
+
+### JSON Service
+
+**Features:**
+- Safe read/write operations
+- Automatic backups before changes
+- Backup retention (last 10)
+- Schema validation
+- Restore from backup
+- List all config files
+
+**Backup Structure:**
+```
+/data/backups/
+├── specialists_20251017_020000.json
+├── specialists_20251017_010000.json
+├── incidents_20251017_020000.json
+└── ...
+```
+
+## 🎯 Use Cases
+
+### Development Workflow
+
+1. Start backend: `python backend/run_backend.py`
+2. Open admin panel in browser
+3. Make code changes to game logic
+4. Use dashboard to test changes instantly
+5. Hot-reload configs as needed
+
+### Rapid Testing
+
+**Scenario: Test specialist assignment system**
+```
+1. Click "Spawn Wave" (50 incidents)
+2. Watch specialists get assigned
+3. Monitor SLA compliance
+4. Adjust specialist stats via god mode
+5. Test again with different parameters
+```
+
+### Game Balancing
+
+**Adjust in real-time:**
+- Incident difficulty
+- SLA timers
+- Reward multipliers
+- Specialist stats
+- Client parameters
+
+**Process:**
+1. Edit JSON file
+2. Click "Hot Reload" in admin panel
+3. Changes apply instantly
+4. Test balance
+5. Iterate
+
+### Stress Testing
+
+**Load Testing:**
+```javascript
+// Spawn 50 incidents
+POST /api/godmode/spawn-wave { "count": 50 }
+
+// Monitor performance
+GET /api/analytics/summary
+
+// Check SLA compliance
+GET /api/analytics/sla
+```
+
+### Debugging
+
+**Common Scenarios:**
+
+**Issue: Specialists not assigning**
+1. Check specialist list in admin panel
+2. Verify statuses (available vs busy)
+3. Spawn single incident
+4. Watch real-time event log
+5. Diagnose assignment logic
+
+**Issue: Money not increasing**
+1. Complete some incidents manually
+2. Check analytics revenue metrics
+3. Review economy settings
+4. Test with god mode money injection
+
+## 🔐 Security Note
+
+**⚠️ DEVELOPMENT ONLY**
+
+This backend is designed for local development and testing. It includes:
+- No authentication
+- No authorization
+- Arbitrary state manipulation
+- Full god mode access
+
+**Do NOT use in production without:**
+- API authentication (JWT, API keys)
+- Rate limiting
+- Input validation and sanitization
+- Role-based access control
+- Audit logging
+- HTTPS encryption
+
+## 🐛 Troubleshooting
+
+### Server won't start
+
+**Check:**
+```bash
+# Port already in use?
+lsof -i :5000
+
+# Dependencies installed?
+pip install -r requirements.txt
+
+# Python version correct?
+python --version  # Should be 3.12+
+```
+
+### WebSocket not connecting
+
+**Check:**
+```javascript
+// Browser console
+console.log(io);  // Should be defined
+
+// Network tab
+// Look for /socket.io/ requests
+
+// Try manual connection
+const socket = io();
+socket.on('connect', () => console.log('Connected!'));
+```
+
+### API returns 503
+
+**Cause:** Game state not initialized
+
+**Solution:**
+- Backend started but game not running
+- OR backend running standalone
+- Check logs for initialization errors
+
+### Hot-reload not working
+
+**Check:**
+```bash
+# JSON file syntax
+python -m json.tool data/specialists.json
+
+# File permissions
+ls -la data/
+
+# Backup creation
+ls -la data/backups/
+```
+
+### CORS errors
+
+**Fix:**
+```python
+# backend/config.py
+CORS_ORIGINS = "*"  # Development
+
+# OR specific origin
+CORS_ORIGINS = "http://localhost:3000"
+```
+
+## 📊 Performance
+
+**Benchmarks:**
+- WebSocket latency: <50ms
+- API response time: <100ms
+- Dashboard refresh: 5-10 seconds (configurable)
+- Hot-reload time: <1 second
+
+**Optimization:**
+- WebSocket reduces polling overhead
+- Efficient JSON serialization
+- Minimal JavaScript framework weight
+- CSS animations hardware-accelerated
+
+## 🚀 Future Enhancements
+
+### Planned Features
+- [ ] Visual JSON editor (Monaco Editor)
+- [ ] Analytics charts (Chart.js integration)
+- [ ] Feature flag management UI
+- [ ] Live operations scheduling
+- [ ] Swagger/OpenAPI docs
+- [ ] Multiple backend instances
+- [ ] Distributed game state
+- [ ] A/B testing framework
+- [ ] Performance profiling
+- [ ] Automated stress tests
+
+### Potential Improvements
+- WebGL visualizations
+- 3D incident/specialist views
+- Audio alerts for critical events
+- Mobile-responsive design
+- Dark/light theme toggle
+- Keyboard shortcuts
+- Command palette (Cmd+K)
+- Export analytics as CSV
+- Shareable dashboard links
+
+## 📚 Additional Resources
+
+- **Flask Documentation**: https://flask.palletsprojects.com/
+- **Socket.IO Documentation**: https://socket.io/docs/
+- **Pydantic Documentation**: https://docs.pydantic.dev/
+- **Cyberpunk Design**: Inspired by Cyberpunk 2077 UI
+
+## 🤝 Contributing
+
+When adding new endpoints:
+1. Create route in appropriate blueprint file
+2. Add Pydantic model for validation
+3. Follow existing error handling patterns
+4. Return consistent JSON response format
+5. Add example to README
+6. Update admin panel if UI needed
+
+## 📄 License
+
+Same as main project.
+
+---
+
+**Built with 🔒 by the Cybersecurity Firm Dev Team**
+
+*Making game development feel like hacking the mainframe.*
+>>>>>>> 85fcd8effe1ad5c44782728200d8b5d2a32a6ed5
