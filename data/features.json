@@ -1,0 +1,60 @@
+{
+  "features": [
+    {
+      "id": "idle_core",
+      "enabled": true,
+      "rollout_percentage": 100.0,
+      "dependencies": [],
+      "description": "Core idle game mechanics with auto-assignment"
+    },
+    {
+      "id": "prestige_system",
+      "enabled": true,
+      "rollout_percentage": 100.0,
+      "dependencies": [],
+      "description": "Prestige/rebirth system for meta-progression"
+    },
+    {
+      "id": "achievement_system",
+      "enabled": true,
+      "rollout_percentage": 100.0,
+      "dependencies": [],
+      "description": "Achievement tracking and rewards"
+    },
+    {
+      "id": "dopamine_system",
+      "enabled": true,
+      "rollout_percentage": 100.0,
+      "dependencies": [],
+      "description": "Visual feedback and dopamine-driven engagement"
+    },
+    {
+      "id": "contract_negotiation",
+      "enabled": false,
+      "rollout_percentage": 0.0,
+      "dependencies": [],
+      "description": "Contract negotiation mini-game"
+    },
+    {
+      "id": "specialist_relationships",
+      "enabled": false,
+      "rollout_percentage": 0.0,
+      "dependencies": [],
+      "description": "Specialist relationship and synergy system"
+    },
+    {
+      "id": "office_decoration",
+      "enabled": false,
+      "rollout_percentage": 0.0,
+      "dependencies": [],
+      "description": "Office customization and decoration"
+    },
+    {
+      "id": "advanced_automation",
+      "enabled": false,
+      "rollout_percentage": 0.0,
+      "dependencies": ["idle_core"],
+      "description": "Advanced automation with multi-condition triggers"
+    }
+  ]
+}

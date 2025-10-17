@@ -472,9 +472,46 @@ curl -X PUT http://localhost:5000/specialists/spec_001 \
   -d '{"level": 10, "xp": 5000}'
 ```
 
+## Anti-Patterns to AVOID
+
+### ❌ Redundant Constants
+**NEVER** create variables named exactly the same as the string they contain:
+
+```python
+# ❌ BAD - redundant and dumb
+INCIDENT_GENERATED = "incident_generated"
+INCIDENT_ASSIGNED = "incident_assigned"
+
+# ✅ GOOD - just use the string directly
+"incident_generated"
+"incident_assigned"
+```
+
+**Why it's dumb:** You're literally writing the same thing twice. The variable name IS the value. This is cargo cult programming and wastes time.
+
+**When to use constants:**
+- When the value is NOT obvious from the name (e.g., `MAX_SPECIALISTS = 10`)
+- When the value might change (e.g., `API_TIMEOUT_SECONDS = 30`)
+- When you need type safety or IDE autocomplete
+
+**When to use strings directly:**
+- Event types (e.g., `event_bus.publish("incident_resolved", data)`)
+- Dictionary keys that match the key name exactly
+- Any case where the constant adds NO value
+
+### Continuous Improvement
+If you find me making dumb coding patterns like the one above:
+1. **Point it out immediately**
+2. **I will add it to this anti-patterns section**
+3. **I will fix the code everywhere it appears**
+4. **I will learn and never repeat it**
+
+This section grows as we discover and eliminate bad patterns.
+
 ## Final Reminders
 
 - **NO hardcoded game values** - always use JSON configuration
+- **NO redundant constants** - if the name equals the value, just use the value
 - **Pygame renders, doesn't think** - keep it dumb and fast
 - **Backend is your debugging superpower** - use it liberally
 - **Iterate fast, polish later** - vibe coding philosophy
