@@ -72,6 +72,9 @@ class Specialist:
     equipped_items: Dict[str, str] = field(default_factory=dict)  # Slot -> equipment ID
     inventory: List[str] = field(default_factory=list)  # Owned equipment IDs
     
+    # Burnout & Morale System
+    burnout_level: float = 0.0  # 0-100%, affects performance and error chance
+    
     # Idle/Strategic mechanics
     fatigue: float = 0.0  # 0.0 to 1.0, affects performance when overworked
     synergies: List = field(default_factory=list)  # List of SpecialistSynergy objects for strategic bonuses
@@ -302,6 +305,28 @@ class Specialist:
         effective_accuracy = max(10, self.stats.accuracy - difficulty_penalty)
         return min(1.0, effective_accuracy / 100.0)
     
+    def get_performance_multiplier(self) -> float:
+        """Get overall performance multiplier including burnout effects.
+        
+        Burnout reduces specialist performance linearly: 0% burnout = 1.0x, 100% = 0.0x
+        This affects resolution time and success chance.
+        
+        Returns:
+            Performance multiplier (0.0-1.0), adjusted for burnout
+        """
+        burnout_penalty = 1.0 - (self.burnout_level / 100.0)
+        return max(0.0, burnout_penalty)
+    
+    def get_error_chance_from_burnout(self) -> float:
+        """Get probability of incident failure due to burnout.
+        
+        High burnout increases error chance: 0% burnout = 0% chance, 100% = 50% chance
+        
+        Returns:
+            Probability of failure due to burnout stress (0.0-0.5)
+        """
+        return (self.burnout_level / 100.0) * 0.5
+    
     def to_dict(self) -> Dict:
         """Convert specialist to dictionary for serialization.
         
@@ -323,7 +348,8 @@ class Specialist:
             "ability_cooldowns": self.ability_cooldowns.copy(),
             "active_effects": self.active_effects.copy(),
             "equipped_items": self.equipped_items.copy(),
-            "inventory": self.inventory.copy()
+            "inventory": self.inventory.copy(),
+            "burnout_level": self.burnout_level
         }
     
     @classmethod
@@ -351,7 +377,8 @@ class Specialist:
             ability_cooldowns=data.get("ability_cooldowns", {}).copy(),
             active_effects=data.get("active_effects", []).copy(),
             equipped_items=data.get("equipped_items", {}).copy(),
-            inventory=data.get("inventory", []).copy()
+            inventory=data.get("inventory", []).copy(),
+            burnout_level=data.get("burnout_level", 0.0)
         )
     
     def __repr__(self) -> str:

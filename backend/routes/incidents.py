@@ -233,4 +233,39 @@ def create_incidents_blueprint(game_state_ref):
         except Exception as e:
             return jsonify({"success": False, "message": str(e)}), 500
     
+    @bp.route('/incidents/<incident_id>/complete', methods=['POST'])
+    def complete_incident(incident_id):
+        """Complete incident with burnout tracking."""
+        game_state = get_game_state()
+        if not game_state:
+            return jsonify({"success": False, "message": "Game state not initialized"}), 503
+        
+        try:
+            data = request.json or {}
+            success = data.get('success', False)
+            
+            incident = next((i for i in game_state.incidents if i.id == incident_id), None)
+            if not incident:
+                return jsonify({"success": False, "message": "Incident not found"}), 404
+            
+            specialist = next((s for s in game_state.specialists if s.id == incident.assigned_specialist_id), None)
+            if not specialist:
+                return jsonify({"success": False, "message": "Specialist not found"}), 404
+            
+            from src.core.resolution_system import ResolutionSystem
+            resolution_system = ResolutionSystem(game_state._burnout_system)
+            
+            result = resolution_system.complete_incident(
+                specialist, incident, success=success
+            )
+            
+            return jsonify({
+                "success": True,
+                "message": "Incident completed",
+                "data": result,
+                "timestamp": datetime.utcnow().isoformat()
+            })
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 500
+    
     return bp

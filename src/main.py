@@ -11,10 +11,10 @@ import os
 from typing import Optional
 
 # Add parent directory to path so src imports work
-sys.path.insert(0, '/home/localadmin/python-game')
+sys.path.insert(0, '/home/localadmin/code/python-game')
 
 # Change to project root directory so relative paths work
-os.chdir('/home/localadmin/python-game')
+# os.chdir('/home/localadmin/code/python-game')
 
 from src.models.game_state import GameState
 from src.ui.game_ui import GameUI

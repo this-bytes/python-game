@@ -18,6 +18,7 @@ from src.core.incident_generator import IncidentGenerator
 from src.core.automation_processor import AutomationProcessor
 from src.core.passive_income_system import PassiveIncomeSystem
 from src.core.offline_progress import OfflineProgressSystem
+from src.core.burnout_system import BurnoutSystem
 from src.utils.json_loader import JSONLoader
 from src.utils.logger import GameLogger
 
@@ -123,6 +124,7 @@ class GameState:
     _automation_processor: Optional[AutomationProcessor] = None
     _passive_income_system: Optional[PassiveIncomeSystem] = None
     _offline_progress_system: Optional[OfflineProgressSystem] = None
+    _burnout_system: Optional[BurnoutSystem] = None  # Specialist burnout tracking
     _dopamine_system: Optional[Any] = None  # DopamineSystem - lazy imported
     _idle_core: Optional[Any] = None  # IdleCore - TRUE idle game mechanics
     _last_incident_generation: float = field(default_factory=time.time)
@@ -149,6 +151,10 @@ class GameState:
         if self._dopamine_system is None:
             from src.core.dopamine_system import DopamineSystem
             self._dopamine_system = DopamineSystem()
+        
+        # Initialize burnout system for specialist management
+        if self._burnout_system is None:
+            self._burnout_system = BurnoutSystem()
         
         # Initialize idle core for TRUE idle game mechanics
         if self._idle_core is None:

@@ -1,530 +1,263 @@
 # Cybersecurity Firm Idle/Tycoon/RPG Game - Copilot Instructions
 
-## Project Overview
+**🚫 ZERO-TOLERANCE FOR MEDIOCRITY - READ [ABSOLUTE_STANDARDS.md](ABSOLUTE_STANDARDS.md) FIRST**
 
-This is a Python-based idle/tycoon/RPG game where players manage a startup cybersecurity firm. The game blends three core mechanics:
+**MiNDSET: You will not settle. Excellence is the only acceptable outcome. Run at maximum velocity. This is non-negotiable. This is why we win.**
 
-1. **Idle Mechanics**: Continuous generation of security incidents requiring triage
-2. **Tycoon Mechanics**: Resource allocation, profit optimization, and business growth
-3. **RPG Mechanics**: Specialist leveling, XP progression, and skill unlocks
+## The Mandate
 
-## Core Philosophy: "Vibe Coding"
+> **"This project will not settle. Excellence is the only acceptable outcome."**
 
-This project prioritizes **iteration speed** and **rapid experimentation** over perfect architecture. Key principles:
+Weak code gets rejected. Untested code gets rejected. Unclear code gets rejected.
 
-- **JSON-first design**: ALL game parameters live in external JSON files
-- **Pygame as renderer only**: Visual dashboard, NOT game logic container
-- **Hot-reloadable**: Change game balance without restarting
-- **Backend-driven debugging**: Live manipulation via CRUD API
-- **Human-readable data**: Easy manual editing of all configurations
+Code that's **crystal clear, thoroughly tested, properly documented, and truly excellent?** That code gets merged.
 
-## Architecture Rules
-
-### Strict Separation of Concerns
-
-```
-/src/models/          → Pure game logic (Specialist, Incident, Client, etc.)
-/src/core/            → Game systems (generation, assignment, resolution, progression)
-/src/ui/              → Pygame rendering ONLY (no game logic)
-/backend/             → Flask/FastAPI CRUD API for live debugging
-/data/                → JSON configuration files (specialists, incidents, clients, automation)
-```
-
-**CRITICAL**: Never put game logic in Pygame rendering code. Rendering reads state; it doesn't create it.
-
-### Data-Driven Everything
-
-- Specialist stats? JSON.
-- Incident difficulty curves? JSON.
-- Client SLA timers? JSON.
-- Automation unlock levels? JSON.
-- XP progression curves? JSON.
-
-If it affects gameplay, it's in a JSON file.
-
-## JSON Schema Structure
-
-### Specialists (`/data/specialists.json`)
-```json
-{
-  "specialists": [
-    {
-      "id": "spec_001",
-      "name": "Alice Chen",
-      "specialty": "Network Security",
-      "level": 5,
-      "xp": 2340,
-      "stats": {
-        "speed": 85,
-        "accuracy": 90,
-        "experience_bonus": 1.2
-      },
-      "automation_scripts": ["auto_assign_network_low"],
-      "status": "available"
-    }
-  ]
-}
-```
-
-### Incidents (`/data/incidents.json`)
-```json
-{
-  "incident_types": [
-    {
-      "id": "inc_type_001",
-      "name": "DDoS Attack",
-      "specialty_required": "Network Security",
-      "difficulty_range": [1, 5],
-      "base_sla_seconds": 300,
-      "base_reward": 500,
-      "xp_reward": 100
-    }
-  ]
-}
-```
-
-### Clients (`/data/clients.json`)
-```json
-{
-  "clients": [
-    {
-      "id": "client_001",
-      "name": "TechCorp Inc.",
-      "incident_rate_per_minute": 0.5,
-      "sla_multiplier": 1.0,
-      "reputation": 80,
-      "contract_value": 10000
-    }
-  ]
-}
-```
-
-### Automation Scripts (`/data/automation_scripts.json`)
-```json
-{
-  "automation_scripts": [
-    {
-      "id": "auto_assign_network_low",
-      "name": "Auto-Assign Network (Low Priority)",
-      "required_level": 3,
-      "specialty": "Network Security",
-      "trigger_conditions": {
-        "max_difficulty": 2,
-        "specialty_match": true,
-        "specialist_available": true
-      },
-      "effect": "auto_assign"
-    }
-  ]
-}
-```
-
-### Game Config (`/data/game_config.json`)
-```json
-{
-  "game_settings": {
-    "starting_specialists": 2,
-    "starting_money": 5000,
-    "time_scale": 1.0,
-    "max_active_incidents": 50
-  },
-  "xp_curve": {
-    "base_xp": 100,
-    "exponent": 1.5,
-    "level_cap": 20
-  },
-  "economy": {
-    "sla_failure_penalty_multiplier": 0.5,
-    "perfect_completion_bonus": 1.2,
-    "specialist_hiring_cost_base": 2000
-  }
-}
-```
-
-## Code Style & Conventions
-
-### Naming Conventions
-
-- **Classes**: PascalCase (`Specialist`, `IncidentGenerator`)
-- **Functions/Methods**: snake_case (`assign_incident`, `calculate_xp_gain`)
-- **Constants**: UPPER_SNAKE_CASE (`MAX_SPECIALISTS`, `BASE_XP`)
-- **JSON keys**: snake_case matching Python conventions
-- **File names**: snake_case (`specialist.py`, `incident_queue_panel.py`)
-
-### Type Hints
-
-Always use type hints for function signatures:
-
-```python
-def assign_incident(specialist: Specialist, incident: Incident) -> bool:
-    """Assign an incident to a specialist if compatible."""
-    ...
-```
-
-### Docstrings
-
-Use Google-style docstrings for all classes and public methods:
-
-```python
-def calculate_xp_gain(base_xp: int, difficulty: int, level: int) -> int:
-    """Calculate XP gained for completing an incident.
-    
-    Args:
-        base_xp: Base XP value from incident configuration
-        difficulty: Incident difficulty (1-5)
-        level: Current specialist level
-        
-    Returns:
-        Final XP amount after all modifiers applied
-    """
-    ...
-```
-
-### Error Handling
-
-- Validate ALL JSON data on load
-- Fail fast with clear error messages
-- Log errors comprehensively for debugging
-- Gracefully degrade when backend server unavailable
-
-## Game Logic Implementation Patterns
-
-### Event-Driven Architecture
-
-Use observer pattern for state changes:
-
-```python
-class GameState:
-    def __init__(self):
-        self._observers = []
-    
-    def register_observer(self, callback):
-        self._observers.append(callback)
-    
-    def notify_observers(self, event_type, data):
-        for observer in self._observers:
-            observer(event_type, data)
-```
-
-### Factory Pattern for Entity Creation
-
-```python
-class SpecialistFactory:
-    @staticmethod
-    def create_from_json(specialist_data: dict) -> Specialist:
-        """Create Specialist instance from JSON data."""
-        return Specialist(
-            id=specialist_data['id'],
-            name=specialist_data['name'],
-            specialty=specialist_data['specialty'],
-            # ... etc
-        )
-```
-
-### Strategy Pattern for Specialist Abilities
-
-```python
-class SpecialistAbility(ABC):
-    @abstractmethod
-    def apply(self, specialist: Specialist, incident: Incident) -> None:
-        pass
-
-class SpeedBoostAbility(SpecialistAbility):
-    def apply(self, specialist: Specialist, incident: Incident) -> None:
-        incident.time_remaining *= 1.2
-```
-
-## Pygame Rendering Guidelines
-
-### Rendering Loop Structure
-
-```python
-def render(self, game_state: GameState):
-    """Render game state to screen. NO GAME LOGIC HERE."""
-    self.screen.fill(BACKGROUND_COLOR)
-    
-    # Read state, don't modify it
-    self._render_incident_queue(game_state.incidents)
-    self._render_specialist_roster(game_state.specialists)
-    self._render_metrics(game_state.metrics)
-    
-    pygame.display.flip()
-```
-
-### Input Handling
-
-```python
-def handle_input(self, events: list[pygame.Event]) -> list[GameAction]:
-    """Convert Pygame events to game actions. Return actions, don't execute them."""
-    actions = []
-    
-    for event in events:
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            action = self._mouse_to_action(event.pos)
-            if action:
-                actions.append(action)
-    
-    return actions  # Game loop executes these
-```
-
-## Backend API Conventions
-
-### Endpoint Structure
-
-```
-GET    /specialists              → List all specialists
-GET    /specialists/{id}         → Get specific specialist
-PUT    /specialists/{id}         → Update specialist stats/level
-POST   /specialists              → Create new specialist
-
-POST   /incidents/spawn          → Manually spawn incident
-GET    /incidents/active         → List currently active incidents
-
-PUT    /clients/{id}             → Update client parameters
-POST   /config/reload            → Hot-reload all JSON files
-
-GET    /game/state               → Full game state snapshot (debugging)
-```
-
-### Response Format
-
-```json
-{
-  "success": true,
-  "data": { ... },
-  "message": "Specialist updated successfully",
-  "timestamp": "2025-10-16T14:30:00Z"
-}
-```
-
-## Testing Standards
-
-### Test Organization
-
-```
-/tests/
-  test_specialist.py          → Unit tests for Specialist class
-  test_incident.py            → Unit tests for Incident class
-  test_assignment_system.py   → Integration tests for assignment logic
-  test_api.py                 → API endpoint tests
-  conftest.py                 → Shared fixtures
-```
-
-### Test Naming
-
-```python
-def test_specialist_gains_xp_on_incident_completion():
-    """Test that specialist XP increases when incident resolved."""
-    ...
-
-def test_assignment_fails_when_specialty_mismatch():
-    """Test that specialist cannot be assigned to wrong specialty incident."""
-    ...
-```
-
-### Fixtures
-
-```python
-@pytest.fixture
-def sample_specialist():
-    """Provide a standard specialist for testing."""
-    return Specialist(
-        id="test_001",
-        name="Test Specialist",
-        specialty="Network Security",
-        level=1,
-        xp=0
-    )
-```
-
-## Common Development Tasks
-
-### Adding a New Specialist Type
-
-1. Add entry to `/data/specialists.json`
-2. No code changes needed (data-driven!)
-3. Optionally add new specialty-specific automation scripts
-
-### Creating a New Incident Type
-
-1. Add entry to `/data/incidents.json` with new type definition
-2. Ensure `specialty_required` matches existing specialist specialties
-3. Configure difficulty range and SLA timers
-4. Test spawn via backend API: `POST /incidents/spawn`
-
-### Implementing a New Automation Script
-
-1. Add definition to `/data/automation_scripts.json`
-2. If custom logic needed beyond simple auto-assign, implement in `/src/core/automation_system.py`
-3. Link to specialist via `automation_scripts` array at specific level threshold
-
-### Balancing Game Economy
-
-1. Start game normally
-2. Open backend admin dashboard at `http://localhost:5000/admin`
-3. Adjust client incident rates, specialist stats, SLA timers in real-time
-4. Observe effects immediately without restart
-5. Export working parameters back to JSON files
-
-## Debugging Workflow
-
-### Logging Levels
-
-```python
-logger.debug("Incident spawn check: rate=0.5, roll=0.32")  # Detailed flow
-logger.info("Incident INC_042 assigned to SPEC_003")       # Key events
-logger.warning("Specialist busy, assignment delayed")       # Recoverable issues
-logger.error("JSON schema validation failed")              # Serious problems
-```
-
-### State Inspection
-
-```python
-# Via backend API
-GET /game/state → Full snapshot for debugging
-
-# Via logs
-logger.info(f"GameState: {game_state.to_dict()}")
-```
-
-### Hot-Reload Testing
-
-```bash
-# Edit JSON file
-vim /data/specialists.json
-
-# Trigger reload via API
-curl -X POST http://localhost:5000/config/reload
-
-# Changes reflected immediately in running game
-```
-
-## Performance Guidelines
-
-- Target 60 FPS for Pygame rendering
-- Profile incident generation if >100 active incidents
-- Use dirty rect updates for Pygame rendering optimization
-- Cache frequently accessed JSON data in memory
-- Log performance metrics in debug mode
-
-## Deployment
-
-### Local Development
-
-```bash
-# Terminal 1: Run game client
-python src/main.py
-
-# Terminal 2: Run backend server
-cd backend && python app.py
-```
-
-### Configuration
-
-- Backend port: 5000 (configurable in `.env`)
-- Game window resolution: 1280x720 (configurable in `game_config.json`)
-- Save game location: `/data/saves/`
-
-## Questions to Ask When Implementing
-
-1. **Can this parameter be JSON-driven?** → If yes, make it configurable
-2. **Is this game logic or rendering?** → Game logic in `/src/core/`, rendering in `/src/ui/`
-3. **Does this need to be tweaked for balance?** → Make it backend-modifiable
-4. **Will this block the render loop?** → Move to background thread
-5. **Can an automation script handle this?** → Consider data-driven automation system
-
-## Reference Examples
-
-### Complete Incident Resolution Flow
-
-```python
-# 1. Incident generated (core/incident_generator.py)
-incident = IncidentGenerator.generate(client)
-
-# 2. Player assigns specialist (ui/input_handler.py → core/assignment_system.py)
-success = AssignmentSystem.assign(specialist, incident)
-
-# 3. Resolution processed (core/resolution_system.py)
-result = ResolutionSystem.resolve(incident)
-
-# 4. Rewards distributed (core/progression_system.py)
-ProgressionSystem.award_xp(specialist, result.xp)
-
-# 5. UI updates (ui/renderer.py)
-renderer.update_specialist_panel(specialist)
-```
-
-### Backend Testing Example
-
-```bash
-# Spawn urgent network incident
-curl -X POST http://localhost:5000/incidents/spawn \
-  -H "Content-Type: application/json" \
-  -d '{
-    "type": "DDoS Attack",
-    "difficulty": 5,
-    "client_id": "client_001"
-  }'
-
-# Boost specialist level for testing
-curl -X PUT http://localhost:5000/specialists/spec_001 \
-  -H "Content-Type: application/json" \
-  -d '{"level": 10, "xp": 5000}'
-```
-
-## ANTI-PATTERNS - DUMB CODE TO AVOID
-
-### ❌ **REDUNDANT CONSTANT DEFINITIONS**
-**NEVER** create constants that duplicate their own value:
-
-```python
-# ❌ DUMB - Writing the same thing twice
-INCIDENT_RESOLVED = "incident_resolved"
-SPECIALIST_LEVELED_UP = "specialist_leveled_up"
-
-# ❌ EQUALLY DUMB - Enum wrapper around strings
-class Events(Enum):
-    INCIDENT_RESOLVED = "incident_resolved"  # WTF is this?
-
-# ✅ CORRECT - Just use the damn strings
-event_bus.emit("incident_resolved", data)
-event_bus.subscribe("specialist_leveled_up", callback)
-
-# ✅ OR if you need constants, make them useful
-# (e.g., for autocomplete/refactoring), but they MUST add value
-```
-
-**WHY THIS IS DUMB:**
-- You're literally typing the same thing twice
-- Zero type safety gained
-- Zero refactoring benefit
-- Just cargo cult programming
-
-**WHEN TO USE CONSTANTS:**
-- When the display value differs from the key: `SUCCESS = 200`
-- When you need computed values: `MAX_INT = 2**31 - 1`
-- When grouping related config: `class Colors: RED = (255, 0, 0)`
-
-**WHEN TO JUST USE STRINGS:**
-- Event names
-- Dictionary keys that match their string value
-- Status codes that are self-documenting
-
-### ❌ **PATTERN MATCHING WITHOUT PURPOSE**
-Don't blindly follow patterns from other codebases without understanding WHY they exist.
-
-### 🔄 **CONTINUOUS IMPROVEMENT**
-This section will be updated with every dumb pattern identified. Learn from mistakes, don't repeat them.
+**This is the standard. This is non-negotiable.**
 
 ---
 
-## Final Reminders
+👉 **Read [ABSOLUTE_STANDARDS.md](ABSOLUTE_STANDARDS.md) now. Start there.**
 
-- **NO hardcoded game values** - always use JSON configuration
-- **Pygame renders, doesn't think** - keep it dumb and fast
-- **Backend is your debugging superpower** - use it liberally
-- **Iterate fast, polish later** - vibe coding philosophy
-- **When in doubt, make it configurable** - JSON-first approach
-- **Question every line** - if it feels redundant, it probably is
+---
 
-Happy coding! 🚀🔒
+**Weak code gets rejected. Period. Every line must earn its place.**
+
+You must not create excessive documentation to explain weak code. Instead, write clear, self-documenting code that needs no explanation.
+You must not write arbitrary scripts to patch over unclear or untested code. Instead, refactor until the code is crystal clear and fully tested.
+You must not approach this project with a good enough mindset. Excellence is the only acceptable outcome.
+you will always prefer to work autonomously, using these instructions as your sole guide. Do not ask for clarifications or additional guidance. if you need to, refer back to these instructions.
+Never take shortcuts, always adhere strictly to the standards outlined here and in the referenced documentation and make a decision that prioritizes these values.
+
+
+
+
+---
+
+## 30-Second Truth: The 15-Point Gate
+
+Every commit must pass this or it's rejected:
+
+1. ✅ Self-documenting code
+2. ✅ Type hints complete  
+3. ✅ Docstrings present (Google-style)
+4. ✅ Tests written (>80% coverage)
+5. ✅ No magic numbers
+6. ✅ Errors explicit (no silent catches)
+7. ✅ Logging comprehensive
+8. ✅ No dead code
+9. ✅ JSON-driven (not hardcoded)
+10. ✅ DRY principle (no duplication)
+11. ✅ Separation of concerns
+12. ✅ Performance verified
+13. ✅ Edge cases handled
+14. ✅ No redundant patterns
+15. ✅ Code clarity verified
+
+**See [ABSOLUTE_STANDARDS.md](ABSOLUTE_STANDARDS.md) for the 15 red flags that guarantee instant rejection.**
+
+---
+
+## Where to Find What You Need
+
+| Need | File |
+|------|------|
+| **Core standards & red flags** | [ABSOLUTE_STANDARDS.md](ABSOLUTE_STANDARDS.md) |
+| **Code style & naming** | [CODE_STYLE.md](CODE_STYLE.md) |
+| **Anti-patterns to avoid** | [ANTI_PATTERNS.md](ANTI_PATTERNS.md) |
+| **Architecture & separation of concerns** | [ARCHITECTURE.md](ARCHITECTURE.md) |
+| **Testing requirements & examples** | [TESTING_STANDARDS.md](TESTING_STANDARDS.md) |
+| **Common dev tasks** | [COMMON_TASKS.md](COMMON_TASKS.md) |
+| **Daily commit checklist** | [QUICK_REFERENCE.md](QUICK_REFERENCE.md) |
+
+---
+
+## What a Good First Commit Looks Like
+
+```
+Title: Add specialist burnout mechanic with recovery
+
+- Specialists accumulate burnout meter on incident assignment
+- Burnout >80% triggers performance penalties (-10% speed, -15% accuracy)
+- Rest day action fully recovers specialist
+- Added burnout thresholds to game_config.json
+- Full test coverage: 12 test cases covering all states
+- Type hints throughout, docstrings explain design
+
+Commit format:
+- Clear title: WHAT + WHY
+- Bullet points: concrete changes
+- JSON file changes listed
+- Test coverage numbers mentioned
+- No vague language like "Fixed stuff"
+```
+
+---
+
+## Before Every Coding Session
+
+1. **Read** [ABSOLUTE_STANDARDS.md](ABSOLUTE_STANDARDS.md) (15-point gate + red flags)
+2. **Review** [ANTI_PATTERNS.md](ANTI_PATTERNS.md) (10 common mistakes)
+3. **Understand** the architecture from [ARCHITECTURE.md](ARCHITECTURE.md)
+4. **Check** [CODE_STYLE.md](CODE_STYLE.md) for naming/formatting conventions
+
+---
+
+## Project Fundamentals
+
+### Separation of Concerns (Non-negotiable)
+
+- `/src/models/` → Pure game logic (no UI, no HTTP)
+- `/src/core/` → Game systems (generation, assignment, progression)
+- `/src/ui/` → Pygame rendering ONLY (no game logic)
+- `/backend/` → Flask CRUD API (no game logic)
+- `/data/` → JSON configuration (all game parameters)
+
+**CRITICAL: Never put game logic in Pygame code. Rendering reads state; it doesn't create it.**
+
+### Data-Driven Everything
+
+All game parameters live in JSON:
+- Specialist stats? JSON
+- Incident difficulty? JSON
+- Client SLA timers? JSON
+- Automation scripts? JSON
+- Economy multipliers? JSON
+
+If it affects gameplay, it's in JSON config.
+
+---
+
+## Testing Mandate
+
+**EVERY PUBLIC FUNCTION MUST HAVE TESTS. NO EXCEPTIONS.**
+
+- Minimum 80% coverage for new code
+- Test organization: one file per class/system
+- Test naming: `test_<subject>_<action>_<expected_outcome>`
+- See [TESTING_STANDARDS.md](TESTING_STANDARDS.md) for examples
+
+---
+
+## Common Development Tasks
+
+- **Add new specialist type** → Edit `/data/specialist_templates.json` (data-driven, no code changes)
+- **Create new incident** → Edit `/data/incidents.json` + add tests
+- **Implement automation** → Edit `/data/automation_scripts.json` + add core logic if needed
+- **Balance economy** → Edit `/data/game_config.json` + hot-reload via backend
+- **Debug with godmode** → Use backend admin panel at `http://localhost:5000/admin`
+
+See [COMMON_TASKS.md](COMMON_TASKS.md) for step-by-step guides.
+
+---
+
+## Quick Links to Sections
+
+### If you're struggling with...
+
+- **Unclear code** → Read [CODE_STYLE.md](CODE_STYLE.md) (naming, docstrings, clarity)
+- **Bad patterns** → Read [ANTI_PATTERNS.md](ANTI_PATTERNS.md) (10 anti-patterns with examples)
+- **Testing questions** → Read [TESTING_STANDARDS.md](TESTING_STANDARDS.md) (fixtures, organization, examples)
+- **Architecture questions** → Read [ARCHITECTURE.md](ARCHITECTURE.md) (design patterns, separation of concerns)
+- **How to add a feature** → Read [COMMON_TASKS.md](COMMON_TASKS.md) (step-by-step guides)
+- **Before committing** → Read [QUICK_REFERENCE.md](QUICK_REFERENCE.md) (commit checklist)
+
+---
+
+## The Non-Negotiable Rules
+
+✅ **DO THIS:**
+- Write self-documenting code
+- Add type hints everywhere
+- Test everything
+- Put parameters in JSON
+- Fail loudly with logging
+- Keep functions focused
+- Follow DRY principle
+
+❌ **NEVER DO THIS:**
+- Commit untested code
+- Use generic names (`data`, `obj`, `item`)
+- Hardcode game values
+- Swallow exceptions silently
+- Write "clever" code
+- Comment the obvious
+- Leave dead code around
+- Ignore type hints
+
+---
+
+## Red Line: Instant Rejection
+
+If your code has ANY of these, it gets rejected immediately:
+
+1. Untested function
+2. Silent exception handling (`except: pass`)
+3. Generic variable names
+4. Function doing multiple jobs
+5. Hardcoded game values
+6. Missing type hints
+7. No docstring
+8. Copy-paste logic
+9. Commented-out code
+10. Magic strings/numbers
+11. TODO comments
+12. Overly clever code
+13. Inconsistent return types
+14. No error logging
+15. Disabled code
+
+See [ABSOLUTE_STANDARDS.md](ABSOLUTE_STANDARDS.md) for detailed explanations.
+
+---
+
+## Philosophy: "Vibe Coding"
+
+- **Iteration speed** over perfect architecture
+- **JSON-first design** for easy tweaking
+- **Pygame as renderer only** (not logic container)
+- **Hot-reloadable** configuration without restart
+- **Backend-driven debugging** for live parameter editing
+- **Human-readable data** for manual editing
+
+---
+
+## Backend Development Commands
+
+```bash
+# Start backend
+cd backend && python run_backend.py
+
+# Hot-reload configuration (after editing JSON)
+curl -X POST http://localhost:5000/config/reload
+
+# View admin panel
+http://localhost:5000/admin
+
+# Spawn test incident
+curl -X POST http://localhost:5000/incidents/spawn \
+  -H "Content-Type: application/json" \
+  -d '{"type": "DDoS Attack", "difficulty": 5}'
+
+# Get full game state (debugging)
+curl http://localhost:5000/game/state | jq
+```
+
+---
+
+## Documentation Files - What Each Does
+
+| File | Purpose | Read When |
+|------|---------|-----------|
+| **ABSOLUTE_STANDARDS.md** | Core mandate: 15-point gate, 15 red flags, examples | Starting every session |
+| **CODE_STYLE.md** | Naming, type hints, docstrings, formatting | Writing code |
+| **ANTI_PATTERNS.md** | 10 anti-patterns with REJECTED/ACCEPTED examples | Code review |
+| **ARCHITECTURE.md** | Project structure, design patterns, separation of concerns | Understanding structure |
+| **TESTING_STANDARDS.md** | Testing requirements, fixtures, test examples | Writing tests |
+| **COMMON_TASKS.md** | Step-by-step guides for adding features | Adding features |
+| **QUICK_REFERENCE.md** | Daily checklist before committing | Before committing |
+
+---
+
+
+
+

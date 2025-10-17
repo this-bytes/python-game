@@ -573,4 +573,249 @@ def create_specialists_blueprint(game_state_ref):
         except Exception as e:
             return jsonify({"success": False, "message": str(e)}), 500
     
+    # ===== BURNOUT MANAGEMENT ENDPOINTS =====
+    
+    @bp.route('/specialists/<specialist_id>/burnout-status', methods=['GET'])
+    def get_specialist_burnout_status(specialist_id):
+        """Get burnout status for a specialist.
+        
+        Returns burnout level, tier, performance multiplier, error chance, and trauma count.
+        """
+        game_state = get_game_state()
+        if not game_state:
+            return jsonify({"success": False, "message": "Game state not initialized"}), 503
+        
+        try:
+            specialist = game_state.get_specialist_by_id(specialist_id)
+            if not specialist:
+                return jsonify({"success": False, "message": "Specialist not found"}), 404
+            
+            # Get burnout status from burnout system
+            if not game_state._burnout_system:
+                return jsonify({"success": False, "message": "Burnout system not initialized"}), 500
+            
+            status = game_state._burnout_system.get_specialist_status(specialist_id)
+            
+            return jsonify({
+                "success": True,
+                "data": status,
+                "timestamp": datetime.utcnow().isoformat()
+            })
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 500
+    
+    @bp.route('/team/burnout-status', methods=['GET'])
+    def get_team_burnout_status():
+        """Get team-wide burnout statistics.
+        
+        Returns aggregate burnout data: average, critical specialists, intervention needed.
+        """
+        game_state = get_game_state()
+        if not game_state:
+            return jsonify({"success": False, "message": "Game state not initialized"}), 503
+        
+        try:
+            if not game_state._burnout_system:
+                return jsonify({"success": False, "message": "Burnout system not initialized"}), 500
+            
+            status = game_state._burnout_system.get_team_status()
+            
+            return jsonify({
+                "success": True,
+                "data": status,
+                "timestamp": datetime.utcnow().isoformat()
+            })
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 500
+    
+    @bp.route('/specialists/<specialist_id>/rest-day', methods=['POST'])
+    def specialist_rest_day(specialist_id):
+        """Specialist takes a rest day to recover from burnout.
+        
+        Recovers 30% of current burnout. No cost.
+        """
+        game_state = get_game_state()
+        if not game_state:
+            return jsonify({"success": False, "message": "Game state not initialized"}), 503
+        
+        try:
+            specialist = game_state.get_specialist_by_id(specialist_id)
+            if not specialist:
+                return jsonify({"success": False, "message": "Specialist not found"}), 404
+            
+            if not game_state._burnout_system:
+                return jsonify({"success": False, "message": "Burnout system not initialized"}), 500
+            
+            # Register if not already registered
+            game_state._burnout_system.register_specialist(specialist_id)
+            
+            # Take rest day
+            success, message = game_state._burnout_system.take_rest_day(specialist_id)
+            
+            if success:
+                # Update specialist's burnout_level
+                burnout = game_state._burnout_system.specialists[specialist_id]
+                specialist.burnout_level = burnout.burnout_level
+                
+                return jsonify({
+                    "success": True,
+                    "message": message,
+                    "data": game_state._burnout_system.get_specialist_status(specialist_id),
+                    "timestamp": datetime.utcnow().isoformat()
+                })
+            else:
+                return jsonify({
+                    "success": False,
+                    "message": message
+                }), 400
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 500
+    
+    @bp.route('/specialists/<specialist_id>/vacation', methods=['POST'])
+    def specialist_vacation(specialist_id):
+        """Send specialist on vacation to recover from burnout.
+        
+        Request JSON: {
+            "days": int (1-5),
+            "cost_per_day": int
+        }
+        
+        Recovers 30% + 10% per day of burnout (up to 80%). Costs money.
+        """
+        game_state = get_game_state()
+        if not game_state:
+            return jsonify({"success": False, "message": "Game state not initialized"}), 503
+        
+        try:
+            specialist = game_state.get_specialist_by_id(specialist_id)
+            if not specialist:
+                return jsonify({"success": False, "message": "Specialist not found"}), 404
+            
+            if not game_state._burnout_system:
+                return jsonify({"success": False, "message": "Burnout system not initialized"}), 500
+            
+            data = request.get_json()
+            days = data.get('days', 3)
+            cost_per_day = data.get('cost_per_day', 100)
+            
+            # Validate input
+            if not 1 <= days <= 5:
+                return jsonify({
+                    "success": False,
+                    "message": "Days must be between 1 and 5"
+                }), 400
+            
+            total_cost = days * cost_per_day
+            if game_state.current_money < total_cost:
+                return jsonify({
+                    "success": False,
+                    "message": f"Insufficient funds. Need {total_cost}, have {game_state.current_money}"
+                }), 400
+            
+            # Register if not already registered
+            game_state._burnout_system.register_specialist(specialist_id)
+            
+            # Take vacation
+            success, message = game_state._burnout_system.take_vacation(
+                specialist_id, 
+                days=days, 
+                cost_per_day=cost_per_day
+            )
+            
+            if success:
+                # Deduct cost
+                game_state.current_money -= total_cost
+                
+                # Update specialist's burnout_level
+                burnout = game_state._burnout_system.specialists[specialist_id]
+                specialist.burnout_level = burnout.burnout_level
+                
+                return jsonify({
+                    "success": True,
+                    "message": message,
+                    "data": {
+                        "specialist_status": game_state._burnout_system.get_specialist_status(specialist_id),
+                        "cost": total_cost,
+                        "remaining_money": game_state.current_money
+                    },
+                    "timestamp": datetime.utcnow().isoformat()
+                })
+            else:
+                return jsonify({
+                    "success": False,
+                    "message": message
+                }), 400
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 500
+    
+    @bp.route('/specialists/<specialist_id>/therapy', methods=['POST'])
+    def specialist_therapy(specialist_id):
+        """Specialist attends therapy to process trauma.
+        
+        Request JSON: {
+            "cost": int (500+ recommended)
+        }
+        
+        Clears all trauma (failed incidents) and recovers trauma-related burnout.
+        """
+        game_state = get_game_state()
+        if not game_state:
+            return jsonify({"success": False, "message": "Game state not initialized"}), 503
+        
+        try:
+            specialist = game_state.get_specialist_by_id(specialist_id)
+            if not specialist:
+                return jsonify({"success": False, "message": "Specialist not found"}), 404
+            
+            if not game_state._burnout_system:
+                return jsonify({"success": False, "message": "Burnout system not initialized"}), 500
+            
+            data = request.get_json()
+            cost = data.get('cost', 500)
+            
+            # Validate input
+            if cost < 0:
+                return jsonify({
+                    "success": False,
+                    "message": "Cost cannot be negative"
+                }), 400
+            
+            if game_state.current_money < cost:
+                return jsonify({
+                    "success": False,
+                    "message": f"Insufficient funds. Need {cost}, have {game_state.current_money}"
+                }), 400
+            
+            # Register if not already registered
+            game_state._burnout_system.register_specialist(specialist_id)
+            
+            # Attend therapy
+            success, message = game_state._burnout_system.attend_therapy(specialist_id, cost=cost)
+            
+            if success:
+                # Deduct cost
+                game_state.current_money -= cost
+                
+                # Update specialist's burnout_level
+                burnout = game_state._burnout_system.specialists[specialist_id]
+                specialist.burnout_level = burnout.burnout_level
+                
+                return jsonify({
+                    "success": True,
+                    "message": message,
+                    "data": {
+                        "specialist_status": game_state._burnout_system.get_specialist_status(specialist_id),
+                        "cost": cost,
+                        "remaining_money": game_state.current_money
+                    },
+                    "timestamp": datetime.utcnow().isoformat()
+                })
+            else:
+                return jsonify({
+                    "success": False,
+                    "message": message
+                }), 400
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 500
+    
     return bp

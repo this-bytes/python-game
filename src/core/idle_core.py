@@ -90,6 +90,7 @@ class IdleCore:
         """Automatically assign pending incidents to available specialists.
         
         This is the CORE of the idle game - it runs constantly.
+        Respects burnout: skips CRITICAL (81%+) specialists.
         
         Args:
             game_state: Current game state
@@ -122,6 +123,10 @@ class IdleCore:
             
             if best_match:
                 specialist, match_info = best_match
+                
+                # BURNOUT CHECK: Skip CRITICAL specialists (81%+)
+                if self.config.respect_fatigue and specialist.burnout_level > 80:
+                    continue
                 
                 # Perform assignment
                 success = game_state.assign_incident_to_specialist(incident.id, specialist.id)
