@@ -4,6 +4,7 @@ This module provides a REST API for live debugging and manipulation of game stat
 """
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
+from flask_socketio import SocketIO
 from typing import Optional
 import sys
 import os
@@ -13,6 +14,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from backend.config import BackendConfig
 from src.utils.logger import GameLogger
+from backend.services.websocket_service import ws_service
 
 
 class BackendApp:
@@ -33,10 +35,22 @@ class BackendApp:
         # Configure CORS
         CORS(self.app, origins=BackendConfig.CORS_ORIGINS)
         
+        # Initialize SocketIO for WebSocket support
+        self.socketio = SocketIO(
+            self.app,
+            cors_allowed_origins=BackendConfig.CORS_ORIGINS,
+            async_mode='threading',
+            ping_interval=BackendConfig.WEBSOCKET_PING_INTERVAL,
+            ping_timeout=BackendConfig.WEBSOCKET_PING_TIMEOUT
+        )
+        
+        # Initialize WebSocket service
+        ws_service.init_app(self.app, self.socketio)
+        
         # Register routes
         self._register_routes()
         
-        self.logger.logger.info("[BACKEND] Backend API initialized")
+        self.logger.logger.info("[BACKEND] Backend API initialized with WebSocket support")
     
     def _register_routes(self):
         """Register all API routes."""
@@ -80,6 +94,8 @@ class BackendApp:
         from backend.routes.automation import create_automation_blueprint
         from backend.routes.config_routes import create_config_blueprint
         from backend.routes.time import create_time_blueprint
+        from backend.routes.analytics import create_analytics_blueprint
+        from backend.routes.godmode import create_godmode_blueprint
         
         # Register blueprints with game_state reference
         self.app.register_blueprint(
@@ -122,6 +138,14 @@ class BackendApp:
             create_time_blueprint(self.game_state),
             url_prefix=BackendConfig.API_PREFIX
         )
+        self.app.register_blueprint(
+            create_analytics_blueprint(self.game_state),
+            url_prefix=BackendConfig.API_PREFIX
+        )
+        self.app.register_blueprint(
+            create_godmode_blueprint(self.game_state),
+            url_prefix=BackendConfig.API_PREFIX
+        )
         
         self.logger.logger.info("[BACKEND] All routes registered")
     
@@ -135,7 +159,7 @@ class BackendApp:
         self.logger.logger.info("[BACKEND] Game state reference updated")
     
     def run(self, host: Optional[str] = None, port: Optional[int] = None, debug: Optional[bool] = None):
-        """Run the Flask development server.
+        """Run the Flask development server with SocketIO.
         
         Args:
             host: Host to bind to (default: from config)
@@ -147,7 +171,7 @@ class BackendApp:
         debug = debug if debug is not None else BackendConfig.DEBUG
         
         self.logger.logger.info(f"[BACKEND] Starting server on {host}:{port} (debug={debug})")
-        self.app.run(host=host, port=port, debug=debug, use_reloader=False)
+        self.socketio.run(self.app, host=host, port=port, debug=debug, use_reloader=False)
 
 
 def create_app(game_state=None):
