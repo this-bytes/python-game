@@ -187,7 +187,7 @@ class MainMenu:
     def render(self) -> None:
         """Render the main menu."""
         # Clear screen with dark background
-        bg_color = self.theme.get('colors', {}).get('background', (20, 20, 30))
+        bg_color = self.theme.get_color('background', (20, 20, 30))
         self.screen.fill(bg_color)
         
         # Render title with pulse effect
