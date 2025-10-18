@@ -22,6 +22,7 @@ from src.ui.components.button import Button, ButtonStyle
 from src.ui.dopamine_overlay import DopamineFeedbackOverlay
 from src.ui.synergy_overlay import SynergySuggestionOverlay, AutoPlayIndicator
 from src.ui.components.navigation_menu import NavigationMenu, MenuItem, MenuPosition
+from src.ui.components.hud_overlay import HUDOverlay
 from src.ui.view_manager import ViewManager, GameView, create_default_views
 
 
@@ -118,6 +119,13 @@ class GameUI:
             panels=panel_dict,
             initial_view=GameView.OPERATIONS,  # Start with operations view
             on_view_changed=self._on_view_changed
+        )
+        
+        # Initialize HUD overlay
+        self.hud_overlay = HUDOverlay(
+            screen_width=self.WINDOW_WIDTH,
+            screen_height=self.WINDOW_HEIGHT,
+            position="top"
         )
 
         # Create assign button
@@ -415,6 +423,9 @@ class GameUI:
         # Update navigation menu
         self.navigation_menu.update(delta_time)
         
+        # Update HUD overlay
+        self.hud_overlay.update(delta_time, self.game_state)
+        
         # Update notification manager
         self.notification_manager.update(delta_time)
         
@@ -443,8 +454,10 @@ class GameUI:
         bg_color = self.theme_manager.get_color("background", (15, 15, 25))
         self.screen.fill(bg_color)
 
-        # Render main header
-        self._render_header()
+        # Render modern HUD overlay (replaces old header)
+        current_view_config = self.view_manager.get_current_view_config()
+        view_title = current_view_config.title if current_view_config else ""
+        self.hud_overlay.render(self.screen, self.game_state, view_title)
         
         # Render navigation menu
         self.navigation_menu.render(self.screen, self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
@@ -558,31 +571,7 @@ class GameUI:
 
                 y_offset += self.specialist_roster_panel.card_height + self.specialist_roster_panel.card_margin
 
-    def _render_header(self) -> None:
-        """Render the game header with basic info."""
-        header_height = 60
-        header_rect = pygame.Rect(0, 0, self.WINDOW_WIDTH, header_height)
-        
-        # Get colors from theme
-        primary_color = self.theme_manager.get_color("primary", (0, 180, 255))
-        text_color = self.theme_manager.get_color("text", (220, 220, 230))
-        
-        pygame.draw.rect(self.screen, primary_color, header_rect)
 
-        # Title
-        title_text = self.font.render("Cybersecurity Firm - Idle/Tycoon/RPG", True, text_color)
-        self.screen.blit(title_text, (20, 15))
-
-        # Money
-        money_text = self.font.render(f"Money: ${self.game_state.current_money:,.0f}", True, text_color)
-        self.screen.blit(money_text, (self.WINDOW_WIDTH - 300, 15))
-
-        # Time and pause status
-        time_text = f"Time: {self.game_state.get_game_time_elapsed():.1f}s"
-        if self.game_state.is_paused:
-            time_text += " [PAUSED]"
-        time_surface = self.font.render(time_text, True, text_color)
-        self.screen.blit(time_surface, (self.WINDOW_WIDTH - 300, 35))
 
     def _render_controls(self) -> None:
         """Render control buttons and instructions."""

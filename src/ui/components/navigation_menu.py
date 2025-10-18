@@ -180,6 +180,11 @@ class NavigationMenu:
         
         # Keyboard shortcuts
         elif event.type == pygame.KEYDOWN:
+            # Toggle collapse with Tab key
+            if event.key == pygame.K_TAB and pygame.key.get_mods() & pygame.KMOD_CTRL:
+                self.toggle_collapsed()
+                return True
+            
             for item in self.items:
                 if item.hotkey and event.key == item.hotkey:
                     self.set_active_item(item.id)
@@ -242,19 +247,27 @@ class NavigationMenu:
         """
         menu_rect = self.get_rect(screen_width, screen_height)
         
-        # Background
+        # Background with subtle gradient effect
         pygame.draw.rect(screen, self.bg_color, menu_rect)
+        
+        # Subtle overlay for depth
+        overlay_color = (30, 30, 40)
+        overlay_rect = pygame.Rect(menu_rect.x, menu_rect.y, menu_rect.width, 5)
+        pygame.draw.rect(screen, overlay_color, overlay_rect)
         
         # Border
         border_color = (50, 50, 70)
         if self.position == MenuPosition.LEFT:
             pygame.draw.line(screen, border_color, 
-                           (menu_rect.right, menu_rect.top),
-                           (menu_rect.right, menu_rect.bottom), 2)
+                           (menu_rect.right - 1, menu_rect.top),
+                           (menu_rect.right - 1, menu_rect.bottom), 2)
         elif self.position == MenuPosition.RIGHT:
             pygame.draw.line(screen, border_color,
                            (menu_rect.left, menu_rect.top),
                            (menu_rect.left, menu_rect.bottom), 2)
+        
+        # Render collapse button at bottom
+        self._render_collapse_button(screen, menu_rect)
         
         # Render items
         item_height = 60
@@ -264,6 +277,32 @@ class NavigationMenu:
         for item in self.items:
             self._render_item(screen, item, menu_rect, y_offset, item_height)
             y_offset += item_height + item_spacing
+    
+    def _render_collapse_button(self, screen: pygame.Surface, menu_rect: pygame.Rect) -> None:
+        """Render collapse/expand button at bottom of menu.
+        
+        Args:
+            screen: Pygame surface
+            menu_rect: Menu rectangle
+        """
+        button_height = 30
+        button_rect = pygame.Rect(
+            menu_rect.x + 5,
+            menu_rect.bottom - button_height - 5,
+            menu_rect.width - 10,
+            button_height
+        )
+        
+        # Background
+        bg_color = (40, 40, 55)
+        pygame.draw.rect(screen, bg_color, button_rect, border_radius=4)
+        
+        # Icon
+        icon = "◀" if not self.collapsed else "▶"
+        icon_text = self.icon_font.render(icon, True, (180, 180, 200))
+        icon_x = button_rect.centerx - icon_text.get_width() // 2
+        icon_y = button_rect.centery - icon_text.get_height() // 2
+        screen.blit(icon_text, (icon_x, icon_y))
     
     def _render_item(
         self,
