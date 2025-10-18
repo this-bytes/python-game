@@ -1,0 +1,75 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "equipment_schema.json",
+  "title": "Equipment Configuration",
+  "description": "Schema for equipment items configuration file",
+  "type": "object",
+  "required": ["equipment"],
+  "properties": {
+    "equipment": {
+      "type": "array",
+      "description": "Array of equipment item configurations",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "equipment_type", "rarity", "unlock_level", "cost"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the equipment item",
+            "pattern": "^[a-z_]+$"
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name of the equipment",
+            "minLength": 2,
+            "maxLength": 100
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the equipment",
+            "maxLength": 500
+          },
+          "equipment_type": {
+            "type": "string",
+            "description": "Type of equipment",
+            "enum": ["tool", "software", "hardware", "accessory"]
+          },
+          "rarity": {
+            "type": "string",
+            "description": "Rarity tier of the equipment",
+            "enum": ["common", "uncommon", "rare", "epic", "legendary"]
+          },
+          "stat_bonuses": {
+            "type": "object",
+            "description": "Stat bonuses provided by this equipment",
+            "properties": {
+              "speed": {
+                "type": "number",
+                "minimum": 0
+              },
+              "accuracy": {
+                "type": "number",
+                "minimum": 0
+              },
+              "xp_bonus": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          },
+          "unlock_level": {
+            "type": "integer",
+            "description": "Level required to unlock this equipment",
+            "minimum": 1,
+            "maximum": 50
+          },
+          "cost": {
+            "type": "integer",
+            "description": "Purchase cost in dollars",
+            "minimum": 0
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "achievement_schema.json",
+  "title": "Achievements Configuration",
+  "description": "Schema for achievements configuration file",
+  "type": "object",
+  "required": ["achievements"],
+  "properties": {
+    "achievements": {
+      "type": "array",
+      "description": "Array of achievement configurations",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "category", "condition_type", "condition_value"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the achievement",
+            "pattern": "^[a-z_]+$"
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name of the achievement",
+            "minLength": 2,
+            "maxLength": 100
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the achievement",
+            "maxLength": 500
+          },
+          "category": {
+            "type": "string",
+            "description": "Category of achievement",
+            "enum": ["progression", "speed", "accuracy", "collection", "special"]
+          },
+          "condition_type": {
+            "type": "string",
+            "description": "Type of condition to unlock",
+            "enum": ["incidents_resolved", "specialists_hired", "money_earned", "level_reached", "equipment_collected", "perfect_streak"]
+          },
+          "condition_value": {
+            "type": "integer",
+            "description": "Value required to unlock the achievement",
+            "minimum": 1
+          },
+          "reward_money": {
+            "type": ["integer", "null"],
+            "description": "Money reward for unlocking",
+            "minimum": 0
+          },
+          "reward_xp": {
+            "type": ["integer", "null"],
+            "description": "XP reward for unlocking",
+            "minimum": 0
+          },
+          "reward_equipment": {
+            "type": ["string", "null"],
+            "description": "Equipment item ID reward for unlocking"
+          }
+        }
+      }
+    }
+  }
+}

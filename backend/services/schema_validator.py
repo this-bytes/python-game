@@ -24,6 +24,20 @@ class SchemaValidator:
         
         self.schemas_dir = schemas_dir
         self.schemas: Dict[str, Dict] = {}
+        
+        # Map entity type aliases to schema names
+        # This allows the frontend to use plural names while schemas use singular
+        self.entity_type_aliases = {
+            'clients': 'client',
+            'incidents': 'incident',
+            'specialists': 'specialist',
+            'specialist_templates': 'specialist',
+            'automation_scripts': 'automation_script',
+            'equipment': 'equipment',
+            'facilities': 'facility',
+            'achievements': 'achievement',
+        }
+        
         self._load_schemas()
     
     def _load_schemas(self) -> None:
@@ -49,12 +63,14 @@ class SchemaValidator:
         """Get schema for a specific entity type.
         
         Args:
-            entity_type: Type of entity (e.g., 'client', 'incident')
+            entity_type: Type of entity (e.g., 'client', 'incident', 'clients', 'incidents')
         
         Returns:
             Schema dictionary or None if not found
         """
-        return self.schemas.get(entity_type)
+        # Check if there's an alias mapping
+        schema_name = self.entity_type_aliases.get(entity_type, entity_type)
+        return self.schemas.get(schema_name)
     
     def get_all_schemas(self) -> Dict[str, Dict]:
         """Get all loaded schemas.
