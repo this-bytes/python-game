@@ -10,9 +10,7 @@ This is your **main entry point** for working with this codebase. For detailed g
 
 > **"This project will not settle. Excellence is the only acceptable outcome."**
 
-Weak code gets rejected. Untested code gets rejected. Unclear code gets rejected.
-
-Code that's **crystal clear, thoroughly tested, properly documented, and truly excellent?** That code gets merged.
+- Creativity is encouraged, but never at the expense of clarity, quality, standards or explicit instructions.
 
 **This is the standard. This is non-negotiable.**
 
@@ -22,10 +20,10 @@ Code that's **crystal clear, thoroughly tested, properly documented, and truly e
 
 1. **Excellence is mandatory** - Not "good enough," not "it works" - EXCELLENT
 2. **Autonomous work** - Use these instructions as your sole guide
-3. **No shortcuts** - Follow standards exactly, make no exceptions
+3. **No shortcuts** - Follow standards exactly, make no exceptions, no half measures to finish a prompt
 4. **Data-driven design** - All game parameters in JSON files
-5. **Professional terminology** - Use established cybersecurity industry terms
-6. **Self-documenting code** - Clear code needs no explanation
+5. **Professional terminology** - Use established cybersecurity industry terms - do make up your own words. this is a simulation of a real-world industry.
+6. **Self-documenting code** - Clear code needs no explanation - highlevel docstrings only
 7. **Test everything** - Every public function must have tests
 
 👉 **Read [core-standards.instructions.md](core-standards.instructions.md) now. Start there.**
@@ -114,8 +112,8 @@ Commit format:
 
 ## Before Every Coding Session
 
-1. **Read** [ABSOLUTE_STANDARDS.md](ABSOLUTE_STANDARDS.md) (15-point gate + red flags)
-2. **Review** [ANTI_PATTERNS.md](ANTI_PATTERNS.md) (10 common mistakes)
+1. **Read** [core-standards.instructions.md](core-standards.instructions.md)
+2. **Review** [documentation-guidelines.instructions.md](documentation-guidelines.instructions.md)
 3. **Understand** the architecture from [ARCHITECTURE.md](ARCHITECTURE.md)
 4. **Check** [code-style.instructions.md](code-style.instructions.md) for naming/formatting conventions
 
@@ -133,9 +131,9 @@ Commit format:
 
 **CRITICAL: Never put game logic in Pygame code. Rendering reads state; it doesn't create it.**
 
-### Plugin System Architecture (UNIFIED)
+### Plugin System Architecture
 
-**ALL GAME SYSTEMS ARE NOW PLUGINS.** The plugin system is the ONLY system architecture.
+**ALL GAME SYSTEMS ARE PLUGINS.** The plugin system is the ONLY system architecture.
 
 📖 **See [plugin-system.instructions.md](plugin-system.instructions.md) for complete plugin documentation.**
 
@@ -143,7 +141,7 @@ Commit format:
 - All game systems inherit from `GameSystem`
 - Event-driven communication via singleton EventBus
 - Standardized lifecycle: initialize/update/shutdown/save_state/load_state
-- 10 plugins registered in main.py (IdlePlugin, PrestigeSystem, AchievementSystem, BurnoutPlugin, RelationshipsPlugin, DopaminePlugin, EquipmentPlugin, AbilityPlugin, PassiveIncomePlugin, FacilityPlugin)
+- Register the plugins dynamically in `main.py`
 
 ---
 
@@ -152,13 +150,6 @@ Commit format:
 **ALL GAME PARAMETERS MUST BE IN JSON FILES.**
 
 📖 **See [data-driven.instructions.md](data-driven.instructions.md) for complete JSON configuration patterns.**
-
-**Quick Facts:**
-- Specialist stats? JSON
-- Incident difficulty? JSON
-- Client SLA timers? JSON
-- Automation scripts? JSON
-- Economy multipliers? JSON
 
 If it affects gameplay, it's in JSON config.
 
@@ -218,6 +209,7 @@ If it affects gameplay, it's in JSON config.
 - Follow DRY principle
 
 ❌ **NEVER DO THIS:**
+- Write updates out to console - only provide updates via chat.
 - Commit untested code
 - Use generic names (`data`, `obj`, `item`)
 - Hardcode game values

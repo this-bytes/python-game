@@ -15,6 +15,8 @@ from enum import Enum
 from dataclasses import dataclass
 import pygame
 
+from src.utils.animation_system import get_animation_system, EasingFunction
+
 
 @dataclass
 class Tab:
@@ -105,8 +107,7 @@ class TabContainer:
         self.drag_start_pos: Optional[Tuple[int, int]] = None
         
         # Animation
-        from src.core.plugins.animation_system import AnimationSystem, EasingType
-        self.animations = AnimationSystem()
+        self.animations = get_animation_system()
         self.content_opacity = 1.0
         self.animating_tab_switch = False
         
@@ -220,31 +221,29 @@ class TabContainer:
     
     def _animate_tab_switch(self) -> None:
         """Animate tab content fade."""
-        from src.core.plugins.animation_system import EasingType
-        
         self.animating_tab_switch = True
         
         # Fade out → fade in
-        self.animations.animate_value(
-            target_object=self,
-            property_name="content_opacity",
+        self.animations.animate(
+            target=self,
+            property="content_opacity",
+            start_value=self.content_opacity,
             end_value=0.0,
             duration=self.animation_duration / 2,
-            easing=EasingType.EASE_IN_QUAD,
+            easing=EasingFunction.EASE_IN_QUAD,
             on_complete=self._on_fade_out_complete
         )
     
     def _on_fade_out_complete(self) -> None:
         """Called when fade-out completes."""
-        from src.core.plugins.animation_system import EasingType
-        
         # Fade in
-        self.animations.animate_value(
-            target_object=self,
-            property_name="content_opacity",
+        self.animations.animate(
+            target=self,
+            property="content_opacity",
+            start_value=0.0,
             end_value=1.0,
             duration=self.animation_duration / 2,
-            easing=EasingType.EASE_OUT_QUAD,
+            easing=EasingFunction.EASE_OUT_QUAD,
             on_complete=self._on_fade_in_complete
         )
     
