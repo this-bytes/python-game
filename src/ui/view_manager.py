@@ -100,12 +100,13 @@ class ViewManager:
         # Apply initial view
         self._apply_view(initial_view, instant=True)
     
-    def switch_to_view(self, view: GameView, instant: bool = False) -> None:
+    def switch_to_view(self, view: GameView, instant: bool = False, update_history: bool = True) -> None:
         """Switch to a different view.
         
         Args:
             view: Target view to switch to
             instant: Skip transition animation if True
+            update_history: Whether to update previous_view for back navigation
         """
         if view == self.current_view:
             return
@@ -113,7 +114,8 @@ class ViewManager:
         if view not in self.views:
             return
         
-        self.previous_view = self.current_view
+        if update_history:
+            self.previous_view = self.current_view
         
         if instant:
             self._apply_view(view, instant=True)
@@ -122,14 +124,18 @@ class ViewManager:
             self.transition_progress = 0.0
             self.target_view = view
     
-    def go_back(self) -> bool:
+    def go_back(self, instant: bool = False) -> bool:
         """Go back to previous view.
         
+        Args:
+            instant: Skip transition animation if True
+            
         Returns:
             True if went back, False if no previous view
         """
-        if self.previous_view:
-            self.switch_to_view(self.previous_view)
+        if self.previous_view and self.previous_view != self.current_view:
+            target = self.previous_view
+            self.switch_to_view(target, instant=instant, update_history=False)
             return True
         return False
     
