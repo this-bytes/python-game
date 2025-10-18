@@ -80,3 +80,4 @@ Thumbs.db
 # Test scripts (temporary)
 test_menu_visual.py
 test_game_integration.py
+generate_menu_screenshot.py
