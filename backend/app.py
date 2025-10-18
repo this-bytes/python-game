@@ -57,13 +57,18 @@ class BackendApp:
         
         @self.app.route("/")
         def index():
-            """Root endpoint - serve admin dashboard."""
-            return send_from_directory(self.app.static_folder, 'admin.html')
+            """Root endpoint - serve control panel."""
+            return send_from_directory(self.app.static_folder, 'control-panel.html')
         
         @self.app.route("/admin")
         def admin():
-            """Admin dashboard endpoint."""
+            """Legacy admin dashboard endpoint."""
             return send_from_directory(self.app.static_folder, 'admin.html')
+        
+        @self.app.route("/control-panel")
+        def control_panel():
+            """New ultimate control panel endpoint."""
+            return send_from_directory(self.app.static_folder, 'control-panel.html')
         
         @self.app.route("/health")
         def health():
@@ -71,6 +76,22 @@ class BackendApp:
             return jsonify({
                 "status": "healthy",
                 "game_state_loaded": self.game_state is not None
+            })
+        
+        @self.app.route(f"{BackendConfig.API_PREFIX}/game/register", methods=['POST'])
+        def register_game():
+            """Register a game client's GameState with the backend.
+            
+            This endpoint is called by the game client to provide its GameState
+            reference to the backend for live control.
+            
+            Note: In Python, we can't pass object references via HTTP, so this
+            endpoint confirms the game is running and ready for control.
+            """
+            return jsonify({
+                "success": True,
+                "message": "Game registration acknowledged",
+                "backend_ready": True
             })
         
         @self.app.route(f"{BackendConfig.API_PREFIX}/config")
@@ -96,6 +117,8 @@ class BackendApp:
         from backend.routes.time import create_time_blueprint
         from backend.routes.analytics import create_analytics_blueprint
         from backend.routes.godmode import create_godmode_blueprint
+        from backend.routes.entity_management import create_entity_management_blueprint
+        from backend.routes.game_integration import create_game_integration_blueprint
         
         # Register blueprints with game_state reference
         self.app.register_blueprint(
@@ -146,17 +169,35 @@ class BackendApp:
             create_godmode_blueprint(self.game_state),
             url_prefix=BackendConfig.API_PREFIX
         )
+        self.app.register_blueprint(
+            create_entity_management_blueprint(self.game_state),
+            url_prefix=BackendConfig.API_PREFIX
+        )
+        self.app.register_blueprint(
+            create_game_integration_blueprint(self.game_state),
+            url_prefix=BackendConfig.API_PREFIX
+        )
         
         self.logger.logger.info("[BACKEND] All routes registered")
     
     def set_game_state(self, game_state):
         """Update the game state reference.
         
+        This allows the running game to provide its GameState to the backend
+        for live manipulation and control.
+        
         Args:
             game_state: GameState instance
         """
         self.game_state = game_state
         self.logger.logger.info("[BACKEND] Game state reference updated")
+        
+        # Broadcast to connected clients
+        ws_service.broadcast('game_connected', {
+            'message': 'Game client connected with shared state',
+            'specialists': len(game_state.specialists) if game_state else 0,
+            'money': game_state.current_money if game_state else 0
+        })
     
     def run(self, host: Optional[str] = None, port: Optional[int] = None, debug: Optional[bool] = None):
         """Run the Flask development server with SocketIO.

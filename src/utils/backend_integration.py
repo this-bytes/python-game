@@ -58,15 +58,27 @@ class BackendIntegration:
             # Test connection
             response = requests.get(f"{self.base_url}/health", timeout=5)
             if response.status_code == 200:
-                self.connected = True
-                self.logger.logger.info("[BACKEND_INTEGRATION] Connected to backend server")
+                # Register game with backend
+                register_response = requests.post(
+                    f"{self.base_url}/api/game/register",
+                    timeout=5
+                )
+                
+                if register_response.status_code == 200:
+                    self.connected = True
+                    self.logger.logger.info("[BACKEND_INTEGRATION] Connected to backend server")
+                    self.logger.logger.info("[BACKEND_INTEGRATION] ✅ Game registered with backend control panel")
+                    self.logger.logger.info(f"[BACKEND_INTEGRATION] 🌐 Control panel: {self.base_url}/control-panel")
 
-                # Start synchronization thread
-                self.running = True
-                self.sync_thread = threading.Thread(target=self._sync_loop, daemon=True)
-                self.sync_thread.start()
+                    # Start synchronization thread
+                    self.running = True
+                    self.sync_thread = threading.Thread(target=self._sync_loop, daemon=True)
+                    self.sync_thread.start()
 
-                return True
+                    return True
+                else:
+                    self.logger.logger.warning(f"[BACKEND_INTEGRATION] Game registration failed: {register_response.status_code}")
+                    return False
             else:
                 self.logger.logger.warning(f"[BACKEND_INTEGRATION] Backend health check failed: {response.status_code}")
                 return False
@@ -92,6 +104,8 @@ class BackendIntegration:
                 current_time = time.time()
                 if current_time - self.last_sync >= self.sync_interval:
                     self._sync_state()
+                    self._check_backend_commands()
+                    self._push_state_to_backend()
                     self.last_sync = current_time
 
                 time.sleep(0.1)  # Small sleep to prevent busy waiting
@@ -274,6 +288,98 @@ class BackendIntegration:
             "sync_interval": self.sync_interval,
             "last_sync": self.last_sync
         }
+    
+    def _check_backend_commands(self) -> None:
+        """Check for and execute commands from backend."""
+        if not self.game_state or not self.connected:
+            return
+            
+        try:
+            # Check for pending commands from backend
+            response = requests.get(f"{self.base_url}/api/game/commands", timeout=2)
+            if response.status_code == 200:
+                data = response.json()
+                commands = data.get('commands', [])
+                
+                for command in commands:
+                    self._execute_backend_command(command)
+                    
+        except requests.RequestException:
+            pass
+        except Exception as e:
+            self.logger.logger.error(f"[BACKEND_INTEGRATION] Command check error: {e}")
+    
+    def _execute_backend_command(self, command: Dict[str, Any]) -> None:
+        """Execute a command from the backend.
+        
+        Args:
+            command: Command dictionary with 'type' and 'params'
+        """
+        if not self.game_state:
+            return
+            
+        cmd_type = command.get('type')
+        params = command.get('params', {})
+        
+        try:
+            if cmd_type == 'set_money':
+                amount = params.get('amount', 0)
+                self.game_state.current_money = float(amount)
+                self.logger.logger.info(f"[BACKEND_INTEGRATION] Money set to ${amount}")
+                
+            elif cmd_type == 'spawn_incident':
+                # Spawn incident if incident generator exists
+                if hasattr(self.game_state, 'incident_generator'):
+                    incident = self.game_state.incident_generator.generate_incident()
+                    self.game_state.incidents.append(incident)
+                    self.logger.logger.info(f"[BACKEND_INTEGRATION] Spawned incident: {incident.incident_type}")
+                    
+            elif cmd_type == 'complete_all_incidents':
+                count = 0
+                for incident in self.game_state.incidents:
+                    if incident.status == 'active' or incident.status == 'pending':
+                        incident.status = 'completed'
+                        count += 1
+                self.logger.logger.info(f"[BACKEND_INTEGRATION] Completed {count} incidents")
+                
+            elif cmd_type == 'level_up_specialists':
+                levels = params.get('levels', 1)
+                for specialist in self.game_state.specialists:
+                    specialist.level += levels
+                self.logger.logger.info(f"[BACKEND_INTEGRATION] Leveled up {len(self.game_state.specialists)} specialists by {levels}")
+                
+            elif cmd_type == 'reload_config':
+                # Reload configuration files
+                self.game_state._load_initial_data()
+                self.logger.logger.info("[BACKEND_INTEGRATION] Configuration reloaded")
+                
+        except Exception as e:
+            self.logger.logger.error(f"[BACKEND_INTEGRATION] Failed to execute command {cmd_type}: {e}")
+    
+    def _push_state_to_backend(self) -> None:
+        """Push current game state to backend for display."""
+        if not self.game_state or not self.connected:
+            return
+            
+        try:
+            # Send current state summary to backend
+            state_data = {
+                'current_money': self.game_state.current_money,
+                'active_incidents': len([i for i in self.game_state.incidents if i.status in ['active', 'pending']]),
+                'total_specialists': len(self.game_state.specialists),
+                'game_time': getattr(self.game_state, 'game_time', 0)
+            }
+            
+            requests.post(
+                f"{self.base_url}/api/game/state-update",
+                json=state_data,
+                timeout=1
+            )
+            
+        except requests.RequestException:
+            pass
+        except Exception as e:
+            self.logger.logger.error(f"[BACKEND_INTEGRATION] State push error: {e}")
 
 
 # Global backend integration instance
