@@ -6,6 +6,7 @@ from flask import Blueprint, jsonify, request
 from backend.services.websocket_service import ws_service
 from datetime import datetime
 import random
+import requests as http_requests
 
 
 def create_godmode_blueprint(game_state_ref):
@@ -33,41 +34,27 @@ def create_godmode_blueprint(game_state_ref):
             count: Number of incidents to spawn (default: 50)
             difficulty: Specific difficulty or range (optional)
         """
-        game_state = get_game_state()
-        if not game_state:
-            return jsonify({
-                "success": False,
-                "message": "Game state not initialized"
-            }), 503
-        
         try:
             data = request.get_json() or {}
             count = data.get('count', 50)
-            difficulty = data.get('difficulty')
             
-            spawned = []
+            # Queue multiple spawn commands
             for _ in range(count):
-                # Spawn incident using game's incident generator
-                if hasattr(game_state, 'incident_generator'):
-                    incident = game_state.incident_generator.generate_incident()
-                    if difficulty:
-                        incident.difficulty = difficulty
-                    game_state.incidents.append(incident)
-                    spawned.append(incident.to_dict())
+                http_requests.post(
+                    'http://localhost:5001/api/game/command',
+                    json={'type': 'spawn_incident', 'params': {}},
+                    timeout=2
+                )
             
-            # Broadcast event
             ws_service.broadcast('wave_spawned', {
-                'count': len(spawned),
-                'message': f"Spawned wave of {len(spawned)} incidents"
+                'count': count,
+                'message': f"Spawned wave of {count} incidents"
             })
             
             return jsonify({
                 "success": True,
-                "message": f"Spawned {len(spawned)} incidents",
-                "data": {
-                    "count": len(spawned),
-                    "incidents": spawned[:10]  # Return first 10 for preview
-                }
+                "message": f"Spawned {count} incidents",
+                "data": {"count": count}
             })
         except Exception as e:
             return jsonify({
@@ -78,29 +65,20 @@ def create_godmode_blueprint(game_state_ref):
     @bp.route('/godmode/complete-all-incidents', methods=['POST'])
     def complete_all_incidents():
         """Instantly complete all active incidents."""
-        game_state = get_game_state()
-        if not game_state:
-            return jsonify({
-                "success": False,
-                "message": "Game state not initialized"
-            }), 503
-        
         try:
-            completed_count = 0
-            for incident in game_state.incidents:
-                if incident.status == 'active':
-                    incident.status = 'completed'
-                    completed_count += 1
+            http_requests.post(
+                'http://localhost:5001/api/game/command',
+                json={'type': 'complete_all_incidents', 'params': {}},
+                timeout=2
+            )
             
             ws_service.broadcast('incidents_completed', {
-                'count': completed_count,
-                'message': f"Completed {completed_count} incidents"
+                'message': "Complete all incidents command queued"
             })
             
             return jsonify({
                 "success": True,
-                "message": f"Completed {completed_count} incidents",
-                "data": {"count": completed_count}
+                "message": "Complete all incidents command queued"
             })
         except Exception as e:
             return jsonify({
@@ -115,37 +93,25 @@ def create_godmode_blueprint(game_state_ref):
         JSON body:
             levels: Number of levels to add (default: 1)
         """
-        game_state = get_game_state()
-        if not game_state:
-            return jsonify({
-                "success": False,
-                "message": "Game state not initialized"
-            }), 503
-        
         try:
             data = request.get_json() or {}
             levels = data.get('levels', 1)
             
-            for specialist in game_state.specialists:
-                specialist.level += levels
-                # Add XP to match new level
-                if hasattr(game_state, 'progression_system'):
-                    xp_for_level = game_state.progression_system.calculate_xp_for_level(specialist.level)
-                    specialist.xp = xp_for_level
+            http_requests.post(
+                'http://localhost:5001/api/game/command',
+                json={'type': 'level_up_specialists', 'params': {'levels': levels}},
+                timeout=2
+            )
             
             ws_service.broadcast('specialists_leveled', {
-                'count': len(game_state.specialists),
                 'levels': levels,
-                'message': f"Leveled up {len(game_state.specialists)} specialists by {levels} levels"
+                'message': f"Level up specialists command queued"
             })
             
             return jsonify({
                 "success": True,
-                "message": f"Leveled up {len(game_state.specialists)} specialists",
-                "data": {
-                    "count": len(game_state.specialists),
-                    "levels_added": levels
-                }
+                "message": f"Level up specialists command queued",
+                "data": {"levels_added": levels}
             })
         except Exception as e:
             return jsonify({
@@ -160,30 +126,37 @@ def create_godmode_blueprint(game_state_ref):
         JSON body:
             amount: Money amount to set
         """
-        game_state = get_game_state()
-        if not game_state:
-            return jsonify({
-                "success": False,
-                "message": "Game state not initialized"
-            }), 503
-        
         try:
             data = request.get_json() or {}
             amount = data.get('amount', 0)
             
-            old_money = game_state.money
-            game_state.money = amount
+            # Queue command for game to execute
+            command_response = http_requests.post(
+                'http://localhost:5001/api/game/command',
+                json={
+                    'type': 'set_money',
+                    'params': {'amount': amount}
+                },
+                timeout=2
+            )
             
-            ws_service.broadcast_money_change(old_money, amount, "God mode: Set money")
-            
-            return jsonify({
-                "success": True,
-                "message": f"Money set to ${amount}",
-                "data": {
-                    "old_money": old_money,
-                    "new_money": amount
-                }
-            })
+            if command_response.status_code == 200:
+                ws_service.broadcast('money_command', {
+                    'amount': amount,
+                    'message': f"Money set command queued: ${amount}"
+                })
+                
+                return jsonify({
+                    "success": True,
+                    "message": f"Money set command queued: ${amount}",
+                    "data": {"amount": amount}
+                })
+            else:
+                return jsonify({
+                    "success": False,
+                    "message": "Failed to queue command"
+                }), 500
+                
         except Exception as e:
             return jsonify({
                 "success": False,
