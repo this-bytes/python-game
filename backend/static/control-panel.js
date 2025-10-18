@@ -396,6 +396,9 @@ ${JSON.stringify(this.gameState, null, 2)}
                         <button class="btn btn-primary btn-sm" onclick="controlPanel.createEntity('${entityType}')">
                             ➕ Create New
                         </button>
+                        <button class="btn btn-secondary btn-sm" onclick="batchOperations.showBatchEditor('${entityType}')">
+                            ⚡ Batch Edit
+                        </button>
                         <button class="btn btn-secondary btn-sm" onclick="controlPanel.importEntities('${entityType}')">
                             📥 Import
                         </button>
@@ -704,15 +707,85 @@ ${JSON.stringify(this.gameState, null, 2)}
     
     // Entity Management Methods
     createEntity(entityType) {
-        this.showToast('Info', 'Entity creation modal coming soon', 'warning');
+        // Get template for entity type
+        fetch(`${API_BASE}/entities/templates/${entityType}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    entityEditorModal.show(entityType, data.data, null, 'create');
+                } else {
+                    this.showToast('Error', 'Failed to load template', 'error');
+                }
+            })
+            .catch(error => {
+                this.showToast('Error', 'Failed to load template: ' + error.message, 'error');
+            });
     }
     
     editEntity(entityType, index) {
-        this.showToast('Info', 'Entity editor modal coming soon', 'warning');
+        // Load entity data
+        const data = this.entities[entityType] || {};
+        let entities = [];
+        
+        // Extract entities array from different structures
+        if (Array.isArray(data)) {
+            entities = data;
+        } else if (data.incident_types) {
+            entities = data.incident_types;
+        } else if (data.specialist_archetypes) {
+            entities = data.specialist_archetypes;
+        } else if (data.equipment) {
+            entities = data.equipment;
+        } else if (data.facilities) {
+            entities = data.facilities;
+        } else if (data.automation_scripts) {
+            entities = data.automation_scripts;
+        } else if (data.achievements) {
+            entities = data.achievements;
+        }
+        
+        if (entities[index]) {
+            entityEditorModal.show(entityType, entities[index], index, 'edit');
+        } else {
+            this.showToast('Error', 'Entity not found', 'error');
+        }
     }
     
     duplicateEntity(entityType, index) {
-        this.showToast('Info', 'Entity duplication coming soon', 'warning');
+        // Load entity data
+        const data = this.entities[entityType] || {};
+        let entities = [];
+        
+        // Extract entities array from different structures
+        if (Array.isArray(data)) {
+            entities = data;
+        } else if (data.incident_types) {
+            entities = data.incident_types;
+        } else if (data.specialist_archetypes) {
+            entities = data.specialist_archetypes;
+        } else if (data.equipment) {
+            entities = data.equipment;
+        } else if (data.facilities) {
+            entities = data.facilities;
+        } else if (data.automation_scripts) {
+            entities = data.automation_scripts;
+        } else if (data.achievements) {
+            entities = data.achievements;
+        }
+        
+        if (entities[index]) {
+            const duplicated = JSON.parse(JSON.stringify(entities[index]));
+            // Update ID and name for duplicate
+            if (duplicated.id) {
+                duplicated.id = duplicated.id + '_copy';
+            }
+            if (duplicated.name) {
+                duplicated.name = duplicated.name + ' (Copy)';
+            }
+            entityEditorModal.show(entityType, duplicated, null, 'duplicate');
+        } else {
+            this.showToast('Error', 'Entity not found', 'error');
+        }
     }
     
     async deleteEntity(entityType, index) {
