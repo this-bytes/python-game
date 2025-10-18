@@ -21,6 +21,8 @@ from src.ui.panels.equipment_inventory_panel import EquipmentInventoryPanel
 from src.ui.components.button import Button, ButtonStyle
 from src.ui.dopamine_overlay import DopamineFeedbackOverlay
 from src.ui.synergy_overlay import SynergySuggestionOverlay, AutoPlayIndicator
+from src.ui.components.navigation_menu import NavigationMenu, MenuItem, MenuPosition
+from src.ui.view_manager import ViewManager, GameView, create_default_views
 
 
 @dataclass
@@ -87,6 +89,36 @@ class GameUI:
             self.equipment_shop_panel,
             self.equipment_inventory_panel,
         ]
+        
+        # Initialize navigation menu
+        menu_items = [
+            MenuItem("overview", "Overview", "📊", "Game dashboard and key metrics", pygame.K_F1),
+            MenuItem("operations", "Operations", "⚡", "Incidents & Specialists", pygame.K_F2),
+            MenuItem("management", "Management", "🏢", "Equipment & Facilities", pygame.K_F3),
+            MenuItem("analytics", "Analytics", "📈", "Metrics & Achievements", pygame.K_F4),
+        ]
+        
+        self.navigation_menu = NavigationMenu(
+            items=menu_items,
+            position=MenuPosition.LEFT,
+            on_item_selected=self._on_menu_item_selected
+        )
+        
+        # Initialize view manager
+        panel_dict = {
+            "specialist_roster": self.specialist_roster_panel,
+            "incident_queue": self.incident_queue_panel,
+            "metrics": self.metrics_panel,
+            "equipment_shop": self.equipment_shop_panel,
+            "equipment_inventory": self.equipment_inventory_panel,
+        }
+        
+        self.view_manager = ViewManager(
+            views=create_default_views(self.WINDOW_WIDTH, self.WINDOW_HEIGHT),
+            panels=panel_dict,
+            initial_view=GameView.OPERATIONS,  # Start with operations view
+            on_view_changed=self._on_view_changed
+        )
 
         # Create assign button
         self.assign_button = Button(
@@ -107,6 +139,32 @@ class GameUI:
         self.drag_highlight_specialist = None
 
         self.logger.logger.info("[GAME_UI] Game UI initialized with drag-and-drop support")
+    
+    def _on_menu_item_selected(self, item_id: str) -> None:
+        """Handle menu item selection.
+        
+        Args:
+            item_id: ID of selected menu item
+        """
+        # Map menu item IDs to views
+        view_map = {
+            "overview": GameView.OVERVIEW,
+            "operations": GameView.OPERATIONS,
+            "management": GameView.MANAGEMENT,
+            "analytics": GameView.ANALYTICS,
+        }
+        
+        if item_id in view_map:
+            self.view_manager.switch_to_view(view_map[item_id])
+    
+    def _on_view_changed(self, view_config) -> None:
+        """Handle view change.
+        
+        Args:
+            view_config: Configuration of new view
+        """
+        self.notification_manager.show_info("View", f"Switched to {view_config.title}")
+        self.logger.logger.info(f"[GAME_UI] Switched to view: {view_config.title}")
 
     def _register_hotkey_callbacks(self) -> None:
         """Register hotkey callbacks."""
@@ -195,17 +253,24 @@ class GameUI:
         actions = []
 
         for event in events:
-            # Handle drag and drop events first (before panels)
+            # Handle navigation menu first
+            if self.navigation_menu.handle_event(event, self.WINDOW_WIDTH, self.WINDOW_HEIGHT):
+                continue
+            
+            # Handle drag and drop events (before panels)
             if self._handle_drag_drop_event(event):
                 continue
 
-            # Handle hotkeys first
+            # Handle hotkeys
             if self.hotkey_manager.handle_key_event(event):
                 continue
 
-            # Handle panel events (in reverse z-order)
+            # Handle panel events (in reverse z-order) - only if visible
             event_consumed = False
             for panel in reversed(self.panels):
+                if hasattr(panel, 'visible') and not panel.visible:
+                    continue
+                    
                 if panel.handle_event(event):
                     # Bring panel to front if clicked
                     if event.type == pygame.MOUSEBUTTONDOWN:
@@ -228,6 +293,9 @@ class GameUI:
                 elif event.key == pygame.K_s:
                     # Toggle synergy suggestions panel (strategic intervention UI)
                     self.synergy_overlay.toggle_visibility()
+                elif event.key == pygame.K_ESCAPE:
+                    # Go back to previous view
+                    self.view_manager.go_back()
                 elif event.key == pygame.K_a:
                     # Assign selected incident to selected specialist
                     selected_incident = self.incident_queue_panel.get_selected_incident()
@@ -341,6 +409,12 @@ class GameUI:
         Args:
             delta_time: Time elapsed since last update
         """
+        # Update view manager
+        self.view_manager.update(delta_time)
+        
+        # Update navigation menu
+        self.navigation_menu.update(delta_time)
+        
         # Update notification manager
         self.notification_manager.update(delta_time)
         
@@ -369,15 +443,21 @@ class GameUI:
         bg_color = self.theme_manager.get_color("background", (15, 15, 25))
         self.screen.fill(bg_color)
 
-        # Render main panels
+        # Render main header
         self._render_header()
+        
+        # Render navigation menu
+        self.navigation_menu.render(self.screen, self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
 
-        # Render all panels (in z-order)
+        # Render all visible panels (in z-order)
         for panel in self.panels:
-            panel.render(self.screen)
+            if hasattr(panel, 'visible') and panel.visible:
+                panel.render(self.screen)
 
-        # Render controls
-        self._render_controls()
+        # Render controls (only show assign button in operations view)
+        current_view = self.view_manager.current_view
+        if current_view == GameView.OPERATIONS:
+            self._render_controls()
         
         # Render AUTO-PLAY INDICATOR (always visible - core idle mechanic)
         if hasattr(self.game_state, '_idle_core') and self.game_state._idle_core:
@@ -399,8 +479,12 @@ class GameUI:
         # Render dopamine overlay (combo counter, celebrations, risk contracts)
         self.dopamine_overlay.render(self.screen, self.game_state._dopamine_system)
 
-        # Render drag and drop visual feedback
-        self._render_drag_drop()
+        # Render drag and drop visual feedback (only in operations view)
+        if current_view == GameView.OPERATIONS:
+            self._render_drag_drop()
+        
+        # Render view transition overlay
+        self.view_manager.render_transition_overlay(self.screen)
 
         # Render notifications (always on top)
         self.notification_manager.render(self.screen)
@@ -505,21 +589,19 @@ class GameUI:
         # Render assign button
         self.assign_button.render(self.screen)
 
-        # Instructions
+        # Instructions - simplified and cleaner
         text_color = self.theme_manager.get_color("text", (220, 220, 230))
         
         instructions = [
-            "🎯 ASSIGN: Select incident + specialist, press A to assign",
-            "🤖 AUTO-PLAY: Specialists auto-assign to incidents (Press A to toggle)",
-            "⚡ STRATEGIC: Press S to view synergy opportunities for bonus multipliers",
-            "Hotkeys: 1-6: Panels | SPACE: Pause | H: Help | +/-: Speed",
+            "Navigation: F1-F4 to switch views | ESC to go back | H for help",
+            "🎯 Operations: Select incident + specialist, press A to assign or drag & drop",
         ]
 
-        y_offset = 650
+        y_offset = 665
         for instruction in instructions:
             inst_text = self.small_font.render(instruction, True, text_color)
             self.screen.blit(inst_text, (240, y_offset))
-            y_offset += 20
+            y_offset += 18
 
     def _render_help_overlay(self) -> None:
         """Render help overlay with all hotkeys."""
@@ -540,6 +622,11 @@ class GameUI:
         # Hotkeys
         help_font = pygame.font.SysFont('Arial', 14)
         hotkeys = [
+            ("F1", "Overview Dashboard"),
+            ("F2", "Operations View"),
+            ("F3", "Management View"),
+            ("F4", "Analytics View"),
+            ("ESC", "Back to Previous View"),
             ("1", "Toggle Specialist Roster"),
             ("2", "Toggle Incident Queue"),
             ("3", "Toggle Metrics Panel"),
@@ -549,7 +636,6 @@ class GameUI:
             ("+", "Increase Game Speed"),
             ("-", "Decrease Game Speed"),
             ("H", "Toggle This Help"),
-            ("ESC", "Close Panels"),
         ]
 
         y_offset = 60
