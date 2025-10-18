@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Standalone backend server startup script.
 
-This script starts the backend API server with a live GameState instance
-for live debugging and manipulation during development.
+This script starts the backend API server. It can either:
+1. Run with its own GameState (standalone mode for testing)
+2. Wait for a game client to connect and share its GameState (integrated mode)
 """
 
 import sys
@@ -22,19 +23,31 @@ def main():
     print("🚀 Cybersecurity Firm - Backend API Server")
     print("=" * 60)
     print()
-    print("Initializing game state...")
     
-    # Create game state
-    try:
-        game_state = GameState()
-        print(f"✅ Game state initialized:")
-        print(f"   - Specialists: {len(game_state.specialists)}")
-        print(f"   - Clients: {len(game_state.clients)}")
-        print(f"   - Automation Scripts: {len(game_state.automation_scripts)}")
-        print(f"   - Starting Money: ${game_state.current_money:.2f}")
-    except Exception as e:
-        print(f"❌ Failed to initialize game state: {e}")
-        sys.exit(1)
+    # Check if we should run in standalone mode (with our own GameState)
+    # or wait for game client to connect (shared GameState mode)
+    standalone = "--standalone" in sys.argv
+    
+    if standalone:
+        print("Running in STANDALONE mode (separate GameState)")
+        print("Initializing game state...")
+        
+        # Create game state
+        try:
+            game_state = GameState()
+            print(f"✅ Game state initialized:")
+            print(f"   - Specialists: {len(game_state.specialists)}")
+            print(f"   - Clients: {len(game_state.clients)}")
+            print(f"   - Automation Scripts: {len(game_state.automation_scripts)}")
+            print(f"   - Starting Money: ${game_state.current_money:.2f}")
+        except Exception as e:
+            print(f"❌ Failed to initialize game state: {e}")
+            sys.exit(1)
+    else:
+        print("Running in INTEGRATED mode")
+        print("⚠️  No GameState initialized - waiting for game client to connect...")
+        print("   (Start the game with backend integration enabled)")
+        game_state = None
     
     print()
     print("Starting backend server...")
@@ -43,6 +56,7 @@ def main():
     print(f"   Debug: {BackendConfig.DEBUG}")
     print()
     print("=" * 60)
+    print(f"🌐 Control Panel: http://localhost:{BackendConfig.PORT}/control-panel")
     print(f"🌐 Admin Dashboard: http://localhost:{BackendConfig.PORT}/admin")
     print(f"📡 API Endpoints: http://localhost:{BackendConfig.PORT}/api/*")
     print(f"❤️  Health Check: http://localhost:{BackendConfig.PORT}/health")
