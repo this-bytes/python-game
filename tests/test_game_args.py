@@ -123,6 +123,13 @@ class TestParseGameArgs:
         
         assert args.headless is True
     
+    def test_parse_tutorial_flag(self, monkeypatch):
+        """Test parsing with --tutorial flag."""
+        monkeypatch.setattr(sys, 'argv', ['main.py', '--tutorial'])
+        args = parse_game_args()
+        
+        assert args.mode == GameMode.TUTORIAL
+    
     def test_parse_skip_intro_flag(self, monkeypatch):
         """Test parsing with --skip-intro flag."""
         monkeypatch.setattr(sys, 'argv', ['main.py', '--skip-intro'])
@@ -170,6 +177,7 @@ class TestGameModeEnum:
         assert GameMode.NEW_GAME.value == "new_game"
         assert GameMode.CONTINUE.value == "continue"
         assert GameMode.LOAD_SLOT.value == "load_slot"
+        assert GameMode.TUTORIAL.value == "tutorial"
     
     def test_game_mode_unique(self):
         """Test that all GameMode values are unique."""

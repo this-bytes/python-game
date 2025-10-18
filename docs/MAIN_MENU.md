@@ -12,6 +12,7 @@ The main menu provides the following options:
 
 - **🎮 Start New Game**: Begin a fresh game with default settings
 - **▶️ Continue**: Resume from the most recent auto-save (disabled if no save exists)
+- **📚 Tutorial**: Start tutorial mode with guided gameplay for new players
 - **⚙️ Settings**: Access game settings (placeholder for future implementation)
 - **❌ Exit**: Close the game
 
@@ -33,6 +34,9 @@ python src/main.py --menu
 
 # Start a new game directly (skip menu)
 python src/main.py --new-game
+
+# Start tutorial mode for new players
+python src/main.py --tutorial
 
 # Continue from most recent save
 python src/main.py --continue
@@ -93,7 +97,9 @@ Available game modes (defined in `GameMode` enum):
 
 - `MENU`: Show main menu (default)
 - `NEW_GAME`: Start new game directly
+- `TUTORIAL`: Start tutorial mode with guided gameplay
 - `CONTINUE`: Continue from auto-save (slot 0)
+- `LOAD_SLOT`: Load from specific save slot
 - `LOAD_SLOT`: Load from specific save slot
 
 ### Main Menu UI

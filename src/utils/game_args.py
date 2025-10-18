@@ -15,6 +15,7 @@ class GameMode(Enum):
     NEW_GAME = "new_game"  # Start new game directly
     CONTINUE = "continue"  # Continue from most recent save
     LOAD_SLOT = "load_slot"  # Load from specific save slot
+    TUTORIAL = "tutorial"  # Start tutorial mode
 
 
 class GameArgs:
@@ -86,6 +87,7 @@ Examples:
   python src/main.py                    # Show main menu (default)
   python src/main.py --continue         # Continue from last save
   python src/main.py --new-game         # Start new game directly
+  python src/main.py --tutorial         # Start tutorial mode
   python src/main.py --load-slot 3      # Load from save slot 3
   python src/main.py --debug            # Enable debug mode
         """
@@ -114,6 +116,11 @@ Examples:
         type=int,
         metavar="SLOT",
         help="Load game from specific save slot (0-9)"
+    )
+    mode_group.add_argument(
+        "--tutorial",
+        action="store_true",
+        help="Start tutorial mode for new players"
     )
     
     # Additional options
@@ -149,6 +156,8 @@ Examples:
         # Validate slot number
         if save_slot < 0 or save_slot >= 10:
             parser.error("Save slot must be between 0 and 9")
+    elif args.tutorial:
+        mode = GameMode.TUTORIAL
     elif args.menu:
         mode = GameMode.MENU
     

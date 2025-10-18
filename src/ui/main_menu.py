@@ -17,6 +17,7 @@ class MenuAction(Enum):
     """Actions that can be triggered from the main menu."""
     NEW_GAME = "new_game"
     CONTINUE = "continue"
+    TUTORIAL = "tutorial"
     SETTINGS = "settings"
     EXIT = "exit"
     LOAD_SLOT = "load_slot"
@@ -76,9 +77,9 @@ class MainMenu:
         button_height = 60
         button_spacing = 20
         
-        # Center buttons vertically
-        total_height = (4 * button_height) + (3 * button_spacing)
-        start_y = (self.height - total_height) // 2 + 100
+        # Center buttons vertically (5 buttons now)
+        total_height = (5 * button_height) + (4 * button_spacing)
+        start_y = (self.height - total_height) // 2 + 80
         
         center_x = self.width // 2
         button_x = center_x - (button_width // 2)
@@ -101,9 +102,17 @@ class MainMenu:
             enabled=False  # Initially disabled until we check for saves
         )
         
+        self.tutorial_button = Button(
+            text="📚 Tutorial",
+            position=(button_x, start_y + (2 * button_height) + (2 * button_spacing)),
+            size=(button_width, button_height),
+            callback=lambda: None,
+            style=ButtonStyle.PRIMARY
+        )
+        
         self.settings_button = Button(
             text="⚙️ Settings",
-            position=(button_x, start_y + (2 * button_height) + (2 * button_spacing)),
+            position=(button_x, start_y + (3 * button_height) + (3 * button_spacing)),
             size=(button_width, button_height),
             callback=lambda: None,
             style=ButtonStyle.SECONDARY
@@ -111,7 +120,7 @@ class MainMenu:
         
         self.exit_button = Button(
             text="❌ Exit",
-            position=(button_x, start_y + (3 * button_height) + (3 * button_spacing)),
+            position=(button_x, start_y + (4 * button_height) + (4 * button_spacing)),
             size=(button_width, button_height),
             callback=lambda: None,
             style=ButtonStyle.DANGER
@@ -120,6 +129,7 @@ class MainMenu:
         self.buttons = [
             self.new_game_button,
             self.continue_button,
+            self.tutorial_button,
             self.settings_button,
             self.exit_button
         ]
@@ -164,6 +174,10 @@ class MainMenu:
                 if self.continue_available:
                     self.logger.logger.info("[MAIN_MENU] Continue selected")
                     return MenuAction.CONTINUE
+            
+            if self.tutorial_button.handle_event(event):
+                self.logger.logger.info("[MAIN_MENU] Tutorial selected")
+                return MenuAction.TUTORIAL
             
             if self.settings_button.handle_event(event):
                 self.logger.logger.info("[MAIN_MENU] Settings selected")

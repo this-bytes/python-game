@@ -65,6 +65,7 @@ python src/main.py
 # Or with command-line options:
 python src/main.py --continue        # Continue from last save
 python src/main.py --new-game        # Start new game directly
+python src/main.py --tutorial        # Start tutorial mode
 python src/main.py --load-slot 3     # Load from save slot 3
 python src/main.py --debug           # Enable debug mode
 
@@ -81,6 +82,7 @@ python app.py
 The game now features a main menu with options to:
 - 🎮 **Start New Game**: Begin a fresh game
 - ▶️ **Continue**: Resume from your last save
+- 📚 **Tutorial**: Learn the game with guided gameplay
 - ⚙️ **Settings**: Configure game options (coming soon)
 - ❌ **Exit**: Close the game
 

@@ -29,7 +29,7 @@ class TestMainMenu:
         assert menu.height == 720
         assert menu.selected_action is None
         assert menu.continue_available is False
-        assert len(menu.buttons) == 4
+        assert len(menu.buttons) == 5  # Now includes tutorial button
     
     def test_initialization_custom_size(self, mock_pygame):
         """Test MainMenu initialization with custom size."""
@@ -127,6 +127,7 @@ class TestMenuAction:
         """Test MenuAction enum values."""
         assert MenuAction.NEW_GAME.value == "new_game"
         assert MenuAction.CONTINUE.value == "continue"
+        assert MenuAction.TUTORIAL.value == "tutorial"
         assert MenuAction.SETTINGS.value == "settings"
         assert MenuAction.EXIT.value == "exit"
         assert MenuAction.LOAD_SLOT.value == "load_slot"

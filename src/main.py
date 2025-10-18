@@ -96,6 +96,9 @@ class Game:
             elif self.args.should_load_game():
                 self.logger.logger.info("[GAME] Loading saved game...")
                 return self._initialize_from_save()
+            elif self.args.mode == GameMode.TUTORIAL:
+                self.logger.logger.info("[GAME] Starting tutorial mode...")
+                return self._initialize_tutorial()
             else:
                 # New game
                 self.logger.logger.info("[GAME] Starting new game...")
@@ -188,6 +191,37 @@ class Game:
             
         except Exception as e:
             self.logger.logger.error(f"[GAME] Failed to initialize new game: {e}")
+            return False
+    
+    def _initialize_tutorial(self) -> bool:
+        """Initialize tutorial mode.
+        
+        Returns:
+            True if initialization successful
+        """
+        try:
+            # Load game data
+            self.logger.logger.info("[GAME] Loading game configuration for tutorial...")
+            game_data = load_game_data()
+
+            # Initialize game state with tutorial-specific settings
+            self.logger.logger.info("[GAME] Initializing tutorial game state...")
+            self.game_state = GameState()
+            
+            # Mark this as a tutorial session
+            # This allows the game to show tutorial-specific UI and guidance
+            if not hasattr(self.game_state, 'is_tutorial'):
+                self.game_state.is_tutorial = True
+            else:
+                self.game_state.is_tutorial = True
+            
+            self.logger.logger.info("[GAME] Tutorial mode enabled")
+            
+            # Initialize UI and systems
+            return self._initialize_game_systems()
+            
+        except Exception as e:
+            self.logger.logger.error(f"[GAME] Failed to initialize tutorial: {e}")
             return False
     
     def _initialize_game_systems(self) -> bool:
@@ -318,6 +352,10 @@ class Game:
         elif action == MenuAction.CONTINUE:
             self.logger.logger.info("[GAME] Continuing game from menu...")
             if self._initialize_from_save():
+                self.in_menu = False
+        elif action == MenuAction.TUTORIAL:
+            self.logger.logger.info("[GAME] Starting tutorial from menu...")
+            if self._initialize_tutorial():
                 self.in_menu = False
         elif action == MenuAction.SETTINGS:
             self.main_menu.show_settings_menu()
