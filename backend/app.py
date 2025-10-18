@@ -57,13 +57,18 @@ class BackendApp:
         
         @self.app.route("/")
         def index():
-            """Root endpoint - serve admin dashboard."""
-            return send_from_directory(self.app.static_folder, 'admin.html')
+            """Root endpoint - serve control panel."""
+            return send_from_directory(self.app.static_folder, 'control-panel.html')
         
         @self.app.route("/admin")
         def admin():
-            """Admin dashboard endpoint."""
+            """Legacy admin dashboard endpoint."""
             return send_from_directory(self.app.static_folder, 'admin.html')
+        
+        @self.app.route("/control-panel")
+        def control_panel():
+            """New ultimate control panel endpoint."""
+            return send_from_directory(self.app.static_folder, 'control-panel.html')
         
         @self.app.route("/health")
         def health():
@@ -96,6 +101,7 @@ class BackendApp:
         from backend.routes.time import create_time_blueprint
         from backend.routes.analytics import create_analytics_blueprint
         from backend.routes.godmode import create_godmode_blueprint
+        from backend.routes.entity_management import create_entity_management_blueprint
         
         # Register blueprints with game_state reference
         self.app.register_blueprint(
@@ -144,6 +150,10 @@ class BackendApp:
         )
         self.app.register_blueprint(
             create_godmode_blueprint(self.game_state),
+            url_prefix=BackendConfig.API_PREFIX
+        )
+        self.app.register_blueprint(
+            create_entity_management_blueprint(self.game_state),
             url_prefix=BackendConfig.API_PREFIX
         )
         

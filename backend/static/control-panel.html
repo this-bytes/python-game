@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎮 Ultimate Game Control Panel</title>
+    <link rel="stylesheet" href="/static/control-panel.css">
+    <!-- Socket.IO for real-time updates -->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <!-- JSON Editor -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@json-editor/json-editor@latest/dist/jsoneditor.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@json-editor/json-editor@latest/dist/jsoneditor.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="logo">
+                <h1>🎮 CONTROL PANEL</h1>
+                <div class="connection-indicator">
+                    <span class="dot" id="connection-dot"></span>
+                    <span id="connection-status">Connecting...</span>
+                </div>
+            </div>
+            
+            <nav class="nav-menu">
+                <div class="nav-section">
+                    <h3>📊 OVERVIEW</h3>
+                    <button class="nav-btn active" data-view="dashboard">
+                        <span class="icon">📈</span>
+                        Dashboard
+                    </button>
+                    <button class="nav-btn" data-view="live-state">
+                        <span class="icon">🎯</span>
+                        Live Game State
+                    </button>
+                </div>
+                
+                <div class="nav-section">
+                    <h3>🗂️ ENTITY EDITORS</h3>
+                    <button class="nav-btn" data-view="incidents">
+                        <span class="icon">🚨</span>
+                        Incidents
+                    </button>
+                    <button class="nav-btn" data-view="specialists">
+                        <span class="icon">👥</span>
+                        Specialists
+                    </button>
+                    <button class="nav-btn" data-view="equipment">
+                        <span class="icon">⚔️</span>
+                        Equipment
+                    </button>
+                    <button class="nav-btn" data-view="facilities">
+                        <span class="icon">🏢</span>
+                        Facilities
+                    </button>
+                    <button class="nav-btn" data-view="clients">
+                        <span class="icon">🤝</span>
+                        Clients
+                    </button>
+                    <button class="nav-btn" data-view="automation">
+                        <span class="icon">🤖</span>
+                        Automation Scripts
+                    </button>
+                    <button class="nav-btn" data-view="achievements">
+                        <span class="icon">🏆</span>
+                        Achievements
+                    </button>
+                </div>
+                
+                <div class="nav-section">
+                    <h3>🛠️ TOOLS</h3>
+                    <button class="nav-btn" data-view="level-editor">
+                        <span class="icon">🎨</span>
+                        Level Editor
+                    </button>
+                    <button class="nav-btn" data-view="batch-ops">
+                        <span class="icon">⚡</span>
+                        Batch Operations
+                    </button>
+                    <button class="nav-btn" data-view="timeline">
+                        <span class="icon">📅</span>
+                        Event Timeline
+                    </button>
+                    <button class="nav-btn" data-view="visualizer">
+                        <span class="icon">🔗</span>
+                        Entity Graph
+                    </button>
+                </div>
+                
+                <div class="nav-section">
+                    <h3>🎮 GODMODE</h3>
+                    <button class="nav-btn" data-view="godmode">
+                        <span class="icon">👑</span>
+                        God Controls
+                    </button>
+                </div>
+            </nav>
+        </aside>
+        
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <div id="view-container">
+                <!-- Views will be dynamically loaded here -->
+            </div>
+        </main>
+    </div>
+    
+    <!-- Toast Notification Container -->
+    <div id="toast-container"></div>
+    
+    <script src="/static/control-panel.js"></script>
+</body>
+</html>
