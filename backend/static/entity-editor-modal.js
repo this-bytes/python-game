@@ -15,13 +15,88 @@ class EntityEditorModal {
         this.currentEntityType = null;
         this.currentIndex = null;
         this.mode = 'edit'; // 'edit', 'create', 'duplicate'
+        this.schema = null;
+        this.schemas = {};
     }
     
-    show(entityType, entity, index = null, mode = 'edit') {
+    async loadSchema(entityType) {
+        /**
+         * Load schema for entity type from backend.
+         */
+        if (this.schemas[entityType]) {
+            return this.schemas[entityType];
+        }
+        
+        try {
+            const response = await fetch(`${API_BASE}/schemas/${entityType}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                this.schemas[entityType] = data.data;
+                return data.data;
+            }
+        } catch (error) {
+            console.warn(`Could not load schema for ${entityType}:`, error);
+        }
+        
+        return null;
+    }
+    
+    generateTemplateFromSchema(schema) {
+        /**
+         * Generate a template entity from schema definition.
+         */
+        if (!schema || !schema.schema) {
+            return null;
+        }
+        
+        const template = {};
+        const schemaProps = schema.schema.properties;
+        
+        // Find the array property that contains entity items
+        for (const propName in schemaProps) {
+            const prop = schemaProps[propName];
+            if (prop.type === 'array' && prop.items && prop.items.properties) {
+                const itemProps = prop.items.properties;
+                
+                // Generate template with default values from schema
+                for (const fieldName in itemProps) {
+                    const field = itemProps[fieldName];
+                    
+                    if (field.default !== undefined) {
+                        template[fieldName] = field.default;
+                    } else if (field.type === 'string') {
+                        if (fieldName === 'id') {
+                            template[fieldName] = 'new_entity_id';
+                        } else {
+                            template[fieldName] = field.enum ? field.enum[0] : '';
+                        }
+                    } else if (field.type === 'number' || field.type === 'integer') {
+                        template[fieldName] = field.minimum || 0;
+                    } else if (field.type === 'boolean') {
+                        template[fieldName] = false;
+                    } else if (field.type === 'array') {
+                        template[fieldName] = [];
+                    } else if (field.type === 'object') {
+                        template[fieldName] = {};
+                    }
+                }
+                
+                break;
+            }
+        }
+        
+        return template;
+    }
+    
+    async show(entityType, entity, index = null, mode = 'edit') {
         this.currentEntityType = entityType;
         this.currentEntity = entity ? JSON.parse(JSON.stringify(entity)) : null;
         this.currentIndex = index;
         this.mode = mode;
+        
+        // Load schema for this entity type
+        this.schema = await this.loadSchema(entityType);
         
         this.render();
     }
@@ -111,15 +186,23 @@ class EntityEditorModal {
             return '<p style="color: var(--text-secondary); padding: 20px;">Loading template...</p>';
         }
         
+        // Check if ID should be immutable (always true for edit mode, false for create)
+        const idImmutable = this.mode === 'edit' || this.mode === 'duplicate';
+        const schemaIdImmutable = this.schema ? this.schema.id_immutable : true;
+        
         const fields = Object.keys(this.currentEntity).map(key => {
             const value = this.currentEntity[key];
             const type = typeof value;
+            
+            // Check if this is the ID field
+            const isIdField = key === 'id';
+            const makeReadOnly = isIdField && idImmutable && schemaIdImmutable;
             
             if (type === 'object' && !Array.isArray(value)) {
                 return `
                     <div class="form-group">
                         <label>${this.formatLabel(key)}</label>
-                        <textarea class="form-control" data-field="${key}" rows="3">${JSON.stringify(value, null, 2)}</textarea>
+                        <textarea class="form-control" data-field="${key}" rows="3" ${makeReadOnly ? 'readonly' : ''}>${JSON.stringify(value, null, 2)}</textarea>
                         <small style="color: var(--text-secondary);">Object field - edit as JSON</small>
                     </div>
                 `;
@@ -127,7 +210,7 @@ class EntityEditorModal {
                 return `
                     <div class="form-group">
                         <label>${this.formatLabel(key)}</label>
-                        <textarea class="form-control" data-field="${key}" rows="2">${JSON.stringify(value)}</textarea>
+                        <textarea class="form-control" data-field="${key}" rows="2" ${makeReadOnly ? 'readonly' : ''}>${JSON.stringify(value)}</textarea>
                         <small style="color: var(--text-secondary);">Array field - edit as JSON</small>
                     </div>
                 `;
@@ -135,14 +218,15 @@ class EntityEditorModal {
                 return `
                     <div class="form-group">
                         <label>${this.formatLabel(key)}</label>
-                        <input type="number" class="form-control" data-field="${key}" value="${value}">
+                        <input type="number" class="form-control" data-field="${key}" value="${value}" ${makeReadOnly ? 'readonly' : ''}>
+                        ${makeReadOnly ? '<small style="color: var(--accent-warning);">⚠️ ID is immutable and cannot be changed</small>' : ''}
                     </div>
                 `;
             } else if (type === 'boolean') {
                 return `
                     <div class="form-group">
                         <label>
-                            <input type="checkbox" data-field="${key}" ${value ? 'checked' : ''}>
+                            <input type="checkbox" data-field="${key}" ${value ? 'checked' : ''} ${makeReadOnly ? 'disabled' : ''}>
                             ${this.formatLabel(key)}
                         </label>
                     </div>
@@ -154,9 +238,10 @@ class EntityEditorModal {
                     <div class="form-group">
                         <label>${this.formatLabel(key)}</label>
                         ${isLongText ? 
-                            `<textarea class="form-control" data-field="${key}" rows="3">${value}</textarea>` :
-                            `<input type="text" class="form-control" data-field="${key}" value="${value}">`
+                            `<textarea class="form-control" data-field="${key}" rows="3" ${makeReadOnly ? 'readonly' : ''}>${value}</textarea>` :
+                            `<input type="text" class="form-control" data-field="${key}" value="${value}" ${makeReadOnly ? 'readonly' : ''}>`
                         }
+                        ${makeReadOnly && isIdField ? '<small style="color: var(--accent-warning);">⚠️ ID is immutable and cannot be changed</small>' : ''}
                     </div>
                 `;
             }
@@ -264,6 +349,11 @@ class EntityEditorModal {
             visualEditor.querySelectorAll('[data-field]').forEach(input => {
                 const field = input.dataset.field;
                 
+                // Skip readonly fields (like ID in edit mode)
+                if (input.hasAttribute('readonly') || input.hasAttribute('disabled')) {
+                    return;
+                }
+                
                 if (input.type === 'checkbox') {
                     this.currentEntity[field] = input.checked;
                 } else if (input.type === 'number') {
@@ -282,6 +372,28 @@ class EntityEditorModal {
                     }
                 }
             });
+        }
+        
+        // Validate against schema before saving
+        if (this.schema) {
+            try {
+                const validateResponse = await fetch(`${API_BASE}/schemas/${this.currentEntityType}/validate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ entity: this.currentEntity })
+                });
+                
+                const validateData = await validateResponse.json();
+                
+                if (!validateData.valid) {
+                    const errorMsg = validateData.errors ? validateData.errors.join(', ') : validateData.message;
+                    this.controlPanel.showToast('Validation Error', errorMsg, 'error');
+                    return;
+                }
+            } catch (error) {
+                console.warn('Schema validation failed:', error);
+                // Continue with save even if validation endpoint fails
+            }
         }
         
         // Save via API

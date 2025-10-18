@@ -377,6 +377,8 @@ ${JSON.stringify(this.gameState, null, 2)}
             entities = data.equipment;
         } else if (data.facilities) {
             entities = data.facilities;
+        } else if (data.clients) {
+            entities = data.clients;
         } else if (data.automation_scripts) {
             entities = data.automation_scripts;
         } else if (data.achievements) {
@@ -706,20 +708,36 @@ ${JSON.stringify(this.gameState, null, 2)}
     }
     
     // Entity Management Methods
-    createEntity(entityType) {
-        // Get template for entity type
-        fetch(`${API_BASE}/entities/templates/${entityType}`)
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    entityEditorModal.show(entityType, data.data, null, 'create');
-                } else {
-                    this.showToast('Error', 'Failed to load template', 'error');
+    async createEntity(entityType) {
+        try {
+            // Try to load schema and generate template from it
+            const schemaRes = await fetch(`${API_BASE}/schemas/${entityType}`);
+            const schemaData = await schemaRes.json();
+            
+            if (schemaData.success && entityEditorModal) {
+                const template = entityEditorModal.generateTemplateFromSchema(schemaData.data);
+                if (template) {
+                    await entityEditorModal.show(entityType, template, null, 'create');
+                    return;
                 }
-            })
-            .catch(error => {
-                this.showToast('Error', 'Failed to load template: ' + error.message, 'error');
-            });
+            }
+        } catch (error) {
+            console.warn('Could not generate template from schema:', error);
+        }
+        
+        // Fallback: Get hardcoded template for entity type
+        try {
+            const res = await fetch(`${API_BASE}/entities/templates/${entityType}`);
+            const data = await res.json();
+            
+            if (data.success) {
+                await entityEditorModal.show(entityType, data.data, null, 'create');
+            } else {
+                this.showToast('Error', 'Failed to load template', 'error');
+            }
+        } catch (error) {
+            this.showToast('Error', 'Failed to load template: ' + error.message, 'error');
+        }
     }
     
     editEntity(entityType, index) {
@@ -738,6 +756,8 @@ ${JSON.stringify(this.gameState, null, 2)}
             entities = data.equipment;
         } else if (data.facilities) {
             entities = data.facilities;
+        } else if (data.clients) {
+            entities = data.clients;
         } else if (data.automation_scripts) {
             entities = data.automation_scripts;
         } else if (data.achievements) {
@@ -767,6 +787,8 @@ ${JSON.stringify(this.gameState, null, 2)}
             entities = data.equipment;
         } else if (data.facilities) {
             entities = data.facilities;
+        } else if (data.clients) {
+            entities = data.clients;
         } else if (data.automation_scripts) {
             entities = data.automation_scripts;
         } else if (data.achievements) {

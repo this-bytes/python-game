@@ -11,6 +11,7 @@ from datetime import datetime
 import os
 import json
 import copy
+from backend.services.schema_validator import SchemaValidator
 
 
 def create_entity_management_blueprint(game_state_ref):
@@ -25,6 +26,7 @@ def create_entity_management_blueprint(game_state_ref):
     bp = Blueprint('entity_management', __name__)
     
     state_container = {'game_state': game_state_ref}
+    schema_validator = SchemaValidator()
     
     def get_game_state():
         """Helper to get current game state."""
@@ -134,6 +136,14 @@ def create_entity_management_blueprint(game_state_ref):
                     "message": "Entity data required"
                 }), 400
             
+            # Validate entity against schema
+            is_valid, error_message = schema_validator.validate_entity(entity_type, new_entity)
+            if not is_valid:
+                return jsonify({
+                    "success": False,
+                    "message": f"Entity validation failed: {error_message}"
+                }), 400
+            
             filepath = os.path.join(get_data_dir(), f'{entity_type}.json')
             
             # Create backup
@@ -197,6 +207,21 @@ def create_entity_management_blueprint(game_state_ref):
                 return jsonify({
                     "success": False,
                     "message": "Entity data required"
+                }), 400
+            
+            # Enforce ID immutability
+            if updated_entity.get('id') != entity_id:
+                return jsonify({
+                    "success": False,
+                    "message": "Entity ID cannot be changed. ID must remain immutable."
+                }), 400
+            
+            # Validate entity against schema
+            is_valid, error_message = schema_validator.validate_entity(entity_type, updated_entity)
+            if not is_valid:
+                return jsonify({
+                    "success": False,
+                    "message": f"Entity validation failed: {error_message}"
                 }), 400
             
             filepath = os.path.join(get_data_dir(), f'{entity_type}.json')
