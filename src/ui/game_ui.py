@@ -23,6 +23,7 @@ from src.ui.dopamine_overlay import DopamineFeedbackOverlay
 from src.ui.synergy_overlay import SynergySuggestionOverlay, AutoPlayIndicator
 from src.ui.components.navigation_menu import NavigationMenu, MenuItem, MenuPosition
 from src.ui.components.hud_overlay import HUDOverlay
+from src.ui.components.quick_reference import QuickReference
 from src.ui.view_manager import ViewManager, GameView, create_default_views
 
 
@@ -126,6 +127,12 @@ class GameUI:
             screen_width=self.WINDOW_WIDTH,
             screen_height=self.WINDOW_HEIGHT,
             position="top"
+        )
+        
+        # Initialize quick reference card
+        self.quick_reference = QuickReference(
+            position="bottom-right",
+            auto_hide_delay=15.0  # Auto-hide after 15 seconds
         )
 
         # Create assign button
@@ -297,7 +304,10 @@ class GameUI:
             # Handle other inputs
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_h:
+                    # H key toggles both help overlay and quick reference
                     self.show_help_overlay = not self.show_help_overlay
+                    if not self.show_help_overlay:
+                        self.quick_reference.toggle()
                 elif event.key == pygame.K_s:
                     # Toggle synergy suggestions panel (strategic intervention UI)
                     self.synergy_overlay.toggle_visibility()
@@ -426,6 +436,9 @@ class GameUI:
         # Update HUD overlay
         self.hud_overlay.update(delta_time, self.game_state)
         
+        # Update quick reference
+        self.quick_reference.update(delta_time)
+        
         # Update notification manager
         self.notification_manager.update(delta_time)
         
@@ -498,6 +511,9 @@ class GameUI:
         
         # Render view transition overlay
         self.view_manager.render_transition_overlay(self.screen)
+        
+        # Render quick reference card (if visible)
+        self.quick_reference.render(self.screen)
 
         # Render notifications (always on top)
         self.notification_manager.render(self.screen)

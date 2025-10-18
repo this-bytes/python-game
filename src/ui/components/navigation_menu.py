@@ -94,6 +94,9 @@ class NavigationMenu:
         # State
         self.active_item_id: Optional[str] = items[0].id if items else None
         self.hovered_item_id: Optional[str] = None
+        self.show_tooltip = False
+        self.tooltip_timer = 0.0
+        self.tooltip_delay = 0.5  # seconds
         
         # Styling
         self.bg_color = (25, 25, 35)
@@ -166,9 +169,15 @@ class NavigationMenu:
         if event.type == pygame.MOUSEMOTION:
             if menu_rect.collidepoint(event.pos):
                 # Find hovered item
-                self.hovered_item_id = self._get_item_at_pos(event.pos, menu_rect)
+                new_hovered = self._get_item_at_pos(event.pos, menu_rect)
+                if new_hovered != self.hovered_item_id:
+                    self.hovered_item_id = new_hovered
+                    self.tooltip_timer = 0.0
+                    self.show_tooltip = False
             else:
                 self.hovered_item_id = None
+                self.show_tooltip = False
+                self.tooltip_timer = 0.0
         
         # Mouse click
         elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -236,6 +245,15 @@ class NavigationMenu:
                 self.current_width = self.target_width
             else:
                 self.current_width += change if diff > 0 else -change
+        
+        # Update tooltip timer
+        if self.hovered_item_id and self.collapsed:
+            self.tooltip_timer += delta_time
+            if self.tooltip_timer >= self.tooltip_delay:
+                self.show_tooltip = True
+        else:
+            self.show_tooltip = False
+            self.tooltip_timer = 0.0
     
     def render(self, screen: pygame.Surface, screen_width: int, screen_height: int) -> None:
         """Render the navigation menu.
@@ -277,6 +295,10 @@ class NavigationMenu:
         for item in self.items:
             self._render_item(screen, item, menu_rect, y_offset, item_height)
             y_offset += item_height + item_spacing
+        
+        # Render tooltip if collapsed and hovering
+        if self.show_tooltip and self.hovered_item_id and self.collapsed:
+            self._render_tooltip(screen, menu_rect)
     
     def _render_collapse_button(self, screen: pygame.Surface, menu_rect: pygame.Rect) -> None:
         """Render collapse/expand button at bottom of menu.
@@ -367,3 +389,56 @@ class NavigationMenu:
                 badge_rect = pygame.Rect(badge_x, badge_y, badge_width, badge_height)
                 pygame.draw.rect(screen, self.badge_color, badge_rect, border_radius=8)
                 screen.blit(badge_text, (badge_x + 4, badge_y + 2))
+    
+    def _render_tooltip(self, screen: pygame.Surface, menu_rect: pygame.Rect) -> None:
+        """Render tooltip for hovered item when menu is collapsed.
+        
+        Args:
+            screen: Pygame surface
+            menu_rect: Menu rectangle
+        """
+        # Find hovered item
+        hovered_item = None
+        for item in self.items:
+            if item.id == self.hovered_item_id:
+                hovered_item = item
+                break
+        
+        if not hovered_item:
+            return
+        
+        # Create tooltip text
+        tooltip_font = pygame.font.SysFont('Arial', 14)
+        tooltip_text = hovered_item.tooltip if hovered_item.tooltip else hovered_item.label
+        tooltip_surface = tooltip_font.render(tooltip_text, True, (255, 255, 255))
+        
+        # Tooltip background
+        padding = 10
+        tooltip_width = tooltip_surface.get_width() + padding * 2
+        tooltip_height = tooltip_surface.get_height() + padding * 2
+        
+        # Position to the right of menu
+        tooltip_x = menu_rect.right + 10
+        
+        # Find y position of hovered item
+        item_height = 60
+        item_spacing = 5
+        item_index = self.items.index(hovered_item)
+        tooltip_y = menu_rect.y + 10 + item_index * (item_height + item_spacing) + item_height // 2 - tooltip_height // 2
+        
+        # Create tooltip
+        tooltip_rect = pygame.Rect(tooltip_x, tooltip_y, tooltip_width, tooltip_height)
+        
+        # Background
+        tooltip_bg = pygame.Surface((tooltip_width, tooltip_height))
+        tooltip_bg.set_alpha(240)
+        tooltip_bg.fill((40, 40, 55))
+        screen.blit(tooltip_bg, (tooltip_x, tooltip_y))
+        
+        # Border
+        pygame.draw.rect(screen, (0, 180, 255), tooltip_rect, 2, border_radius=6)
+        
+        # Text
+        text_x = tooltip_x + padding
+        text_y = tooltip_y + padding
+        screen.blit(tooltip_surface, (text_x, text_y))
