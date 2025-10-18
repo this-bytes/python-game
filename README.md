@@ -59,13 +59,34 @@ pip install -r requirements.txt
 ### Running the Game
 
 ```bash
-# Terminal 1: Start the game client
+# Terminal 1: Start the game (shows main menu)
 python src/main.py
+
+# Or with command-line options:
+python src/main.py --continue        # Continue from last save
+python src/main.py --new-game        # Start new game directly
+python src/main.py --tutorial        # Start tutorial mode
+python src/main.py --load-slot 3     # Load from save slot 3
+python src/main.py --debug           # Enable debug mode
+
+# See all options:
+python src/main.py --help
 
 # Terminal 2: Start the backend server (optional but recommended)
 cd backend
 python app.py
 ```
+
+### Main Menu
+
+The game now features a main menu with options to:
+- 🎮 **Start New Game**: Begin a fresh game
+- ▶️ **Continue**: Resume from your last save
+- 📚 **Tutorial**: Learn the game with guided gameplay
+- ⚙️ **Settings**: Configure game options (coming soon)
+- ❌ **Exit**: Close the game
+
+See [docs/MAIN_MENU.md](docs/MAIN_MENU.md) for detailed documentation on startup modes and command-line arguments.
 
 ### Backend Admin Dashboard
 
