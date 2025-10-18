@@ -1,15 +1,24 @@
-"""UI Components package.
+"""UI Components for game interface.
 
-This package contains reusable UI components for the game interface.
+This module provides reusable UI components for building game interfaces:
+- Panel: Base container component
+- Button: Interactive button with styles
+- TextInput: Text input field
+- Dropdown: Selection dropdown
+- Tooltip: Hover information display
+- ProgressBar: Visual progress indicator
+- ScrollContainer: Scrollable content area
+- Modal: Blocking dialog with animations
 """
 
-from src.ui.components.panel import Panel
-from src.ui.components.button import Button
-from src.ui.components.text_input import TextInput
-from src.ui.components.dropdown import Dropdown
-from src.ui.components.tooltip import Tooltip
-from src.ui.components.progress_bar import ProgressBar
-from src.ui.components.scroll_container import ScrollContainer
+from .panel import Panel
+from .button import Button
+from .text_input import TextInput
+from .dropdown import Dropdown
+from .tooltip import Tooltip
+from .progress_bar import ProgressBar
+from .scroll_container import ScrollContainer
+from .modal import Modal, ModalResult, ModalType, ModalButton
 
 __all__ = [
     "Panel",
@@ -19,4 +28,8 @@ __all__ = [
     "Tooltip",
     "ProgressBar",
     "ScrollContainer",
+    "Modal",
+    "ModalResult",
+    "ModalType",
+    "ModalButton",
 ]

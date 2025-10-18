@@ -25,11 +25,13 @@ Strategy:
 - Finding optimal prestige timing is the meta-game
 """
 
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 import logging
 import math
 
-from src.core.plugin_system import GameSystem
+from src.core.game_system import GameSystem
+from src.core.event_bus import get_event_bus
+from src.models.game_state import GameState
 
 logger = logging.getLogger(__name__)
 
@@ -44,8 +46,8 @@ class PrestigeSystem(GameSystem):
     # Examples: $100k -> 1 PP, $1M -> 2 PP, $10M -> 3 PP
     PP_BASE_DIVISOR = 10_000
     
-    def __init__(self, event_bus):
-        super().__init__(event_bus, "prestige_system")
+    def __init__(self):
+        super().__init__()
         
         # Prestige state
         self.total_prestige_count = 0
@@ -106,38 +108,78 @@ class PrestigeSystem(GameSystem):
         # Current run statistics
         self.current_run_revenue = 0
         self.prestige_unlocked = False
+        
+        # Event bus and subscription tracking
+        self._event_bus = None
+        self._subscription_ids: List[str] = []
     
-    def initialize(self) -> None:
-        """Initialize prestige system."""
+    def get_name(self) -> str:
+        """Get system name."""
+        return "prestige_system"
+    
+    def get_feature_id(self) -> Optional[str]:
+        """Get feature flag ID."""
+        return "prestige_system"
+    
+    def initialize(self, game_state: GameState) -> None:
+        """Initialize prestige system.
+        
+        Args:
+            game_state: Current game state
+        """
         logger.info("Initializing Prestige System...")
         
+        # Get event bus singleton
+        self._event_bus = get_event_bus()
+        
         # Subscribe to money events to track revenue
-        self.event_bus.subscribe("money_earned", self._on_money_earned)
+        sub_id = self._event_bus.subscribe("money_earned", self._on_money_earned)
+        self._subscription_ids.append(sub_id)
         
         # Subscribe to prestige trigger
-        self.event_bus.subscribe("prestige_triggered", self._on_prestige)
+        sub_id = self._event_bus.subscribe("prestige_triggered", self._on_prestige)
+        self._subscription_ids.append(sub_id)
         
         logger.info("Prestige System initialized")
     
-    def update(self, dt: float) -> None:
-        """Update prestige system."""
+    def update(self, game_state: GameState, delta_time: float) -> None:
+        """Update prestige system.
+        
+        Args:
+            game_state: Current game state
+            delta_time: Time elapsed since last update (seconds)
+        """
         # Check if prestige should be unlocked
         if not self.prestige_unlocked and self.current_run_revenue >= self.UNLOCK_REVENUE:
             self.prestige_unlocked = True
-            self.event_bus.emit("prestige_unlocked", {
-                "current_revenue": self.current_run_revenue,
-                "potential_pp": self._calculate_prestige_points(self.current_run_revenue)
-            })
+            if self._event_bus:
+                self._event_bus.publish("prestige_unlocked", {
+                    "current_revenue": self.current_run_revenue,
+                    "potential_pp": self._calculate_prestige_points(self.current_run_revenue)
+                })
             logger.info(f"Prestige unlocked at ${self.current_run_revenue:,}")
     
-    def shutdown(self) -> None:
-        """Shutdown prestige system."""
+    def shutdown(self, game_state: GameState) -> None:
+        """Shutdown prestige system.
+        
+        Args:
+            game_state: Current game state
+        """
         logger.info("Shutting down Prestige System...")
-        self.event_bus.unsubscribe("money_earned", self._on_money_earned)
-        self.event_bus.unsubscribe("prestige_triggered", self._on_prestige)
+        if self._event_bus:
+            for sub_id in self._subscription_ids:
+                self._event_bus.unsubscribe(sub_id)
+            self._subscription_ids.clear()
     
-    def get_state(self) -> Dict[str, Any]:
-        """Get prestige state for saving."""
+    def save_state(self, game_state: GameState) -> Dict[str, Any]:
+        """Get prestige state for saving.
+        
+        Args:
+            game_state: Current game state
+            
+        Returns:
+            Dictionary with prestige state
+        """
         return {
             "total_prestige_count": self.total_prestige_count,
             "total_prestige_points": self.total_prestige_points,
@@ -147,22 +189,35 @@ class PrestigeSystem(GameSystem):
             "prestige_unlocked": self.prestige_unlocked
         }
     
-    def set_state(self, state: Dict[str, Any]) -> None:
-        """Restore prestige state."""
-        self.total_prestige_count = state.get("total_prestige_count", 0)
-        self.total_prestige_points = state.get("total_prestige_points", 0)
-        self.available_prestige_points = state.get("available_prestige_points", 0)
-        self.upgrades.update(state.get("upgrades", {}))
-        self.current_run_revenue = state.get("current_run_revenue", 0)
-        self.prestige_unlocked = state.get("prestige_unlocked", False)
+    def load_state(self, game_state: GameState, state_data: Dict[str, Any]) -> None:
+        """Restore prestige state.
+        
+        Args:
+            game_state: Current game state
+            state_data: Saved prestige state
+        """
+        self.total_prestige_count = state_data.get("total_prestige_count", 0)
+        self.total_prestige_points = state_data.get("total_prestige_points", 0)
+        self.available_prestige_points = state_data.get("available_prestige_points", 0)
+        self.upgrades.update(state_data.get("upgrades", {}))
+        self.current_run_revenue = state_data.get("current_run_revenue", 0)
+        self.prestige_unlocked = state_data.get("prestige_unlocked", False)
     
-    def _on_money_earned(self, event_data: Dict[str, Any]) -> None:
-        """Track money earned for prestige calculation."""
-        amount = event_data.get("amount", 0)
+    def _on_money_earned(self, event) -> None:
+        """Track money earned for prestige calculation.
+        
+        Args:
+            event: Event object containing money earned data
+        """
+        amount = event.data.get("amount", 0)
         self.current_run_revenue += amount
     
-    def _on_prestige(self, event_data: Dict[str, Any]) -> None:
-        """Handle prestige trigger."""
+    def _on_prestige(self, event) -> None:
+        """Handle prestige trigger.
+        
+        Args:
+            event: Event object triggering prestige
+        """
         if not self.prestige_unlocked:
             logger.warning("Prestige triggered but not unlocked yet")
             return
@@ -186,18 +241,20 @@ class PrestigeSystem(GameSystem):
         self.prestige_unlocked = False
         
         # Emit prestige complete event
-        self.event_bus.emit("prestige_completed", {
-            "pp_earned": pp_earned,
-            "total_pp": self.total_prestige_points,
-            "available_pp": self.available_prestige_points,
-            "prestige_count": self.total_prestige_count
-        })
+        if self._event_bus:
+            self._event_bus.publish("prestige_completed", {
+                "pp_earned": pp_earned,
+                "total_pp": self.total_prestige_points,
+                "available_pp": self.available_prestige_points,
+                "prestige_count": self.total_prestige_count
+            })
         
         # Emit game reset event (other systems handle their own reset)
-        self.event_bus.emit("game_reset_requested", {
-            "reason": "prestige",
-            "prestige_count": self.total_prestige_count
-        })
+        if self._event_bus:
+            self._event_bus.publish("game_reset_requested", {
+                "reason": "prestige",
+                "prestige_count": self.total_prestige_count
+            })
     
     def _calculate_prestige_points(self, revenue: float) -> int:
         """Calculate prestige points based on revenue.
@@ -253,12 +310,13 @@ class PrestigeSystem(GameSystem):
         logger.info(f"Purchased upgrade {upgrade_id} level {self.upgrades[upgrade_id]} for {cost} PP")
         
         # Emit upgrade event
-        self.event_bus.emit("prestige_upgrade_purchased", {
-            "upgrade_id": upgrade_id,
-            "level": self.upgrades[upgrade_id],
-            "cost": cost,
-            "remaining_pp": self.available_prestige_points
-        })
+        if self._event_bus:
+            self._event_bus.publish("prestige_upgrade_purchased", {
+                "upgrade_id": upgrade_id,
+                "level": self.upgrades[upgrade_id],
+                "cost": cost,
+                "remaining_pp": self.available_prestige_points
+            })
         
         return True
     

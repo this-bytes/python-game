@@ -26,7 +26,9 @@ from dataclasses import dataclass, field
 import logging
 import time
 
-from src.core.plugin_system import GameSystem
+from src.core.game_system import GameSystem
+from src.core.event_bus import get_event_bus
+from src.models.game_state import GameState
 
 logger = logging.getLogger(__name__)
 
@@ -61,8 +63,8 @@ class Achievement:
 class AchievementSystem(GameSystem):
     """Achievement tracking and rewards system."""
     
-    def __init__(self, event_bus):
-        super().__init__(event_bus, "achievement_system")
+    def __init__(self):
+        super().__init__()
         
         self.achievements: Dict[str, Achievement] = {}
         self.total_achievement_points = 0
@@ -82,44 +84,90 @@ class AchievementSystem(GameSystem):
             "rooms_unlocked": set(),
         }
         
+        # Event bus and subscription tracking
+        self._event_bus = None
+        self._subscription_ids: List[str] = []
+        
         self._initialize_achievements()
     
-    def initialize(self) -> None:
-        """Initialize achievement system."""
+    def get_name(self) -> str:
+        """Get system name."""
+        return "achievement_system"
+    
+    def get_feature_id(self) -> Optional[str]:
+        """Get feature flag ID."""
+        return "achievement_system"
+    
+    def initialize(self, game_state: GameState) -> None:
+        """Initialize achievement system.
+        
+        Args:
+            game_state: Current game state
+        """
         logger.info("Initializing Achievement System...")
         
+        # Get event bus singleton
+        self._event_bus = get_event_bus()
+        
         # Subscribe to all relevant events
-        self.event_bus.subscribe("money_earned", self._on_money_earned)
-        self.event_bus.subscribe("incident_resolved", self._on_incident_resolved)
-        self.event_bus.subscribe("perfect_completion", self._on_perfect_completion)
-        self.event_bus.subscribe("synergy_bonus_applied", self._on_synergy_bonus)
-        self.event_bus.subscribe("prestige_completed", self._on_prestige)
-        self.event_bus.subscribe("specialist_leveled_up", self._on_specialist_level)
-        self.event_bus.subscribe("specialist_hired", self._on_specialist_hired)
-        self.event_bus.subscribe("room_unlocked", self._on_room_unlocked)
+        sub_id = self._event_bus.subscribe("money_earned", self._on_money_earned)
+        self._subscription_ids.append(sub_id)
+        
+        sub_id = self._event_bus.subscribe("incident_resolved", self._on_incident_resolved)
+        self._subscription_ids.append(sub_id)
+        
+        sub_id = self._event_bus.subscribe("perfect_completion", self._on_perfect_completion)
+        self._subscription_ids.append(sub_id)
+        
+        sub_id = self._event_bus.subscribe("synergy_bonus_applied", self._on_synergy_bonus)
+        self._subscription_ids.append(sub_id)
+        
+        sub_id = self._event_bus.subscribe("prestige_completed", self._on_prestige)
+        self._subscription_ids.append(sub_id)
+        
+        sub_id = self._event_bus.subscribe("specialist_leveled_up", self._on_specialist_level)
+        self._subscription_ids.append(sub_id)
+        
+        sub_id = self._event_bus.subscribe("specialist_hired", self._on_specialist_hired)
+        self._subscription_ids.append(sub_id)
+        
+        sub_id = self._event_bus.subscribe("room_unlocked", self._on_room_unlocked)
+        self._subscription_ids.append(sub_id)
         
         logger.info(f"Achievement System initialized with {len(self.achievements)} achievements")
     
-    def update(self, dt: float) -> None:
-        """Update achievement system."""
+    def update(self, game_state: GameState, delta_time: float) -> None:
+        """Update achievement system.
+        
+        Args:
+            game_state: Current game state
+            delta_time: Time elapsed since last update (seconds)
+        """
         # Achievement checking happens on events, not every frame
         pass
     
-    def shutdown(self) -> None:
-        """Shutdown achievement system."""
+    def shutdown(self, game_state: GameState) -> None:
+        """Shutdown achievement system.
+        
+        Args:
+            game_state: Current game state
+        """
         logger.info("Shutting down Achievement System...")
         
-        self.event_bus.unsubscribe("money_earned", self._on_money_earned)
-        self.event_bus.unsubscribe("incident_resolved", self._on_incident_resolved)
-        self.event_bus.unsubscribe("perfect_completion", self._on_perfect_completion)
-        self.event_bus.unsubscribe("synergy_bonus_applied", self._on_synergy_bonus)
-        self.event_bus.unsubscribe("prestige_completed", self._on_prestige)
-        self.event_bus.unsubscribe("specialist_leveled_up", self._on_specialist_level)
-        self.event_bus.unsubscribe("specialist_hired", self._on_specialist_hired)
-        self.event_bus.unsubscribe("room_unlocked", self._on_room_unlocked)
+        if self._event_bus:
+            for sub_id in self._subscription_ids:
+                self._event_bus.unsubscribe(sub_id)
+            self._subscription_ids.clear()
     
-    def get_state(self) -> Dict[str, Any]:
-        """Get achievement state for saving."""
+    def save_state(self, game_state: GameState) -> Dict[str, Any]:
+        """Get achievement state for saving.
+        
+        Args:
+            game_state: Current game state
+            
+        Returns:
+            Dictionary with achievement state
+        """
         achievements_state = {}
         for ach_id, achievement in self.achievements.items():
             achievements_state[ach_id] = {
@@ -146,13 +194,18 @@ class AchievementSystem(GameSystem):
             }
         }
     
-    def set_state(self, state: Dict[str, Any]) -> None:
-        """Restore achievement state."""
-        self.total_achievement_points = state.get("total_achievement_points", 0)
+    def load_state(self, game_state: GameState, state_data: Dict[str, Any]) -> None:
+        """Restore achievement state.
+        
+        Args:
+            game_state: Current game state
+            state_data: Saved achievement state
+        """
+        self.total_achievement_points = state_data.get("total_achievement_points", 0)
         
         # Restore stats
-        if "stats" in state:
-            stats = state["stats"]
+        if "stats" in state_data:
+            stats = state_data["stats"]
             self.stats["total_revenue"] = stats.get("total_revenue", 0)
             self.stats["incidents_resolved"] = stats.get("incidents_resolved", 0)
             self.stats["perfect_completions"] = stats.get("perfect_completions", 0)
@@ -166,8 +219,8 @@ class AchievementSystem(GameSystem):
             self.stats["rooms_unlocked"] = set(stats.get("rooms_unlocked", []))
         
         # Restore achievement progress
-        if "achievements" in state:
-            for ach_id, ach_state in state["achievements"].items():
+        if "achievements" in state_data:
+            for ach_id, ach_state in state_data["achievements"].items():
                 if ach_id in self.achievements:
                     achievement = self.achievements[ach_id]
                     achievement.current_progress = ach_state.get("current_progress", 0)
@@ -403,38 +456,48 @@ class AchievementSystem(GameSystem):
         logger.info(f"Achievement unlocked: {achievement.name} (+{achievement.points} points)")
         
         # Emit unlock event
-        self.event_bus.emit("achievement_unlocked", {
-            "achievement_id": achievement.id,
-            "achievement_name": achievement.name,
-            "achievement_description": achievement.description,
-            "points": achievement.points,
-            "rarity": achievement.rarity,
-            "reward_type": achievement.reward_type,
-            "reward_value": achievement.reward_value
-        })
+        if self._event_bus:
+            self._event_bus.publish("achievement_unlocked", {
+                "achievement_id": achievement.id,
+                "achievement_name": achievement.name,
+                "achievement_description": achievement.description,
+                "points": achievement.points,
+                "rarity": achievement.rarity,
+                "reward_type": achievement.reward_type,
+                "reward_value": achievement.reward_value
+            })
         
         # Grant rewards
         if achievement.reward_type == "prestige_points":
-            self.event_bus.emit("prestige_points_awarded", {
-                "amount": achievement.reward_value,
-                "source": f"achievement_{achievement.id}"
-            })
+            if self._event_bus:
+                self._event_bus.publish("prestige_points_awarded", {
+                    "amount": achievement.reward_value,
+                    "source": f"achievement_{achievement.id}"
+                })
     
-    def _on_money_earned(self, event_data: Dict[str, Any]):
-        """Track money earned."""
-        amount = event_data.get("amount", 0)
+    def _on_money_earned(self, event) -> None:
+        """Track money earned.
+        
+        Args:
+            event: Event object containing money earned data
+        """
+        amount = event.data.get("amount", 0)
         self.stats["total_revenue"] += amount
         
         # Check revenue achievements
         for ach_id in ["first_dollar", "small_business", "big_business", "millionaire"]:
             self._check_achievement(ach_id)
     
-    def _on_incident_resolved(self, event_data: Dict[str, Any]):
-        """Track incident resolution."""
+    def _on_incident_resolved(self, event) -> None:
+        """Track incident resolution.
+        
+        Args:
+            event: Event object containing incident resolution data
+        """
         self.stats["incidents_resolved"] += 1
         
         # Track completion time for speed achievements
-        completion_time = event_data.get("completion_time", float('inf'))
+        completion_time = event.data.get("completion_time", float('inf'))
         if completion_time < self.stats["fastest_incident_time"]:
             self.stats["fastest_incident_time"] = completion_time
             self._check_achievement("speedrunner")
@@ -443,8 +506,12 @@ class AchievementSystem(GameSystem):
         for ach_id in ["first_incident", "incident_100", "incident_1000"]:
             self._check_achievement(ach_id)
     
-    def _on_perfect_completion(self, event_data: Dict[str, Any]):
-        """Track perfect completions and streaks."""
+    def _on_perfect_completion(self, event) -> None:
+        """Track perfect completions and streaks.
+        
+        Args:
+            event: Event object containing perfect completion data
+        """
         self.stats["perfect_completions"] += 1
         self.stats["perfect_streak"] += 1
         
@@ -455,13 +522,21 @@ class AchievementSystem(GameSystem):
         for ach_id in ["perfectionist", "perfect_streak_5", "perfect_streak_10"]:
             self._check_achievement(ach_id)
     
-    def _on_synergy_bonus(self, event_data: Dict[str, Any]):
-        """Track synergy bonuses."""
+    def _on_synergy_bonus(self, event) -> None:
+        """Track synergy bonuses.
+        
+        Args:
+            event: Event object containing synergy bonus data
+        """
         self.stats["synergy_bonuses_triggered"] += 1
         self._check_achievement("synergy_master")
     
-    def _on_prestige(self, event_data: Dict[str, Any]):
-        """Track prestige count."""
+    def _on_prestige(self, event) -> None:
+        """Track prestige count.
+        
+        Args:
+            event: Event object containing prestige completion data
+        """
         self.stats["prestige_count"] += 1
         
         # Reset streak on prestige
@@ -471,22 +546,34 @@ class AchievementSystem(GameSystem):
         for ach_id in ["first_prestige", "prestige_veteran"]:
             self._check_achievement(ach_id)
     
-    def _on_specialist_level(self, event_data: Dict[str, Any]):
-        """Track max specialist level."""
-        level = event_data.get("level", 1)
+    def _on_specialist_level(self, event) -> None:
+        """Track max specialist level.
+        
+        Args:
+            event: Event object containing specialist level data
+        """
+        level = event.data.get("level", 1)
         if level > self.stats["max_specialist_level"]:
             self.stats["max_specialist_level"] = level
     
-    def _on_specialist_hired(self, event_data: Dict[str, Any]):
-        """Track specialists hired."""
-        specialist_id = event_data.get("specialist_id")
+    def _on_specialist_hired(self, event) -> None:
+        """Track specialists hired.
+        
+        Args:
+            event: Event object containing specialist hire data
+        """
+        specialist_id = event.data.get("specialist_id")
         if specialist_id:
             self.stats["specialists_hired"].add(specialist_id)
             self._check_achievement("team_builder")
     
-    def _on_room_unlocked(self, event_data: Dict[str, Any]):
-        """Track rooms unlocked."""
-        room_id = event_data.get("room_id")
+    def _on_room_unlocked(self, event) -> None:
+        """Track rooms unlocked.
+        
+        Args:
+            event: Event object containing room unlock data
+        """
+        room_id = event.data.get("room_id")
         if room_id:
             self.stats["rooms_unlocked"].add(room_id)
     

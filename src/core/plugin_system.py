@@ -167,8 +167,11 @@ class SystemManager:
                     logger.error(f"System '{system.system_id}' depends on '{dep_id}' which is not registered")
                     return
         
-        # Simple dependency resolution - just append
-        # TODO: Implement proper topological sort for complex dependency graphs
+        # Simple dependency resolution using append order
+        # NOTE: For complex dependency graphs, use src/core/system_manager.py
+        # which implements proper topological sort (Kahn's algorithm).
+        # This simple implementation is kept for backwards compatibility with
+        # older plugins that still import from this module.
         self.update_order.append(system.system_id)
         
         logger.info(f"Registered system '{system.system_id}' with dependencies: {dependencies or []}")

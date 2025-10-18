@@ -62,6 +62,7 @@ class AutomationScript:
     trigger_conditions: TriggerConditions
     effect: str
     effect_magnitude: float = 1.0
+    enabled: bool = True  # Whether this script is active
     trigger_logic: str = "AND"  # "AND" or "OR" for multi-condition evaluation
     chained_scripts: List[str] = field(default_factory=list)  # Execute these scripts after
     priority: int = 0  # Execution order (higher = first)
@@ -289,6 +290,7 @@ class AutomationScript:
             "trigger_conditions": self.trigger_conditions.to_dict(),
             "effect": self.effect,
             "effect_magnitude": self.effect_magnitude,
+            "enabled": self.enabled,
             "trigger_logic": self.trigger_logic,
             "chained_scripts": self.chained_scripts.copy(),
             "priority": self.priority,
@@ -316,6 +318,7 @@ class AutomationScript:
             trigger_conditions=data["trigger_conditions"],  # Will be converted in __post_init__
             effect=data["effect"],
             effect_magnitude=data.get("effect_magnitude", 1.0),
+            enabled=data.get("enabled", True),
             trigger_logic=data.get("trigger_logic", "AND"),
             chained_scripts=data.get("chained_scripts", []).copy() if isinstance(data.get("chained_scripts"), list) else [],
             priority=data.get("priority", 0),

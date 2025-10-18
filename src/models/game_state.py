@@ -19,6 +19,7 @@ from src.core.automation_processor import AutomationProcessor
 from src.core.passive_income_system import PassiveIncomeSystem
 from src.core.offline_progress import OfflineProgressSystem
 from src.core.burnout_system import BurnoutSystem
+from src.core.relationships_system import RelationshipsSystem
 from src.utils.json_loader import JSONLoader
 from src.utils.logger import GameLogger
 
@@ -34,6 +35,13 @@ class GameMetrics:
     sla_compliance_rate: float = 100.0
     automation_scripts_triggered: int = 0
     specialist_utilization_rate: float = 0.0
+    
+    # Assignment analytics
+    total_assignments_attempted: int = 0
+    total_assignments_successful: int = 0
+    specialty_match_assignments: int = 0
+    specialty_mismatch_assignments: int = 0
+    assignment_success_rate: float = 0.0
 
     def to_dict(self) -> Dict:
         """Convert metrics to dictionary."""
@@ -45,7 +53,12 @@ class GameMetrics:
             "average_resolution_time": self.average_resolution_time,
             "sla_compliance_rate": self.sla_compliance_rate,
             "automation_scripts_triggered": self.automation_scripts_triggered,
-            "specialist_utilization_rate": self.specialist_utilization_rate
+            "specialist_utilization_rate": self.specialist_utilization_rate,
+            "total_assignments_attempted": self.total_assignments_attempted,
+            "total_assignments_successful": self.total_assignments_successful,
+            "specialty_match_assignments": self.specialty_match_assignments,
+            "specialty_mismatch_assignments": self.specialty_mismatch_assignments,
+            "assignment_success_rate": self.assignment_success_rate
         }
 
     @classmethod
@@ -59,7 +72,12 @@ class GameMetrics:
             average_resolution_time=data.get("average_resolution_time", 0.0),
             sla_compliance_rate=data.get("sla_compliance_rate", 100.0),
             automation_scripts_triggered=data.get("automation_scripts_triggered", 0),
-            specialist_utilization_rate=data.get("specialist_utilization_rate", 0.0)
+            specialist_utilization_rate=data.get("specialist_utilization_rate", 0.0),
+            total_assignments_attempted=data.get("total_assignments_attempted", 0),
+            total_assignments_successful=data.get("total_assignments_successful", 0),
+            specialty_match_assignments=data.get("specialty_match_assignments", 0),
+            specialty_mismatch_assignments=data.get("specialty_mismatch_assignments", 0),
+            assignment_success_rate=data.get("assignment_success_rate", 0.0)
         )
 
 
@@ -125,8 +143,10 @@ class GameState:
     _passive_income_system: Optional[PassiveIncomeSystem] = None
     _offline_progress_system: Optional[OfflineProgressSystem] = None
     _burnout_system: Optional[BurnoutSystem] = None  # Specialist burnout tracking
+    _relationships_system: Optional[RelationshipsSystem] = None  # Specialist relationships
     _dopamine_system: Optional[Any] = None  # DopamineSystem - lazy imported
     _idle_core: Optional[Any] = None  # IdleCore - TRUE idle game mechanics
+    _equipment_system: Optional[Any] = None  # EquipmentSystem - equipment management
     _last_incident_generation: float = field(default_factory=time.time)
     _incident_generation_accumulator: float = 0.0
     _offline_progress_calculated: bool = False  # Track if offline progress was calculated
@@ -156,10 +176,21 @@ class GameState:
         if self._burnout_system is None:
             self._burnout_system = BurnoutSystem()
         
+        # Initialize relationships system for team synergy
+        if self._relationships_system is None:
+            config = self._json_loader.load_data("game_config.json") if self._json_loader else {}
+            self._relationships_system = RelationshipsSystem(config)
+        
         # Initialize idle core for TRUE idle game mechanics
         if self._idle_core is None:
             from src.core.idle_core import IdleCore
             self._idle_core = IdleCore()
+        
+        # Initialize equipment system for specialist gear
+        if self._equipment_system is None:
+            from src.core.equipment_system import EquipmentSystem
+            equipment_config = self._json_loader.load_data("equipment.json") if self._json_loader else {}
+            self._equipment_system = EquipmentSystem(equipment_config)
         
         if self._incident_generator is None:
             self._incident_generator = IncidentGenerator(self._logger)
@@ -408,7 +439,7 @@ class GameState:
         resolution_time = self.current_time - (incident.assignment_time or incident.spawn_time)
 
         # Calculate success probability
-        success_prob = specialist.calculate_success_probability(incident.difficulty)
+        success_prob = specialist.calculate_success_probability(incident.difficulty, self._equipment_system)
         success = random.random() < success_prob
 
         if success:
@@ -461,7 +492,7 @@ class GameState:
             self.total_money_earned += reward
             
             # Award XP and check for level up
-            leveled_up = specialist.gain_xp(xp_gain)
+            leveled_up = specialist.gain_xp(xp_gain, self._equipment_system)
             if leveled_up:
                 self._process_specialist_level_up(specialist)
                 dopamine_feedback["level_up"] = True
@@ -521,6 +552,46 @@ class GameState:
         self.metrics.total_incidents_failed += 1
 
         self._logger.logger.warning(f"[GAME_STATE] Incident {incident.id} failed: penalty=${penalty}")
+
+    def _generate_equipment_drop(self, incident: Incident, specialist: Specialist):
+        """Generate equipment drop after successful incident resolution.
+
+        Args:
+            incident: The resolved incident
+            specialist: The specialist who resolved it
+        """
+        try:
+            if not self._equipment_system:
+                return
+
+            # Generate equipment drop based on incident difficulty
+            equipment = self._equipment_system.generate_equipment_drop(
+                incident.difficulty,
+                rarity_boost=0.0  # Could add prestige/specialist level bonuses here
+            )
+
+            if equipment:
+                # Add to specialist's inventory
+                success = self._equipment_system.add_to_inventory(specialist, equipment)
+                if success:
+                    # Add to game state equipment instances
+                    self.equipment_instances[equipment.id] = equipment
+
+                    # Add visual feedback for equipment drop
+                    self.dopamine_feedback_queue.append({
+                        "type": "equipment_drop",
+                        "timestamp": time.time(),
+                        "equipment": equipment,
+                        "specialist_id": specialist.id,
+                        "rarity": equipment.rarity
+                    })
+
+                    self._logger.logger.info(
+                        f"[GAME_STATE] Equipment drop: {equipment.name} ({equipment.rarity}) "
+                        f"awarded to {specialist.name}"
+                    )
+        except Exception as e:
+            self._logger.logger.warning(f"[GAME_STATE] Failed to generate equipment drop: {e}")
 
     def _update_metrics(self):
         """Update real-time game metrics."""
@@ -665,12 +736,27 @@ class GameState:
             return False
 
         # Check specialty compatibility
-        if not specialist.matches_specialty(incident.specialty_required):
+        specialty_match = specialist.matches_specialty(incident.specialty_required)
+        if not specialty_match:
             return False
+
+        # Track assignment analytics
+        self.metrics.total_assignments_attempted += 1
+        if specialty_match:
+            self.metrics.specialty_match_assignments += 1
+        else:
+            self.metrics.specialty_mismatch_assignments += 1
 
         # Perform assignment
         success = specialist.assign_to_incident(incident_id)
         if success:
+            self.metrics.total_assignments_successful += 1
+            # Update success rate
+            if self.metrics.total_assignments_attempted > 0:
+                self.metrics.assignment_success_rate = (
+                    self.metrics.total_assignments_successful / self.metrics.total_assignments_attempted * 100
+                )
+
             incident.status = "assigned"
             incident.assigned_specialist_id = specialist_id
             incident.assignment_time = self.current_time

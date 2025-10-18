@@ -32,6 +32,8 @@ class IncidentQueuePanel(Panel):
             content_height=0
         )
         self.selected_incident: Optional[Incident] = None
+        self.dragged_incident: Optional[Incident] = None
+        self.drag_offset = (0, 0)
 
         # Card styling
         self.card_height = 70
@@ -44,9 +46,32 @@ class IncidentQueuePanel(Panel):
             "normal": (0, 200, 100),      # >50% SLA
         }
 
+        # Assignment status colors
+        self.assignment_colors = {
+            "assigned": (0, 150, 255),    # Blue for assigned
+            "pending": (100, 100, 100),   # Gray for unassigned
+        }
+
         # Fonts
         self.card_font = None
         self.small_font = None
+
+    def assign_selected_to_specialist(self, specialist_id: str) -> bool:
+        """Assign selected incident to a specialist.
+
+        Args:
+            specialist_id: ID of specialist to assign to
+
+        Returns:
+            True if assignment successful
+        """
+        if not self.selected_incident:
+            return False
+
+        return self.game_state.assign_incident_to_specialist(
+            self.selected_incident.id,
+            specialist_id
+        )
 
     def render_content(self, screen: pygame.Surface, content_rect: pygame.Rect) -> None:
         """Render incident queue content.
@@ -96,6 +121,50 @@ class IncidentQueuePanel(Panel):
         # Render scroll container
         self.scroll_container.render(screen)
 
+        # Render dragged incident if any
+        if self.dragged_incident:
+            self._render_dragged_incident(screen)
+
+    def _render_dragged_incident(self, screen: pygame.Surface) -> None:
+        """Render dragged incident at mouse position.
+
+        Args:
+            screen: Pygame surface to render on
+        """
+        if not self.dragged_incident:
+            return
+
+        # Get mouse position
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+        
+        # Calculate dragged card position (offset from mouse)
+        drag_x = mouse_x - self.drag_offset[0]
+        drag_y = mouse_y - self.drag_offset[1]
+        
+        # Create semi-transparent dragged card
+        dragged_rect = pygame.Rect(drag_x, drag_y, self.card_height * 1.2, self.card_height)  # Slightly wider for visibility
+        
+        # Semi-transparent background
+        drag_surface = pygame.Surface((dragged_rect.width, dragged_rect.height))
+        drag_surface.set_alpha(200)
+        drag_surface.fill((40, 60, 80))
+        
+        # Border
+        pygame.draw.rect(drag_surface, (0, 180, 255), drag_surface.get_rect(), 3, border_radius=4)
+        
+        # Incident type (simplified for drag preview)
+        if self.card_font:
+            type_text = self.card_font.render(self.dragged_incident.incident_type, True, (255, 255, 255))
+            drag_surface.blit(type_text, (10, 10))
+        
+        # Specialty
+        if self.small_font:
+            specialty_text = self.small_font.render(self.dragged_incident.specialty_required, True, (150, 150, 200))
+            drag_surface.blit(specialty_text, (10, 35))
+        
+        # Render to screen
+        screen.blit(drag_surface, (drag_x, drag_y))
+
     def _render_incident_card(self, screen: pygame.Surface, incident: Incident, rect: pygame.Rect) -> None:
         """Render individual incident card.
 
@@ -116,8 +185,11 @@ class IncidentQueuePanel(Panel):
 
         urgency_color = self.urgency_colors[urgency]
 
-        # Card background
-        bg_color = (45, 45, 60) if incident != self.selected_incident else (60, 60, 80)
+        # Card background - color coded by assignment status
+        if incident.status == "assigned":
+            bg_color = (40, 60, 80)  # Blue-tinted for assigned
+        else:
+            bg_color = (45, 45, 60) if incident != self.selected_incident else (60, 60, 80)
         pygame.draw.rect(screen, bg_color, rect, border_radius=4)
 
         # Border (color-coded by urgency)
@@ -143,10 +215,21 @@ class IncidentQueuePanel(Panel):
         specialty_text = self.small_font.render(incident.specialty_required, True, (150, 150, 200))
         screen.blit(specialty_text, (rect.x + 15, rect.y + 42))
 
-        # Status
-        status_color = (255, 200, 0) if incident.status == "assigned" else (150, 150, 150)
-        status_text = self.small_font.render(incident.status.upper(), True, status_color)
-        screen.blit(status_text, (rect.right - 80, rect.y + 5))
+        # Status - more prominent for assignment status
+        if incident.status == "assigned":
+            status_color = self.assignment_colors["assigned"]
+            status_text_content = "ASSIGNED ✓"
+        else:
+            status_color = self.assignment_colors["pending"]
+            status_text_content = "PENDING"
+        
+        status_text = self.small_font.render(status_text_content, True, status_color)
+        screen.blit(status_text, (rect.right - 100, rect.y + 5))
+
+        # Assignment indicator bar (right side)
+        assignment_rect = pygame.Rect(rect.right - 6, rect.y + 2, 4, rect.height - 4)
+        assignment_color = self.assignment_colors[incident.status]
+        pygame.draw.rect(screen, assignment_color, assignment_rect, border_radius=2)
 
         # SLA countdown
         sla_minutes = int(incident.time_remaining // 60)
@@ -175,7 +258,7 @@ class IncidentQueuePanel(Panel):
         if self.scroll_container.handle_event(event):
             return True
 
-        # Handle incident selection
+        # Handle incident selection and drag start
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             rect = self.get_rect()
             content_rect = pygame.Rect(
@@ -199,9 +282,21 @@ class IncidentQueuePanel(Panel):
 
                     if card_rect.collidepoint(event.pos):
                         self.selected_incident = incident
+                        # Start drag operation
+                        self.dragged_incident = incident
+                        self.drag_offset = (event.pos[0] - card_rect.x, event.pos[1] - card_rect.y)
                         return True
 
                     y_offset += self.card_height + self.card_margin
+
+        # Handle drag end (mouse button up)
+        elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+            if self.dragged_incident:
+                # Check if dropped on a specialist panel (cross-panel communication needed)
+                # For now, just clear the drag state
+                self.dragged_incident = None
+                self.drag_offset = (0, 0)
+                return True
 
         return False
 

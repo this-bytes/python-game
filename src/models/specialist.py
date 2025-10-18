@@ -124,17 +124,19 @@ class Specialist:
         self.status = SpecialistStatus.AVAILABLE.value
         return completed_incident_id
     
-    def gain_xp(self, amount: int) -> bool:
+    def gain_xp(self, amount: int, equipment_system=None) -> bool:
         """Add XP to the specialist.
         
         Args:
             amount: Amount of XP to add (before experience_bonus multiplier)
+            equipment_system: Optional EquipmentSystem for equipment bonuses
             
         Returns:
             True if specialist leveled up, False otherwise
         """
-        # Apply experience bonus multiplier
-        actual_xp = int(amount * self.stats.experience_bonus)
+        # Apply experience bonus multiplier from effective stats (includes equipment)
+        effective_stats = self.get_effective_stats(equipment_system)
+        actual_xp = int(amount * effective_stats.experience_bonus)
         self.xp += actual_xp
         
         # Check for level up
@@ -278,31 +280,73 @@ class Specialist:
         """
         return self.specialty == required_specialty
     
-    def calculate_resolution_time(self, base_time: float) -> float:
+    def get_effective_stats(self, equipment_system=None) -> SpecialistStats:
+        """Calculate effective stats including equipment bonuses.
+        
+        Combines base specialist stats with bonuses from equipped items.
+        
+        Args:
+            equipment_system: Optional EquipmentSystem for looking up equipment bonuses
+            
+        Returns:
+            SpecialistStats with equipment bonuses applied
+        """
+        # Start with base stats
+        effective_speed = self.stats.speed
+        effective_accuracy = self.stats.accuracy
+        effective_experience_bonus = self.stats.experience_bonus
+        
+        # Apply equipment bonuses if equipment is equipped
+        if hasattr(self, 'equipped_items') and self.equipped_items and equipment_system:
+            for slot, equipment_id in self.equipped_items.items():
+                if equipment_id and equipment_id in equipment_system.equipment_catalog:
+                    equipment = equipment_system.equipment_catalog[equipment_id]
+                    # Apply stat bonuses from equipment
+                    for stat_name, bonus_value in equipment.stat_bonuses.items():
+                        if stat_name == "speed":
+                            effective_speed += bonus_value
+                        elif stat_name == "accuracy":
+                            effective_accuracy += bonus_value
+                        elif stat_name == "experience_bonus":
+                            effective_experience_bonus += bonus_value
+        
+        return SpecialistStats(
+            speed=effective_speed,
+            accuracy=effective_accuracy,
+            experience_bonus=effective_experience_bonus
+        )
+    
+    def calculate_resolution_time(self, base_time: float, equipment_system=None) -> float:
         """Calculate time to resolve an incident based on specialist stats.
         
         Args:
             base_time: Base resolution time in seconds
+            equipment_system: Optional EquipmentSystem for equipment bonuses
             
         Returns:
-            Actual resolution time considering specialist speed
+            Actual resolution time considering specialist speed and equipment
         """
-        # Higher speed = faster resolution
-        speed_multiplier = self.stats.speed / 100.0
+        # Use effective stats that include equipment bonuses
+        effective_stats = self.get_effective_stats(equipment_system)
+        speed_multiplier = effective_stats.speed / 100.0
         return base_time / speed_multiplier
     
-    def calculate_success_probability(self, base_difficulty: int) -> float:
+    def calculate_success_probability(self, base_difficulty: int, equipment_system=None) -> float:
         """Calculate probability of successful incident resolution.
         
         Args:
             base_difficulty: Incident difficulty (1-5)
+            equipment_system: Optional EquipmentSystem for equipment bonuses
             
         Returns:
-            Success probability (0.0-1.0)
+            Success probability (0.0-1.0) considering equipment bonuses
         """
+        # Use effective stats that include equipment bonuses
+        effective_stats = self.get_effective_stats(equipment_system)
+        
         # Base accuracy, reduced by difficulty
         difficulty_penalty = (base_difficulty - 1) * 5  # 0, 5, 10, 15, 20% penalty
-        effective_accuracy = max(10, self.stats.accuracy - difficulty_penalty)
+        effective_accuracy = max(10, effective_stats.accuracy - difficulty_penalty)
         return min(1.0, effective_accuracy / 100.0)
     
     def get_performance_multiplier(self) -> float:

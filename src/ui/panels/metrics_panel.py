@@ -89,6 +89,9 @@ class MetricsPanel(Panel):
             f"Specialist Utilization: {self.game_state.metrics.specialist_utilization_rate:.1f}%",
             f"Active Clients: {len([c for c in self.game_state.clients if c.active])}",
             f"Game Time: {self.game_state.get_game_time_elapsed():.1f}s",
+            f"Assignment Success Rate: {self.game_state.metrics.assignment_success_rate:.1f}%",
+            f"Specialty Matches: {self.game_state.metrics.specialty_match_assignments}",
+            f"Total Assignments: {self.game_state.metrics.total_assignments_attempted}",
         ]
 
         for metric in metrics_list:

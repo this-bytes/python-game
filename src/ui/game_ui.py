@@ -16,6 +16,8 @@ from src.ui.hotkey_manager import HotkeyManager, HotkeyAction
 from src.ui.panels.specialist_roster_panel import SpecialistRosterPanel
 from src.ui.panels.incident_queue_panel import IncidentQueuePanel
 from src.ui.panels.metrics_panel import MetricsPanel
+from src.ui.panels.equipment_shop_panel import EquipmentShopPanel
+from src.ui.panels.equipment_inventory_panel import EquipmentInventoryPanel
 from src.ui.components.button import Button, ButtonStyle
 from src.ui.dopamine_overlay import DopamineFeedbackOverlay
 from src.ui.synergy_overlay import SynergySuggestionOverlay, AutoPlayIndicator
@@ -71,6 +73,8 @@ class GameUI:
         self.specialist_roster_panel = SpecialistRosterPanel(self.game_state)
         self.incident_queue_panel = IncidentQueuePanel(self.game_state)
         self.metrics_panel = MetricsPanel(self.game_state)
+        self.equipment_shop_panel = EquipmentShopPanel(self.game_state)
+        self.equipment_inventory_panel = EquipmentInventoryPanel(self.game_state)
 
         # Apply theme to panels
         self._apply_theme_to_panels()
@@ -80,6 +84,8 @@ class GameUI:
             self.specialist_roster_panel,
             self.incident_queue_panel,
             self.metrics_panel,
+            self.equipment_shop_panel,
+            self.equipment_inventory_panel,
         ]
 
         # Create assign button
@@ -94,8 +100,13 @@ class GameUI:
 
         # UI state
         self.show_help_overlay = False
+        
+        # Drag and drop state
+        self.dragged_incident = None
+        self.drag_offset = (0, 0)
+        self.drag_highlight_specialist = None
 
-        self.logger.logger.info("[GAME_UI] Game UI initialized with new panel system")
+        self.logger.logger.info("[GAME_UI] Game UI initialized with drag-and-drop support")
 
     def _register_hotkey_callbacks(self) -> None:
         """Register hotkey callbacks."""
@@ -116,8 +127,12 @@ class GameUI:
             lambda: self._toggle_panel(self.metrics_panel)
         )
         self.hotkey_manager.register_callback(
-            HotkeyAction.TOGGLE_SPECIALIST_PANEL,
-            lambda: self._toggle_panel(self.specialist_roster_panel)
+            HotkeyAction.TOGGLE_SHOP_PANEL,
+            lambda: self._toggle_panel(self.equipment_shop_panel)
+        )
+        self.hotkey_manager.register_callback(
+            HotkeyAction.TOGGLE_INVENTORY_PANEL,
+            lambda: self._toggle_panel(self.equipment_inventory_panel)
         )
         self.hotkey_manager.register_callback(
             HotkeyAction.TOGGLE_INCIDENT_PANEL,
@@ -136,6 +151,8 @@ class GameUI:
             self.specialist_roster_panel.set_theme_colors(theme_dict)
             self.incident_queue_panel.set_theme_colors(theme_dict)
             self.metrics_panel.set_theme_colors(theme_dict)
+            self.equipment_shop_panel.set_theme_colors(theme_dict)
+            self.equipment_inventory_panel.set_theme_colors(theme_dict)
 
     def _toggle_pause(self) -> None:
         """Toggle game pause state."""
@@ -178,6 +195,10 @@ class GameUI:
         actions = []
 
         for event in events:
+            # Handle drag and drop events first (before panels)
+            if self._handle_drag_drop_event(event):
+                continue
+
             # Handle hotkeys first
             if self.hotkey_manager.handle_key_event(event):
                 continue
@@ -208,14 +229,111 @@ class GameUI:
                     # Toggle synergy suggestions panel (strategic intervention UI)
                     self.synergy_overlay.toggle_visibility()
                 elif event.key == pygame.K_a:
-                    # Toggle auto-play on/off
-                    if hasattr(self.game_state, '_idle_core') and self.game_state._idle_core:
-                        self.game_state._idle_core.config.enabled = not self.game_state._idle_core.config.enabled
-                        status = "enabled" if self.game_state._idle_core.config.enabled else "disabled"
-                        self.notification_manager.show_info("Auto-Play", f"Auto-assignment {status}")
+                    # Assign selected incident to selected specialist
+                    selected_incident = self.incident_queue_panel.get_selected_incident()
+                    selected_specialist = self.specialist_roster_panel.get_selected_specialist()
+                    
+                    if selected_incident and selected_specialist:
+                        success = self.game_state.assign_incident_to_specialist(
+                            selected_incident.id, 
+                            selected_specialist.id
+                        )
+                        if success:
+                            self.notification_manager.show_success(
+                                "Assignment Complete", 
+                                f"{selected_specialist.name} assigned to {selected_incident.incident_type}"
+                            )
+                        else:
+                            self.notification_manager.show_error(
+                                "Assignment Failed", 
+                                "Specialist unavailable or specialty mismatch"
+                            )
+                    elif not selected_incident:
+                        self.notification_manager.show_warning("Assignment", "Select an incident first")
+                    elif not selected_specialist:
+                        self.notification_manager.show_warning("Assignment", "Select a specialist first")
 
 
         return actions
+
+    def _handle_drag_drop_event(self, event: pygame.event.Event) -> bool:
+        """Handle drag and drop events for cross-panel incident assignment.
+
+        Args:
+            event: Pygame event
+
+        Returns:
+            True if event was consumed by drag-drop handling
+        """
+        # Start drag from incident panel
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.incident_queue_panel.get_rect().collidepoint(event.pos):
+                # Let incident panel handle the drag start
+                if self.incident_queue_panel.handle_event(event):
+                    self.dragged_incident = self.incident_queue_panel.dragged_incident
+                    self.drag_offset = self.incident_queue_panel.drag_offset
+                    return True
+
+        # Handle drag motion (highlight drop targets)
+        elif event.type == pygame.MOUSEMOTION and self.dragged_incident:
+            # Check if mouse is over specialist panel
+            if self.specialist_roster_panel.get_rect().collidepoint(event.pos):
+                # Calculate which specialist is being hovered
+                rect = self.specialist_roster_panel.get_rect()
+                content_rect = pygame.Rect(
+                    rect.x + self.specialist_roster_panel.BORDER_WIDTH,
+                    rect.y + self.specialist_roster_panel.TITLE_BAR_HEIGHT + self.specialist_roster_panel.BORDER_WIDTH,
+                    rect.width - 2 * self.specialist_roster_panel.BORDER_WIDTH,
+                    rect.height - self.specialist_roster_panel.TITLE_BAR_HEIGHT - 2 * self.specialist_roster_panel.BORDER_WIDTH
+                )
+
+                if content_rect.collidepoint(event.pos):
+                    y_offset = content_rect.y - self.specialist_roster_panel.scroll_container.get_scroll_offset()
+                    for specialist in self.game_state.specialists:
+                        card_rect = pygame.Rect(
+                            content_rect.x + self.specialist_roster_panel.card_margin,
+                            y_offset,
+                            content_rect.width - self.specialist_roster_panel.card_margin * 2 - self.specialist_roster_panel.scroll_container.scroll_bar_width,
+                            self.specialist_roster_panel.card_height
+                        )
+
+                        if card_rect.collidepoint(event.pos):
+                            self.drag_highlight_specialist = specialist.id
+                            return True
+
+                        y_offset += self.specialist_roster_panel.card_height + self.specialist_roster_panel.card_margin
+            
+            self.drag_highlight_specialist = None
+            return True
+
+        # Handle drop (mouse button up)
+        elif event.type == pygame.MOUSEBUTTONUP and event.button == 1 and self.dragged_incident:
+            if self.drag_highlight_specialist:
+                # Attempt assignment
+                success = self.game_state.assign_incident_to_specialist(
+                    self.dragged_incident.id, self.drag_highlight_specialist
+                )
+                if success:
+                    self.notification_manager.show_success(
+                        "Assignment Complete",
+                        f"Incident assigned via drag-and-drop"
+                    )
+                else:
+                    self.notification_manager.show_error(
+                        "Assignment Failed",
+                        "Specialist unavailable or specialty mismatch"
+                    )
+            
+            # Clear drag state
+            self.dragged_incident = None
+            self.drag_offset = (0, 0)
+            self.drag_highlight_specialist = None
+            # Also clear in incident panel
+            self.incident_queue_panel.dragged_incident = None
+            self.incident_queue_panel.drag_offset = (0, 0)
+            return True
+
+        return False
 
     def update(self, delta_time: float) -> None:
         """Update UI state.
@@ -281,6 +399,9 @@ class GameUI:
         # Render dopamine overlay (combo counter, celebrations, risk contracts)
         self.dopamine_overlay.render(self.screen, self.game_state._dopamine_system)
 
+        # Render drag and drop visual feedback
+        self._render_drag_drop()
+
         # Render notifications (always on top)
         self.notification_manager.render(self.screen)
 
@@ -290,6 +411,68 @@ class GameUI:
 
         # Update display
         pygame.display.flip()
+
+    def _render_drag_drop(self) -> None:
+        """Render drag and drop visual feedback."""
+        if not self.dragged_incident:
+            return
+
+        # Render dragged incident preview
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+        drag_x = mouse_x - self.drag_offset[0]
+        drag_y = mouse_y - self.drag_offset[1]
+        
+        # Create semi-transparent dragged card
+        card_width = 120  # Compact preview size
+        card_height = 60
+        dragged_rect = pygame.Rect(drag_x, drag_y, card_width, card_height)
+        
+        # Semi-transparent background
+        drag_surface = pygame.Surface((card_width, card_height))
+        drag_surface.set_alpha(220)
+        drag_surface.fill((40, 60, 80))
+        
+        # Border
+        pygame.draw.rect(drag_surface, (0, 180, 255), drag_surface.get_rect(), 2, border_radius=4)
+        
+        # Incident info (compact)
+        if self.small_font:
+            type_text = self.small_font.render(self.dragged_incident.incident_type[:15], True, (255, 255, 255))
+            drag_surface.blit(type_text, (8, 8))
+            
+            specialty_text = self.small_font.render(self.dragged_incident.specialty_required, True, (150, 150, 200))
+            drag_surface.blit(specialty_text, (8, 28))
+        
+        # Render to screen
+        self.screen.blit(drag_surface, (drag_x, drag_y))
+
+        # Render drop highlight if hovering over specialist
+        if self.drag_highlight_specialist:
+            # Find the highlighted specialist's card position
+            rect = self.specialist_roster_panel.get_rect()
+            content_rect = pygame.Rect(
+                rect.x + self.specialist_roster_panel.BORDER_WIDTH,
+                rect.y + self.specialist_roster_panel.TITLE_BAR_HEIGHT + self.specialist_roster_panel.BORDER_WIDTH,
+                rect.width - 2 * self.specialist_roster_panel.BORDER_WIDTH,
+                rect.height - self.specialist_roster_panel.TITLE_BAR_HEIGHT - 2 * self.specialist_roster_panel.BORDER_WIDTH
+            )
+
+            y_offset = content_rect.y - self.specialist_roster_panel.scroll_container.get_scroll_offset()
+            for specialist in self.game_state.specialists:
+                if specialist.id == self.drag_highlight_specialist:
+                    card_rect = pygame.Rect(
+                        content_rect.x + self.specialist_roster_panel.card_margin,
+                        y_offset,
+                        content_rect.width - self.specialist_roster_panel.card_margin * 2 - self.specialist_roster_panel.scroll_container.scroll_bar_width,
+                        self.specialist_roster_panel.card_height
+                    )
+                    
+                    # Draw highlight border around target specialist
+                    highlight_color = (0, 255, 100)  # Green highlight for valid drop
+                    pygame.draw.rect(self.screen, highlight_color, card_rect, 3, border_radius=6)
+                    break
+
+                y_offset += self.specialist_roster_panel.card_height + self.specialist_roster_panel.card_margin
 
     def _render_header(self) -> None:
         """Render the game header with basic info."""
@@ -326,6 +509,7 @@ class GameUI:
         text_color = self.theme_manager.get_color("text", (220, 220, 230))
         
         instructions = [
+            "🎯 ASSIGN: Select incident + specialist, press A to assign",
             "🤖 AUTO-PLAY: Specialists auto-assign to incidents (Press A to toggle)",
             "⚡ STRATEGIC: Press S to view synergy opportunities for bonus multipliers",
             "Hotkeys: 1-6: Panels | SPACE: Pause | H: Help | +/-: Speed",
@@ -359,7 +543,7 @@ class GameUI:
             ("1", "Toggle Specialist Roster"),
             ("2", "Toggle Incident Queue"),
             ("3", "Toggle Metrics Panel"),
-            ("A", "Toggle Auto-Play ON/OFF"),
+            ("A", "Assign Selected Incident to Specialist"),
             ("S", "Toggle Synergy Suggestions"),
             ("SPACE", "Pause/Resume Game"),
             ("+", "Increase Game Speed"),

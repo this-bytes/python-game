@@ -1,7 +1,20 @@
-# 🔥 ABSOLUTE STANDARDS - READ THIS FIRST
+# Core Standards - Instructions
+
+**This file contains the absolute standards, quality gates, and daily checklists.**
+
+Reference this when:
+- Starting any coding session
+- Before committing code
+- Reviewing your own work
+- Understanding project quality requirements
+
+---
+
+## 🔥 THE MANDATE
 
 **THIS PROJECT OPERATES UNDER ZERO-TOLERANCE FOR MEDIOCRITY.**
 **EXCELLENCE IS THE ONLY ACCEPTABLE OUTCOME.**
+
 Run at maximum velocity. This is non-negotiable. This is why we win.
 You'll always work autonomously, using these instructions as your sole guide.
 Do not ask for clarifications or additional guidance. If you need to, refer back to these instructions.
@@ -9,8 +22,6 @@ Never take shortcuts. Always adhere strictly to the standards outlined here and 
 Your contributing to a game that is not the usual platformer side project. Cutting edge mechanics, deep systems. Put on your Gamer hat and make a game that players cant put down.
 
 ---
-
-## 💪 THE MANDATE
 
 Every line must earn its place.
 Every function must justify its existence.
@@ -146,7 +157,7 @@ class TestSpecialistBurnout:
 1. **READ THIS FILE** - Every time. No shortcuts.
 2. **MEMORIZE THE 15-POINT GATE** - Know it cold.
 3. **KNOW THE 15 RED FLAGS** - These are deal-breakers.
-4. **READ [ANTI_PATTERNS.md](ANTI_PATTERNS.md)** - Understand the traps.
+4. **READ code-style.instructions.md** - Understand naming and anti-patterns.
 
 ---
 
@@ -192,27 +203,48 @@ Ask yourself these 10 questions:
 
 ---
 
-## 🎯 THE CHECKLIST
+## 🎯 THE DAILY CHECKLIST
 
 **Before every commit, run through this:**
 
-- [ ] All 15 points on the gate pass
-- [ ] ZERO red flags present
-- [ ] Code is crystal clear (junior dev can understand)
-- [ ] Type hints are complete
-- [ ] Docstrings explain PURPOSE
-- [ ] Every public function has tests
-- [ ] >80% coverage on new code
-- [ ] No magic numbers or strings
-- [ ] Error handling is explicit
-- [ ] Logging is comprehensive
-- [ ] No commented-out code
-- [ ] No debug prints
-- [ ] No TODO comments
-- [ ] Code is DRY (no duplication)
-- [ ] Concerns are separated
+```
+✅ 1.  Self-documenting?      [ ] Could someone read this cold and get it?
+✅ 2.  Type hints complete?   [ ] Every parameter, every return value
+✅ 3.  Docstring present?     [ ] Google-style, PURPOSE and INTENT
+✅ 4.  Tests written?         [ ] Unit tests for every public function
+✅ 5.  Coverage >80%?         [ ] New code, minimum 80% coverage
+✅ 6.  No magic numbers?      [ ] All explained or in JSON config
+✅ 7.  Errors explicit?       [ ] Specific exceptions, not generic catches
+✅ 8.  Logging comprehensive? [ ] Key decisions, errors, transitions logged
+✅ 9.  No dead code?          [ ] No commented-out, no debug, no TODOs
+✅ 10. JSON-driven?           [ ] Game params in JSON, not hardcoded Python
+✅ 11. DRY principle?         [ ] No copy-paste duplication anywhere
+✅ 12. Concerns separated?    [ ] Logic, rendering, backend clearly split
+✅ 13. Performance verified?  [ ] No unoptimized loops, N+1, blocking ops
+✅ 14. Edge cases handled?    [ ] What breaks this? Did you handle it?
+✅ 15. No redundant patterns? [ ] Every line serves a purpose
+```
 
 **If ANY fail, the code is REJECTED.**
+
+---
+
+## 📋 PRE-COMMIT CHECKLIST
+
+**Do this BEFORE you commit. All items must be YES.**
+
+- [ ] Could I explain this code to a junior dev in 2 minutes?
+- [ ] Are there ANY commented-out lines?
+- [ ] Are there ANY TODO or FIXME comments?
+- [ ] Are there ANY debug print statements?
+- [ ] Did I test edge cases?
+- [ ] Did I test with invalid input?
+- [ ] Did I add logging for key decisions?
+- [ ] Is this code DRY (no duplication)?
+- [ ] Could this fail silently? (Is that OK?)
+- [ ] Am I PROUD of this code or just "done" with it?
+
+**If ANY answer is NO, keep working.**
 
 ---
 
@@ -220,11 +252,12 @@ Ask yourself these 10 questions:
 
 For more details on specific topics, see:
 
-- **[CODE_STYLE.md](CODE_STYLE.md)** - Naming, type hints, docstrings
-- **[ANTI_PATTERNS.md](ANTI_PATTERNS.md)** - Anti-patterns with ❌/✅ examples
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Project structure, design patterns
-- **[TESTING_STANDARDS.md](TESTING_STANDARDS.md)** - Testing requirements and fixtures
-- **[COMMON_TASKS.md](COMMON_TASKS.md)** - How to add features, debug, balance
+- **[code-style.instructions.md](code-style.instructions.md)** - Naming, type hints, docstrings, anti-patterns
+- **[architecture.instructions.md](architecture.instructions.md)** - Project structure, design patterns
+- **[testing.instructions.md](testing.instructions.md)** - Testing requirements and fixtures
+- **[workflows.instructions.md](workflows.instructions.md)** - How to add features, debug, balance
+- **[plugin-system.instructions.md](plugin-system.instructions.md)** - Plugin architecture
+- **[data-driven.instructions.md](data-driven.instructions.md)** - JSON configuration patterns
 
 ---
 
@@ -271,4 +304,16 @@ But code that's crystal clear, thoroughly tested, properly documented, and truly
 
 **This is the standard. This is non-negotiable. This is why we win.**
 
-🚀🔒
+---
+
+*Print this. Reference it. Live it. This is how we build something great.* 🚀🔒
+
+---
+
+## See Also
+
+- **[copilot-instructions.md](copilot-instructions.md)** - Main instructions and overview
+- **[code-style.instructions.md](code-style.instructions.md)** - Code style and anti-patterns
+- **[testing.instructions.md](testing.instructions.md)** - Testing requirements
+- **[architecture.instructions.md](architecture.instructions.md)** - System architecture
+- **[workflows.instructions.md](workflows.instructions.md)** - Common development tasks

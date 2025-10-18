@@ -268,3 +268,100 @@ class EquipmentSystem:
             Equipment instance or None if not found
         """
         return self.equipment_catalog.get(equipment_id)
+    
+    def can_upgrade_equipment(self, equipment: Equipment) -> bool:
+        """Check if equipment can be upgraded to a higher rarity.
+        
+        Args:
+            equipment: The equipment to check
+            
+        Returns:
+            True if equipment can be upgraded
+        """
+        rarity_hierarchy = ["common", "rare", "epic", "legendary"]
+        current_rarity_index = rarity_hierarchy.index(equipment.rarity.lower())
+        
+        # Can't upgrade legendary equipment
+        return current_rarity_index < len(rarity_hierarchy) - 1
+    
+    def get_upgrade_requirements(self, equipment: Equipment) -> Dict:
+        """Get the requirements to upgrade equipment.
+        
+        Args:
+            equipment: The equipment to upgrade
+            
+        Returns:
+            Dictionary with upgrade requirements
+        """
+        rarity_hierarchy = ["common", "rare", "epic", "legendary"]
+        current_rarity_index = rarity_hierarchy.index(equipment.rarity.lower())
+        next_rarity = rarity_hierarchy[current_rarity_index + 1]
+        
+        # Upgrade requirements based on current rarity
+        requirements = {
+            "common": {"count": 2, "cost": 1000},
+            "rare": {"count": 3, "cost": 5000},
+            "epic": {"count": 3, "cost": 15000}
+        }
+        
+        return {
+            "equipment_type": equipment.equipment_type,
+            "current_rarity": equipment.rarity,
+            "target_rarity": next_rarity,
+            "required_count": requirements[equipment.rarity.lower()]["count"],
+            "upgrade_cost": requirements[equipment.rarity.lower()]["cost"]
+        }
+    
+    def upgrade_equipment(self, equipment_ids: list[str]) -> Optional[Equipment]:
+        """Upgrade equipment by combining multiple pieces.
+        
+        Args:
+            equipment_ids: List of equipment IDs to combine (must be same type/rarity)
+            
+        Returns:
+            New upgraded equipment or None if upgrade failed
+        """
+        if not equipment_ids or len(equipment_ids) < 2:
+            return None
+        
+        # Get all equipment
+        equipment_list = []
+        for eq_id in equipment_ids:
+            eq = self.get_equipment(eq_id)
+            if not eq:
+                return None
+            equipment_list.append(eq)
+        
+        # Validate all equipment is the same type and rarity
+        first_eq = equipment_list[0]
+        for eq in equipment_list[1:]:
+            if eq.equipment_type != first_eq.equipment_type or eq.rarity != first_eq.rarity:
+                return None
+        
+        # Check upgrade requirements
+        requirements = self.get_upgrade_requirements(first_eq)
+        if len(equipment_list) != requirements["required_count"]:
+            return None
+        
+        # Find target equipment (same type, next rarity)
+        target_rarity = requirements["target_rarity"]
+        target_equipment = None
+        
+        for eq in self.equipment_catalog.values():
+            if (eq.equipment_type == first_eq.equipment_type and 
+                eq.rarity.lower() == target_rarity.lower()):
+                target_equipment = eq
+                break
+        
+        if not target_equipment:
+            self._logger.logger.warning(
+                f"[EQUIPMENT_SYSTEM] No upgrade target found for {first_eq.equipment_type} {target_rarity}"
+            )
+            return None
+        
+        self._logger.logger.info(
+            f"[EQUIPMENT_SYSTEM] Upgraded {len(equipment_list)}x {first_eq.rarity} {first_eq.equipment_type} "
+            f"to {target_equipment.name}"
+        )
+        
+        return target_equipment

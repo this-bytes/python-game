@@ -20,7 +20,7 @@ Event Types (use these strings when publishing/subscribing):
     - "feature_toggled" - Feature flag changed
 """
 
-from typing import Callable, Dict, List, Any
+from typing import Callable, Dict, List, Any, Optional
 from dataclasses import dataclass, field
 from enum import IntEnum
 import time
@@ -241,70 +241,44 @@ class EventBus:
     
     def get_stats(self) -> Dict[str, Any]:
         """Get event bus statistics.
-        
+
         Returns:
-<<<<<<< HEAD
             Statistics dictionary
         """
         return {
             **self._stats,
             "active_subscriptions": sum(len(subs) for subs in self._subscriptions.values()),
             "event_types": len(self._subscriptions),
-            "queued_events": len(self._event_queue)
-=======
-            Dictionary with performance stats
-        """
-        return self._stats.copy()
-    
-    def clear_stats(self):
-        """Reset statistics counters."""
+            "pending_events": len(self._pending_events)
+        }
+
+    def clear_history(self):
+        """Clear event history."""
+        self._event_history.clear()
+
+    def reset_stats(self):
+        """Reset statistics."""
         self._stats = {
             "total_events_published": 0,
             "total_events_processed": 0,
             "events_by_type": {},
             "average_processing_time": 0.0
->>>>>>> 85fcd8effe1ad5c44782728200d8b5d2a32a6ed5
-        }
-    
-    def clear_history(self):
-        """Clear event history."""
-        self._event_history.clear()
-<<<<<<< HEAD
-    
-    def reset_stats(self):
-        """Reset statistics."""
-        self._stats = {
-            "events_emitted": 0,
-            "events_handled": 0,
-            "errors": 0
         }
 
-
+    def clear_stats(self):
+        """Clear statistics (alias for reset_stats)."""
+        self.reset_stats()
 # Global event bus instance
 _global_event_bus: Optional[EventBus] = None
-=======
-
-
-# Global event bus instance (singleton pattern)
-_global_event_bus: EventBus = None
->>>>>>> 85fcd8effe1ad5c44782728200d8b5d2a32a6ed5
 
 
 def get_event_bus() -> EventBus:
     """Get the global event bus instance.
-    
+
     Returns:
-<<<<<<< HEAD
         Global EventBus instance
     """
     global _global_event_bus
     if _global_event_bus is None:
-        _global_event_bus = EventBus(enable_history=True)
-=======
-        Global EventBus singleton
-    """
-    global _global_event_bus
-    if _global_event_bus is None:
         _global_event_bus = EventBus()
->>>>>>> 85fcd8effe1ad5c44782728200d8b5d2a32a6ed5
     return _global_event_bus

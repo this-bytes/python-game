@@ -1,12 +1,18 @@
-# COMMON DEVELOPMENT TASKS
+# Workflows - Instructions
 
-Reference: See [ABSOLUTE_STANDARDS.md](ABSOLUTE_STANDARDS.md) for core standards.
+**This file contains step-by-step guides for common development tasks.**
+
+Reference this when:
+- Adding new game features
+- Implementing new systems
+- Following established workflows
+- Understanding task sequences
 
 ---
 
 ## BEFORE YOU START ANY TASK
 
-1. Read [ABSOLUTE_STANDARDS.md](ABSOLUTE_STANDARDS.md) - specifically the 15-point gate
+1. Read [core-standards.instructions.md](core-standards.instructions.md) - specifically the 15-point gate
 2. Identify where your code fits: models, core, ui, backend, or data?
 3. Understand: **If it's game logic, it goes in `/src/models/` or `/src/core/`, NEVER in UI**
 4. Remember: **All game parameters must be in JSON config, not hardcoded**
@@ -669,8 +675,8 @@ Before committing ANY changes:
 11. [ ] Git diff shows intent clearly
 12. [ ] Commit message explains WHAT and WHY
 13. [ ] JSON changes are valid: `python -m json.tool`
-14. [ ] No anti-patterns from [ANTI_PATTERNS.md](ANTI_PATTERNS.md)
-15. [ ] Changes follow [CODE_STYLE.md](CODE_STYLE.md) conventions
+14. [ ] No anti-patterns from [code-style.instructions.md](code-style.instructions.md)
+15. [ ] Changes follow [code-style.instructions.md](code-style.instructions.md) conventions
 
 **If ANY item fails, keep working. Don't commit.**
 
@@ -678,8 +684,10 @@ Before committing ANY changes:
 
 ## See Also
 
-- [ABSOLUTE_STANDARDS.md](ABSOLUTE_STANDARDS.md) - Core standards
-- [ARCHITECTURE.md](ARCHITECTURE.md) - Project structure
-- [CODE_STYLE.md](CODE_STYLE.md) - Code conventions
-- [TESTING_STANDARDS.md](TESTING_STANDARDS.md) - Testing requirements
-- [ANTI_PATTERNS.md](ANTI_PATTERNS.md) - What NOT to do
+- **[copilot-instructions.md](copilot-instructions.md)** - Main instructions and overview
+- **[core-standards.instructions.md](core-standards.instructions.md)** - Absolute standards
+- **[code-style.instructions.md](code-style.instructions.md)** - Code style and anti-patterns
+- **[architecture.instructions.md](architecture.instructions.md)** - Project structure
+- **[testing.instructions.md](testing.instructions.md)** - Testing requirements
+- **[plugin-system.instructions.md](plugin-system.instructions.md)** - Plugin architecture
+- **[data-driven.instructions.md](data-driven.instructions.md)** - JSON configuration

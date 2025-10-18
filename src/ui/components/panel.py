@@ -342,6 +342,11 @@ class Panel:
             return pygame.Rect(self.position[0], self.position[1], 200, self.TITLE_BAR_HEIGHT)
         return pygame.Rect(self.position[0], self.position[1], self.size[0], self.size[1])
 
+    @property
+    def rect(self) -> pygame.Rect:
+        """Get panel rectangle as property."""
+        return self.get_rect()
+
     def bring_to_front(self) -> None:
         """Bring panel to front (z-order management handled by parent)."""
         pass

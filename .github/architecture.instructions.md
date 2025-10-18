@@ -1,6 +1,12 @@
-# ARCHITECTURE & PROJECT STRUCTURE
+# Architecture - Instructions
 
-Reference: See [ABSOLUTE_STANDARDS.md](ABSOLUTE_STANDARDS.md) for core standards.
+**This file contains project structure, design patterns, and architectural decisions.**
+
+Reference this when:
+- Understanding project organization
+- Implementing new systems
+- Making architectural decisions
+- Understanding plugin system architecture
 
 ---
 
@@ -118,6 +124,86 @@ def update_specialist(specialist_id: str):
     logger.info(f"Updated specialist {specialist_id}")
     return {"success": True, "specialist": specialist.to_dict()}
 ```
+
+---
+
+## PLUGIN SYSTEM ARCHITECTURE (UNIFIED)
+
+**ALL GAME SYSTEMS ARE NOW PLUGINS.** The plugin system is the ONLY system architecture.
+
+- `/src/core/plugins/` → All game systems as GameSystem plugins
+- Event-driven communication via singleton EventBus
+- Standardized lifecycle: initialize/update/shutdown/save_state/load_state
+- Feature flags control optional systems
+- SystemManager orchestrates all plugins
+
+**MANDATORY:** All new systems must inherit from GameSystem and be registered in main.py.
+
+### Plugin Architecture Patterns
+
+#### GameSystem Base Class
+
+```python
+class GameSystem:
+    """Base class for all game systems (plugins)."""
+    
+    def get_name(self) -> str:
+        """Get plugin name."""
+        pass
+    
+    def get_feature_id(self) -> str:
+        """Get feature flag ID."""
+        pass
+    
+    def initialize(self, game_state) -> None:
+        """Initialize plugin with game state."""
+        pass
+    
+    def update(self, game_state, delta_time: float) -> None:
+        """Update plugin logic."""
+        pass
+    
+    def shutdown(self, game_state) -> None:
+        """Shutdown plugin and cleanup resources."""
+        pass
+    
+    def save_state(self, game_state) -> Dict[str, Any]:
+        """Save plugin state for persistence."""
+        pass
+    
+    def load_state(self, game_state, state_data: Dict[str, Any]) -> None:
+        """Load plugin state from saved data."""
+        pass
+```
+
+#### Event-Driven Communication
+
+```python
+# In plugin initialization
+self._event_bus = get_event_bus()
+self._subscription_ids = [
+    self._event_bus.subscribe("incident_completed", self._on_incident_completed),
+    self._event_bus.subscribe("specialist_leveled_up", self._on_specialist_leveled_up),
+]
+
+# In plugin shutdown
+for subscription_id in self._subscription_ids:
+    self._event_bus.unsubscribe(subscription_id)
+```
+
+### Registered Plugins
+
+**ALL SYSTEMS CONVERTED TO PLUGINS:**
+- **IdlePlugin** (idle mechanics)
+- **PrestigeSystem** (prestige progression)
+- **AchievementSystem** (achievement tracking)
+- **BurnoutPlugin** (specialist burnout)
+- **RelationshipsPlugin** (team relationships)
+- **DopaminePlugin** (addictive mechanics)
+- **EquipmentPlugin** (equipment system)
+- **AbilityPlugin** (ability activation)
+- **PassiveIncomePlugin** (passive income)
+- **FacilityPlugin** (facility upgrades)
 
 ---
 
@@ -459,6 +545,16 @@ def incident():
 ```
 
 ---
+
+## See Also
+
+- **[copilot-instructions.md](copilot-instructions.md)** - Main instructions and overview
+- **[plugin-system.instructions.md](plugin-system.instructions.md)** - Plugin architecture details
+- **[core-standards.instructions.md](core-standards.instructions.md)** - Absolute standards
+- **[code-style.instructions.md](code-style.instructions.md)** - Code style and anti-patterns
+- **[testing.instructions.md](testing.instructions.md)** - Testing requirements
+- **[workflows.instructions.md](workflows.instructions.md)** - Common development tasks
+
 
 ## See Also
 

@@ -10,7 +10,7 @@ class BackendConfig:
     
     # Server settings
     HOST = os.getenv("BACKEND_HOST", "0.0.0.0")
-    PORT = int(os.getenv("BACKEND_PORT", "5000"))
+    PORT = int(os.getenv("BACKEND_PORT", "5001"))
     DEBUG = os.getenv("BACKEND_DEBUG", "True").lower() == "true"
     
     # CORS settings

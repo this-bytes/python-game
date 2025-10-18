@@ -66,11 +66,11 @@ def create_automation_blueprint(game_state_ref):
             
             data = request.get_json()
             
-            # Update fields (trigger conditions, effect parameters)
+            # Update enabled status
             if 'enabled' in data:
-                # TODO: Add enabled field to AutomationScript model
-                pass
+                script.enabled = bool(data['enabled'])
             
+            # Update trigger conditions
             if 'trigger_conditions' in data:
                 # Update trigger conditions
                 tc = data['trigger_conditions']

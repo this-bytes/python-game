@@ -818,4 +818,271 @@ def create_specialists_blueprint(game_state_ref):
         except Exception as e:
             return jsonify({"success": False, "message": str(e)}), 500
     
+    # ========== RELATIONSHIPS ENDPOINTS ==========
+    
+    @bp.route('/specialists/<specialist_id>/relationships', methods=['GET'])
+    def get_specialist_relationships(specialist_id):
+        """Get all relationships for a specialist."""
+        game_state = get_game_state()
+        if not game_state:
+            return jsonify({"success": False, "message": "Game state not initialized"}), 503
+        
+        try:
+            specialist = game_state.get_specialist_by_id(specialist_id)
+            if not specialist:
+                return jsonify({"success": False, "message": "Specialist not found"}), 404
+            
+            relationships_system = game_state._relationships_system
+            if not relationships_system:
+                return jsonify({"success": False, "message": "Relationships system not initialized"}), 503
+            
+            summary = relationships_system.get_specialist_relationships_summary(specialist_id)
+            
+            return jsonify({
+                "success": True,
+                "data": {
+                    "specialist_id": specialist_id,
+                    "specialist_name": specialist.name,
+                    "relationships": summary,
+                    "friend_count": summary.get("friends", 0),
+                    "rival_count": summary.get("rivals", 0),
+                    "average_friendship_intensity": summary.get("average_intensity", 0),
+                    "average_rivalry_intensity": summary.get("average_intensity", 0)
+                },
+                "timestamp": datetime.utcnow().isoformat()
+            })
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 500
+    
+    @bp.route('/specialists/relationships/list-all', methods=['GET'])
+    def list_all_relationships():
+        """List all relationships in the game."""
+        game_state = get_game_state()
+        if not game_state:
+            return jsonify({"success": False, "message": "Game state not initialized"}), 503
+        
+        try:
+            relationships_system = game_state._relationships_system
+            if not relationships_system:
+                return jsonify({"success": False, "message": "Relationships system not initialized"}), 503
+            
+            all_relationships = []
+            for specialist_id in relationships_system.specialists_relationships.keys():
+                specialist_rels = relationships_system.specialists_relationships[specialist_id]
+                for other_id, relationship in specialist_rels.relationships.items():
+                    all_relationships.append({
+                        "specialist_a": specialist_id,
+                        "specialist_b": other_id,
+                        "type": relationship.relationship_type.name,
+                        "intensity": relationship.intensity,
+                        "incidents_together": relationship.incidents_together,
+                        "multiplier": relationship.get_synergy_multiplier()
+                    })
+            
+            return jsonify({
+                "success": True,
+                "data": all_relationships,
+                "count": len(all_relationships),
+                "timestamp": datetime.utcnow().isoformat()
+            })
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 500
+    
+    @bp.route('/specialists/relationships/team-synergy', methods=['POST'])
+    def get_team_synergy():
+        """Calculate synergy multiplier for a team of specialists."""
+        game_state = get_game_state()
+        if not game_state:
+            return jsonify({"success": False, "message": "Game state not initialized"}), 503
+        
+        try:
+            data = request.get_json()
+            team_ids = data.get('team_ids', [])
+            
+            if not team_ids or not isinstance(team_ids, list):
+                return jsonify({
+                    "success": False,
+                    "message": "team_ids must be a non-empty list"
+                }), 400
+            
+            # Verify all specialists exist
+            for spec_id in team_ids:
+                if not game_state.get_specialist_by_id(spec_id):
+                    return jsonify({
+                        "success": False,
+                        "message": f"Specialist {spec_id} not found"
+                    }), 404
+            
+            relationships_system = game_state._relationships_system
+            if not relationships_system:
+                return jsonify({"success": False, "message": "Relationships system not initialized"}), 503
+            
+            # Register specialists if not already registered
+            for spec_id in team_ids:
+                relationships_system.register_specialist(spec_id)
+            
+            synergy_multiplier = relationships_system.get_team_synergy_multiplier(team_ids)
+            
+            # Get team composition summary
+            team_members = [
+                {
+                    "id": spec_id,
+                    "name": game_state.get_specialist_by_id(spec_id).name
+                }
+                for spec_id in team_ids
+            ]
+            
+            return jsonify({
+                "success": True,
+                "data": {
+                    "team_ids": team_ids,
+                    "team_members": team_members,
+                    "synergy_multiplier": synergy_multiplier,
+                    "synergy_type": "positive" if synergy_multiplier > 1.0 else ("negative" if synergy_multiplier < 1.0 else "neutral"),
+                    "synergy_percentage": f"{((synergy_multiplier - 1.0) * 100):.1f}%"
+                },
+                "timestamp": datetime.utcnow().isoformat()
+            })
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 500
+    
+    @bp.route('/specialists/relationships/create', methods=['POST'])
+    def create_relationship():
+        """Create a manual relationship between two specialists."""
+        game_state = get_game_state()
+        if not game_state:
+            return jsonify({"success": False, "message": "Game state not initialized"}), 503
+        
+        try:
+            data = request.get_json()
+            specialist_a_id = data.get('specialist_a_id')
+            specialist_b_id = data.get('specialist_b_id')
+            relationship_type = data.get('type', 'FRIENDLY')  # FRIENDLY, RIVAL, NEUTRAL
+            intensity = data.get('intensity')
+            
+            # Validate inputs
+            if not specialist_a_id or not specialist_b_id:
+                return jsonify({
+                    "success": False,
+                    "message": "specialist_a_id and specialist_b_id required"
+                }), 400
+            
+            if specialist_a_id == specialist_b_id:
+                return jsonify({
+                    "success": False,
+                    "message": "Cannot create relationship with same specialist"
+                }), 400
+            
+            # Verify both specialists exist
+            if not game_state.get_specialist_by_id(specialist_a_id):
+                return jsonify({
+                    "success": False,
+                    "message": f"Specialist {specialist_a_id} not found"
+                }), 404
+            
+            if not game_state.get_specialist_by_id(specialist_b_id):
+                return jsonify({
+                    "success": False,
+                    "message": f"Specialist {specialist_b_id} not found"
+                }), 404
+            
+            relationships_system = game_state._relationships_system
+            if not relationships_system:
+                return jsonify({"success": False, "message": "Relationships system not initialized"}), 503
+            
+            # Create appropriate relationship
+            if relationship_type.upper() == 'FRIENDLY':
+                if intensity is None:
+                    intensity = 75
+                relationships_system.create_friendship(specialist_a_id, specialist_b_id, intensity)
+                rel_type = "friendship"
+            elif relationship_type.upper() == 'RIVAL':
+                if intensity is None:
+                    intensity = -75
+                relationships_system.create_rivalry(specialist_a_id, specialist_b_id, intensity)
+                rel_type = "rivalry"
+            else:
+                return jsonify({
+                    "success": False,
+                    "message": "type must be FRIENDLY, RIVAL, or NEUTRAL"
+                }), 400
+            
+            # Get created relationship
+            rel_summary_a = relationships_system.get_specialist_relationships_summary(specialist_a_id)
+            
+            return jsonify({
+                "success": True,
+                "message": f"Created {rel_type} between specialists",
+                "data": {
+                    "specialist_a": specialist_a_id,
+                    "specialist_b": specialist_b_id,
+                    "type": rel_type,
+                    "intensity": intensity,
+                    "specialist_a_relationships": rel_summary_a
+                },
+                "timestamp": datetime.utcnow().isoformat()
+            })
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 500
+    
+    @bp.route('/specialists/relationships/delete', methods=['POST'])
+    def delete_relationship():
+        """Delete a relationship between two specialists."""
+        game_state = get_game_state()
+        if not game_state:
+            return jsonify({"success": False, "message": "Game state not initialized"}), 503
+        
+        try:
+            data = request.get_json()
+            specialist_a_id = data.get('specialist_a_id')
+            specialist_b_id = data.get('specialist_b_id')
+            
+            if not specialist_a_id or not specialist_b_id:
+                return jsonify({
+                    "success": False,
+                    "message": "specialist_a_id and specialist_b_id required"
+                }), 400
+            
+            relationships_system = game_state._relationships_system
+            if not relationships_system:
+                return jsonify({"success": False, "message": "Relationships system not initialized"}), 503
+            
+            # Check if relationship exists
+            if specialist_a_id not in relationships_system.specialists_relationships:
+                return jsonify({
+                    "success": False,
+                    "message": f"Specialist {specialist_a_id} has no relationships"
+                }), 404
+            
+            specialist_rels = relationships_system.specialists_relationships[specialist_a_id]
+            if specialist_b_id not in specialist_rels.relationships:
+                return jsonify({
+                    "success": False,
+                    "message": f"No relationship between {specialist_a_id} and {specialist_b_id}"
+                }), 404
+            
+            # Delete relationship
+            deleted_rel = specialist_rels.relationships[specialist_b_id]
+            del specialist_rels.relationships[specialist_b_id]
+            
+            # Also remove reverse relationship if exists
+            if specialist_b_id in relationships_system.specialists_relationships:
+                reverse_rels = relationships_system.specialists_relationships[specialist_b_id]
+                if specialist_a_id in reverse_rels.relationships:
+                    del reverse_rels.relationships[specialist_a_id]
+            
+            return jsonify({
+                "success": True,
+                "message": "Relationship deleted",
+                "data": {
+                    "specialist_a": specialist_a_id,
+                    "specialist_b": specialist_b_id,
+                    "deleted_type": deleted_rel.relationship_type.name,
+                    "deleted_intensity": deleted_rel.intensity
+                },
+                "timestamp": datetime.utcnow().isoformat()
+            })
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 500
+    
     return bp
