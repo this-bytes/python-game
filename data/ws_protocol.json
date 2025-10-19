@@ -1,0 +1,359 @@
+{
+  "protocol_version": "1.0.0",
+  "description": "Canonical WebSocket and REST protocol for dual-mode backend architecture",
+  "rest_endpoints": {
+    "game_state": {
+      "GET /api/game/state": {
+        "description": "Get full game state snapshot",
+        "response": {
+          "success": true,
+          "data": {
+            "specialists": [],
+            "incidents": [],
+            "clients": [],
+            "current_money": 0,
+            "metrics": {}
+          },
+          "timestamp": "ISO8601"
+        }
+      },
+      "PUT /api/game/state": {
+        "description": "Update game state (full or partial)",
+        "request": {
+          "current_money": 10000,
+          "is_paused": false
+        },
+        "response": {
+          "success": true,
+          "message": "State updated"
+        }
+      }
+    },
+    "actions": {
+      "POST /api/action": {
+        "description": "Submit player action for processing",
+        "request": {
+          "action_type": "assign_incident",
+          "data": {
+            "incident_id": "inc_001",
+            "specialist_id": "spec_001"
+          },
+          "timestamp": 0
+        },
+        "response": {
+          "success": true,
+          "result": {
+            "assigned": true
+          }
+        }
+      }
+    },
+    "save_load": {
+      "POST /api/save": {
+        "description": "Save game state to slot",
+        "request": {
+          "slot": 0,
+          "auto_save": false
+        },
+        "response": {
+          "success": true,
+          "save_id": "save_20251019_001",
+          "timestamp": "ISO8601"
+        }
+      },
+      "POST /api/load": {
+        "description": "Load game state from slot",
+        "request": {
+          "slot": 0
+        },
+        "response": {
+          "success": true,
+          "data": {}
+        }
+      }
+    },
+    "config": {
+      "POST /api/config/reload": {
+        "description": "Reload configuration from JSON files",
+        "response": {
+          "success": true,
+          "configs_reloaded": []
+        }
+      }
+    },
+    "godmode": {
+      "POST /api/godmode/add-money": {
+        "description": "Add money (god mode)",
+        "request": {
+          "amount": 10000
+        },
+        "response": {
+          "success": true,
+          "new_balance": 25000
+        }
+      },
+      "POST /api/godmode/spawn-incident": {
+        "description": "Spawn specific incident (god mode)",
+        "request": {
+          "type": "DDoS Attack",
+          "difficulty": 3,
+          "client_id": "client_001"
+        },
+        "response": {
+          "success": true,
+          "incident": {}
+        }
+      },
+      "PUT /api/godmode/specialist/{specialist_id}": {
+        "description": "Modify specialist (god mode)",
+        "request": {
+          "level": 10,
+          "xp": 5000
+        },
+        "response": {
+          "success": true,
+          "specialist": {}
+        }
+      }
+    }
+  },
+  "websocket_events": {
+    "client_to_server": {
+      "subscribe": {
+        "event": "subscribe",
+        "data": {
+          "channels": ["game_state", "incidents", "specialists"]
+        },
+        "description": "Subscribe to specific event channels"
+      },
+      "action": {
+        "event": "action",
+        "data": {
+          "action_type": "assign_incident",
+          "data": {}
+        },
+        "description": "Submit action via WebSocket (alternative to REST)"
+      }
+    },
+    "server_to_client": {
+      "game_snapshot": {
+        "event": "game_snapshot",
+        "data": {
+          "specialists": [],
+          "incidents": [],
+          "current_money": 0,
+          "metrics": {},
+          "timestamp": 0
+        },
+        "frequency": "periodic (every 1-5 seconds) or on_change",
+        "description": "Full or incremental game state snapshot"
+      },
+      "event": {
+        "event": "event",
+        "data": {
+          "event_type": "achievement_unlocked",
+          "data": {},
+          "timestamp": 0
+        },
+        "description": "Generic game event notification"
+      },
+      "incident_generated": {
+        "event": "incident_generated",
+        "data": {
+          "incident": {
+            "id": "inc_001",
+            "incident_type": "DDoS Attack",
+            "difficulty": 3
+          },
+          "timestamp": 0
+        },
+        "description": "New incident spawned"
+      },
+      "incident_updated": {
+        "event": "incident_updated",
+        "data": {
+          "incident_id": "inc_001",
+          "changes": {
+            "status": "assigned",
+            "assigned_specialist_id": "spec_001"
+          },
+          "timestamp": 0
+        },
+        "description": "Incident state changed"
+      },
+      "incident_resolved": {
+        "event": "incident_resolved",
+        "data": {
+          "incident_id": "inc_001",
+          "specialist_id": "spec_001",
+          "success": true,
+          "reward": 1000,
+          "xp_earned": 150,
+          "timestamp": 0
+        },
+        "description": "Incident completed or failed"
+      },
+      "specialist_updated": {
+        "event": "specialist_updated",
+        "data": {
+          "specialist_id": "spec_001",
+          "changes": {
+            "level": 6,
+            "xp": 1500
+          },
+          "timestamp": 0
+        },
+        "description": "Specialist state changed (level up, assignment, etc.)"
+      },
+      "plugin_event": {
+        "event": "plugin_event",
+        "data": {
+          "plugin_name": "BurnoutPlugin",
+          "event_type": "burnout_threshold_reached",
+          "data": {
+            "specialist_id": "spec_001",
+            "burnout_level": 85
+          },
+          "timestamp": 0
+        },
+        "description": "Plugin-specific event (burnout, achievements, etc.)"
+      },
+      "connection": {
+        "event": "connection",
+        "data": {
+          "message": "Connected to game server",
+          "protocol_version": "1.0.0",
+          "server_time": 0
+        },
+        "description": "Connection established"
+      },
+      "error": {
+        "event": "error",
+        "data": {
+          "code": "INVALID_ACTION",
+          "message": "Cannot assign specialist to incident: specialty mismatch",
+          "details": {}
+        },
+        "description": "Error notification"
+      }
+    }
+  },
+  "action_types": {
+    "assign_incident": {
+      "description": "Assign incident to specialist",
+      "data": {
+        "incident_id": "string (required)",
+        "specialist_id": "string (required)"
+      }
+    },
+    "unassign_incident": {
+      "description": "Unassign incident from specialist",
+      "data": {
+        "incident_id": "string (required)"
+      }
+    },
+    "hire_specialist": {
+      "description": "Hire new specialist",
+      "data": {
+        "template_id": "string (required)",
+        "name": "string (optional)"
+      }
+    },
+    "fire_specialist": {
+      "description": "Fire specialist",
+      "data": {
+        "specialist_id": "string (required)"
+      }
+    },
+    "rest_specialist": {
+      "description": "Send specialist on rest/recovery",
+      "data": {
+        "specialist_id": "string (required)",
+        "duration_hours": "number (optional, default 8)"
+      }
+    },
+    "equip_item": {
+      "description": "Equip item to specialist",
+      "data": {
+        "specialist_id": "string (required)",
+        "equipment_id": "string (required)",
+        "slot": "string (required)"
+      }
+    },
+    "unequip_item": {
+      "description": "Unequip item from specialist",
+      "data": {
+        "specialist_id": "string (required)",
+        "slot": "string (required)"
+      }
+    },
+    "purchase_equipment": {
+      "description": "Purchase equipment from shop",
+      "data": {
+        "equipment_id": "string (required)"
+      }
+    },
+    "activate_ability": {
+      "description": "Activate specialist ability",
+      "data": {
+        "specialist_id": "string (required)",
+        "ability_id": "string (required)",
+        "target_id": "string (optional)"
+      }
+    },
+    "prestige": {
+      "description": "Perform prestige reset",
+      "data": {
+        "confirm": "boolean (required, must be true)"
+      }
+    },
+    "purchase_prestige_upgrade": {
+      "description": "Purchase prestige upgrade",
+      "data": {
+        "upgrade_id": "string (required)"
+      }
+    },
+    "sign_contract": {
+      "description": "Sign client contract",
+      "data": {
+        "contract_id": "string (required)"
+      }
+    },
+    "renew_contract": {
+      "description": "Renew existing contract",
+      "data": {
+        "contract_id": "string (required)"
+      }
+    },
+    "build_facility": {
+      "description": "Build facility upgrade",
+      "data": {
+        "facility_type": "string (required)"
+      }
+    },
+    "upgrade_facility": {
+      "description": "Upgrade facility",
+      "data": {
+        "facility_id": "string (required)"
+      }
+    }
+  },
+  "error_codes": {
+    "INVALID_ACTION": "Action type not recognized or malformed",
+    "UNAUTHORIZED": "Admin token required or invalid",
+    "SPECIALIST_NOT_FOUND": "Specialist ID does not exist",
+    "INCIDENT_NOT_FOUND": "Incident ID does not exist",
+    "SPECIALTY_MISMATCH": "Specialist specialty doesn't match incident requirement",
+    "SPECIALIST_BUSY": "Specialist is already assigned to an incident",
+    "INSUFFICIENT_FUNDS": "Not enough money to complete action",
+    "COOLDOWN_ACTIVE": "Ability is on cooldown",
+    "INVALID_STATE": "Game state does not allow this action",
+    "SERVER_ERROR": "Internal server error"
+  },
+  "notes": {
+    "timestamp_format": "Unix epoch time (seconds since 1970-01-01) or ISO8601 string",
+    "event_ordering": "Events are delivered in chronological order but may arrive out of order due to network",
+    "reconnection": "Clients should reconnect on disconnect and request full game_snapshot to resync",
+    "rate_limiting": "Actions via WebSocket are rate-limited to prevent abuse (configurable per deployment)"
+  }
+}

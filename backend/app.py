@@ -120,6 +120,7 @@ class BackendApp:
         from backend.routes.entity_management import create_entity_management_blueprint
         from backend.routes.game_integration import create_game_integration_blueprint
         from backend.routes.schemas import create_schemas_blueprint
+        from backend.routes.actions import create_actions_blueprint
         
         # Register blueprints with game_state reference
         self.app.register_blueprint(
@@ -180,6 +181,10 @@ class BackendApp:
         )
         self.app.register_blueprint(
             create_schemas_blueprint(),
+            url_prefix=BackendConfig.API_PREFIX
+        )
+        self.app.register_blueprint(
+            create_actions_blueprint(self.game_state),
             url_prefix=BackendConfig.API_PREFIX
         )
         
