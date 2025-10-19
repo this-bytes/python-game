@@ -183,3 +183,70 @@ class TestGameModeEnum:
         """Test that all GameMode values are unique."""
         values = [mode.value for mode in GameMode]
         assert len(values) == len(set(values))
+
+
+class TestBackendConfiguration:
+    """Test backend configuration in GameArgs."""
+    
+    def test_default_no_backend(self):
+        """Test default configuration has no backend."""
+        args = GameArgs()
+        assert not args.local_server
+        assert args.remote_host is None
+        assert not args.no_server
+        assert args.get_backend_mode() == "none"
+        assert args.get_backend_url() is None
+    
+    def test_local_server_mode(self):
+        """Test local server mode configuration."""
+        args = GameArgs(local_server=True)
+        assert args.local_server
+        assert args.get_backend_mode() == "local"
+        assert args.get_backend_url() == "http://localhost:5001"
+        assert args.should_use_backend()
+    
+    def test_local_server_custom_port(self):
+        """Test local server with custom port."""
+        args = GameArgs(local_server=True, server_port=8080)
+        assert args.get_backend_url() == "http://localhost:8080"
+    
+    def test_remote_server_mode(self):
+        """Test remote server mode configuration."""
+        args = GameArgs(remote_host="192.168.1.100")
+        assert args.remote_host == "192.168.1.100"
+        assert args.get_backend_mode() == "remote"
+        assert args.get_backend_url() == "http://192.168.1.100:5001"
+        assert args.should_use_backend()
+    
+    def test_remote_server_custom_port(self):
+        """Test remote server with custom port."""
+        args = GameArgs(remote_host="game-server.local", server_port=9000)
+        assert args.get_backend_url() == "http://game-server.local:9000"
+    
+    def test_no_server_mode(self):
+        """Test no server mode disables backend."""
+        args = GameArgs(no_server=True)
+        assert args.no_server
+        assert args.get_backend_mode() == "none"
+        assert args.get_backend_url() is None
+        assert not args.should_use_backend()
+    
+    def test_admin_token(self):
+        """Test admin token configuration."""
+        args = GameArgs(local_server=True, admin_token="test-token-123")
+        assert args.admin_token == "test-token-123"
+    
+    def test_conflicting_local_and_remote_raises_error(self):
+        """Test that local and remote modes cannot be used together."""
+        with pytest.raises(ValueError, match="Cannot use both --local-server and --remote-host"):
+            GameArgs(local_server=True, remote_host="192.168.1.100")
+    
+    def test_conflicting_no_server_and_local_raises_error(self):
+        """Test that no-server and local-server cannot be used together."""
+        with pytest.raises(ValueError, match="Cannot use --no-server with"):
+            GameArgs(no_server=True, local_server=True)
+    
+    def test_conflicting_no_server_and_remote_raises_error(self):
+        """Test that no-server and remote-host cannot be used together."""
+        with pytest.raises(ValueError, match="Cannot use --no-server with"):
+            GameArgs(no_server=True, remote_host="192.168.1.100")
