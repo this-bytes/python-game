@@ -1,19 +1,18 @@
-# 🎮 CYBERSECURITY FIRM TYCOON - PLAYER GUIDE
+# 🎮 TRUE IDLE GAME - PLAYER GUIDE
 
 ## Welcome to Your Cybersecurity Firm!
 
-This is an **Active Strategy Tycoon with Idle Elements**. You make strategic decisions about incident assignment, build your team, and watch your firm grow!
+This is now a **TRUE IDLE GAME** with RPG/RTS elements. Your firm runs automatically, but you can intervene strategically for bonus rewards!
 
 ---
 
-## ⚡ Core Gameplay: Decision-Based Assignment
+## 🤖 Auto-Play: The Core Mechanic
 
 ### How It Works
-- **Incidents spawn continuously** from your client contracts
-- **YOU decide who handles what** - strategic assignment is key
-- **Specialists resolve incidents** and earn XP/money
-- **Automation helps later** - unlock scripts to handle routine incidents
-- **Stay engaged** - this game rewards active decision-making!
+- **Specialists automatically assign themselves** to incoming incidents
+- **No clicking required** - your firm runs on autopilot
+- **Close the game** - it continues progressing offline
+- **Reopen later** - collect all the money and XP you earned!
 
 ### What You See
 ```
@@ -134,43 +133,44 @@ Auto-play ON | 2 synergies available
 ## 💰 Money & Progression
 
 ### How You Earn Money
-1. **Incident Resolution** - base reward per incident
-2. **Synergy Bonuses** - 1.2x-1.8x multiplier on rewards
-3. **SLA Compliance** - meet deadlines for full payment
-4. **Passive Income (Late Game)** - retainer contracts + investments
+1. **Passive Income** - constant trickle from clients
+2. **Incident Resolution** - base reward per incident
+3. **Synergy Bonuses** - 1.2x-1.8x multiplier on rewards
+4. **Offline Progress** - earn while game is closed!
 
 ### XP & Leveling
 - Specialists gain XP from resolving incidents
 - **Synergy matches** = 1.5x-2.5x XP!
-- Level up → unlock automation scripts → reduce tedium!
-- Higher levels → handle more complex incidents
+- Level up → unlock automation scripts → more idle mechanics!
 
 ---
 
-## 🤖 Automation (Late Game)
+## 🌙 Offline Progression
 
 ### How It Works
-As you progress, unlock automation scripts that handle routine incidents:
-1. **Early Game (1-10)**: Manual assignment of every incident
-2. **Mid Game (10-20)**: Scripts handle ~50% (low-difficulty incidents)
-3. **Late Game (20-30)**: Scripts handle ~80% (everything routine)
+When you close the game:
+1. Game simulates up to **24 hours** of progress
+2. Calculates incidents generated
+3. Simulates auto-assignments and resolutions
+4. Awards money and XP
 
-### Automation Rules
+### When You Return
 ```
-Example Script:
-IF incident.difficulty <= 3 AND
-   incident.type == "DDoS" AND
-   specialist.specialty == "Network Security"
-THEN auto-assign
+OFFLINE PROGRESS SUMMARY
+You were offline for: 8 hours
 
-Result: You focus on complex incidents only!
+Incidents Resolved: 243
+Money Earned: $48,500
+Specialists Leveled: 2
+Automation Scripts Triggered: 156
+
+Welcome back!
 ```
 
-### Why Automation?
-- **Not for offline play** - it reduces tedium during active play
-- **Strategic tool** - you configure the rules
-- **Late-game reward** - earned through progression
-- **You stay in control** - can always manually override
+### Offline Efficiency
+- **80% efficiency** vs active play
+- Still worth leaving game closed!
+- Great for overnight progression
 
 ---
 
@@ -221,35 +221,34 @@ Result: You focus on complex incidents only!
 
 ### Prestige Strategy
 - Earn prestige points from XP/money
-- Unlock permanent bonuses (XP multiplier, starting money, etc.)
-- Reset and do it again with advantages
-- Try different strategies each run
+- Unlock faster auto-assignment
+- Unlock more synergies per specialist
+- Increase offline progress efficiency
 
 ---
 
 ## 🎯 Why This Is Fun
 
-### The Core Appeal
-1. **Strategic Decision-Making** - WHO handles WHAT matters
-2. **Team Building** - Compose the perfect team
-3. **Progressive Automation** - Earn the right to reduce tedium
+### The Idle Game Formula
+1. **Progress without clicking** (auto-play core)
+2. **Strategic intervention** (synergy bonuses)
+3. **Offline progression** (earn while away)
 4. **Satisfying multipliers** (2.5x XP feels great!)
 
-### The Design Philosophy
-- **Active engagement rewarded** - smart decisions = better outcomes
-- **Manual play is the game** - not a chore before automation
+### Balatro-Inspired Design
+- **Auto-play works** - no stress
+- **Manual play = bonuses** - rewarded for thinking
 - **Synergy matching** - like card synergies in Balatro
-- **Automation is earned** - not given, you progress to it
+- **Never punished for being AFK** - true idle game
 
 ### The Satisfaction Loop
 ```
-1. Incident spawns
-2. Assess difficulty and type
-3. Choose optimal specialist
-4. Watch them handle it efficiently
-5. Earn rewards and XP
-6. Level up and unlock automation
-7. Repeat with more complex incidents
+1. Check synergy panel
+2. See 🔥 URGENT opportunity
+3. Manually assign for bonus
+4. "💎 2.5x XP | 1.8x $!"
+5. Feel smart + get rewarded
+6. Repeat when you feel like it
 ```
 
 ---
@@ -257,56 +256,54 @@ Result: You focus on complex incidents only!
 ## 🚀 Getting Started
 
 ### Your First Session
-1. **Start the game** - you have 2 junior specialists
-2. **Incidents start spawning** - one every minute or so
-3. **Click incidents to assign** - match specialist to incident type
-4. **Watch SLA timers** - meet deadlines for full payment
-5. **Earn money and XP** - specialists level up
-6. **Unlock automation** - around level 5-10
-7. **Scale your firm** - hire more specialists, take bigger contracts!
+1. **Start the game** - auto-play is already ON
+2. **Watch it work** - incidents auto-assign
+3. **Press S** after 1 minute - check synergies
+4. **Manually assign 1-2 high-synergy incidents**
+5. **Let auto-play handle the rest**
+6. **Close the game** after 10 minutes
+7. **Come back tomorrow** - collect offline rewards!
 
 ### What To Focus On
-- ✅ Match specialist specialty to incident type
-- ✅ Watch for synergy opportunities (bonus XP/money)
-- ✅ Keep an eye on burnout meters
-- ✅ Meet SLA deadlines for full payment
-- ❌ Don't over-assign to one specialist (burnout!)
-- ❌ Don't ignore SLA timers (lose money!)
+- ✅ Let auto-play do most of the work
+- ✅ Check synergy panel occasionally
+- ✅ Manual assign when you see 2x+ bonuses
+- ✅ Close game guilt-free (offline progress!)
+- ❌ Don't feel pressure to constantly click
+- ❌ Don't manually assign every incident
 
 ---
 
 ## 💬 Philosophy
 
-> **"You're the CEO of a security firm. Incidents happen. You decide WHO handles WHAT. Build a legendary team. Balance chaos. Scale an empire."**  
-> — Game Vision
+> **"This is an idle game which is meant to progress even when game is not running."**  
+> — User feedback
 
 ### What We Built
-- ✅ Active strategy tycoon - you make decisions
-- ✅ Strategic depth - team composition and automation rules matter
-- ✅ Progressive automation - earned through gameplay
-- ✅ Synergy system - rewards optimal specialist assignment
-- ✅ Decision-based core - who handles what is the game
+- ✅ True idle game - auto-plays by default
+- ✅ Strategic depth - synergy bonuses reward thinking
+- ✅ Offline progression - earn while away
+- ✅ Balatro-inspired - auto-play + strategic intervention
+- ✅ No clicking required - but clicking = bonuses
 
 ### The Vision
-A cybersecurity tycoon where:
-- You make strategic assignment decisions
-- Build and manage a legendary team
-- Balance chaos and scale your firm
-- Automation reduces tedium (late game)
-- Every decision matters
+A cybersecurity idle game where:
+- Your firm runs itself competently
+- You intervene strategically for big bonuses
+- Synergies create interesting decisions
+- Progression happens 24/7
 
 ---
 
-## 🎮 Build Your Cybersecurity Empire!
+## 🎮 Enjoy Your Idle Cybersecurity Empire!
 
 **Remember:**
-- Strategic decisions are the game
-- Synergies reward smart assignment
-- Burnout is real - manage it
-- SLA timers create tension
-- Automation is earned, not given
+- Auto-play is your friend
+- Synergies are your edge
+- Offline progress is free money
+- Strategic intervention = big bonuses
 
-**Now go build the best cybersecurity firm in the world! 🚀🔒**
+**Now sit back, relax, and watch your firm dominate the cybersecurity industry! 🚀🔒**
 
 ---
 

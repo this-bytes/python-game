@@ -1,3 +1,11 @@
+---
+applies_to:
+  - "src/core/plugins/**/*.py"
+  - "src/core/event_bus.py"
+  - "src/core/system_manager.py"
+  - "src/main.py"
+---
+
 # Plugin System Architecture - Instructions
 
 **This file contains the complete plugin system architecture documentation.**
@@ -407,7 +415,7 @@ def update(self, game_state, delta_time: float) -> None:
 
 ## See Also
 
-- [ARCHITECTURE.md](ARCHITECTURE.md) - Overall project architecture
+- [ARCHITECTURE.md](../ARCHITECTURE.md) - Overall project architecture
 - [CODE_STYLE.md](CODE_STYLE.md) - Code style requirements
 - [TESTING_STANDARDS.md](TESTING_STANDARDS.md) - Testing requirements
-- [copilot-instructions.md](copilot-instructions.md) - Main instructions
+- [copilot-instructions.md](../copilot-instructions.md) - Main instructions

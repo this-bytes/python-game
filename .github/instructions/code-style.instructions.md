@@ -1,3 +1,10 @@
+---
+applies_to:
+  - "src/**/*.py"
+  - "backend/**/*.py"
+  - "tests/**/*.py"
+---
+
 # Code Style - Instructions
 
 **This file contains coding conventions, naming standards, and anti-patterns to avoid.**
@@ -863,7 +870,7 @@ specialist.award_xp(incident.xp)
 
 ## See Also
 
-- **[copilot-instructions.md](copilot-instructions.md)** - Main instructions and overview
+- **[copilot-instructions.md](../copilot-instructions.md)** - Main instructions and overview
 - **[core-standards.instructions.md](core-standards.instructions.md)** - Absolute standards and quality gates
 - **[testing.instructions.md](testing.instructions.md)** - Testing requirements
 - **[architecture.instructions.md](architecture.instructions.md)** - System architecture

@@ -538,3 +538,173 @@ def create_economy_blueprint(game_state_ref):
     
     return bp
 
+
+def create_facilities_blueprint(game_state_ref):
+    """Create the facilities blueprint."""
+    bp = Blueprint('facilities', __name__)
+    state_container = {'game_state': game_state_ref}
+    
+    # Import here to avoid circular dependencies
+    from src.core.facility_system import FacilitySystem
+    
+    facility_system = FacilitySystem()
+    
+    def get_game_state():
+        return state_container.get('game_state')
+    
+    @bp.route('/facilities', methods=['GET'])
+    def list_facilities():
+        """List all facilities with current status."""
+        game_state = get_game_state()
+        if not game_state:
+            return jsonify({"success": False, "message": "Game state not initialized"}), 503
+        
+        try:
+            facilities = getattr(game_state, 'facilities', [])
+            summary = facility_system.get_all_facilities_summary(facilities)
+            
+            return jsonify({
+                "success": True,
+                "data": summary,
+                "timestamp": datetime.utcnow().isoformat()
+            })
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 500
+    
+    @bp.route('/facilities/<facility_id>', methods=['GET'])
+    def get_facility(facility_id):
+        """Get specific facility details."""
+        game_state = get_game_state()
+        if not game_state:
+            return jsonify({"success": False, "message": "Game state not initialized"}), 503
+        
+        try:
+            facilities = getattr(game_state, 'facilities', [])
+            facility = facility_system.get_facility_by_id(facilities, facility_id)
+            
+            if not facility:
+                return jsonify({"success": False, "message": "Facility not found"}), 404
+            
+            summary = facility_system.get_facility_summary(facility)
+            
+            return jsonify({
+                "success": True,
+                "data": summary,
+                "timestamp": datetime.utcnow().isoformat()
+            })
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 500
+    
+    @bp.route('/facilities/<facility_id>/upgrade', methods=['POST'])
+    def upgrade_facility(facility_id):
+        """Upgrade a facility."""
+        game_state = get_game_state()
+        if not game_state:
+            return jsonify({"success": False, "message": "Game state not initialized"}), 503
+        
+        try:
+            facilities = getattr(game_state, 'facilities', [])
+            facility = facility_system.get_facility_by_id(facilities, facility_id)
+            
+            if not facility:
+                return jsonify({"success": False, "message": "Facility not found"}), 404
+            
+            if not facility.can_upgrade():
+                return jsonify({
+                    "success": False,
+                    "message": "Facility is already at max level"
+                }), 400
+            
+            upgrade_cost = facility.calculate_upgrade_cost()
+            
+            if game_state.current_money < upgrade_cost:
+                return jsonify({
+                    "success": False,
+                    "message": f"Insufficient funds. Need ${upgrade_cost}, have ${game_state.current_money}"
+                }), 400
+            
+            old_level = facility.level
+            old_money = game_state.current_money
+            
+            success = facility_system.upgrade_facility(facility, game_state)
+            
+            if not success:
+                return jsonify({
+                    "success": False,
+                    "message": "Upgrade failed"
+                }), 500
+            
+            return jsonify({
+                "success": True,
+                "message": f"{facility.name} upgraded to level {facility.level}",
+                "data": {
+                    "old_level": old_level,
+                    "new_level": facility.level,
+                    "cost": upgrade_cost,
+                    "old_money": old_money,
+                    "new_money": game_state.current_money,
+                    "facility": facility_system.get_facility_summary(facility)
+                },
+                "timestamp": datetime.utcnow().isoformat()
+            })
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 500
+    
+    @bp.route('/facilities/<facility_id>/set-level', methods=['PUT'])
+    def set_facility_level(facility_id):
+        """Set facility level directly (admin function)."""
+        game_state = get_game_state()
+        if not game_state:
+            return jsonify({"success": False, "message": "Game state not initialized"}), 503
+        
+        try:
+            facilities = getattr(game_state, 'facilities', [])
+            facility = facility_system.get_facility_by_id(facilities, facility_id)
+            
+            if not facility:
+                return jsonify({"success": False, "message": "Facility not found"}), 404
+            
+            data = request.get_json()
+            new_level = data.get('level', 1)
+            
+            if new_level < 1 or new_level > facility.max_level:
+                return jsonify({
+                    "success": False,
+                    "message": f"Level must be between 1 and {facility.max_level}"
+                }), 400
+            
+            old_level = facility.level
+            facility.level = new_level
+            
+            return jsonify({
+                "success": True,
+                "message": f"{facility.name} level set to {new_level}",
+                "data": {
+                    "old_level": old_level,
+                    "new_level": new_level,
+                    "facility": facility_system.get_facility_summary(facility)
+                },
+                "timestamp": datetime.utcnow().isoformat()
+            })
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 500
+    
+    @bp.route('/facilities/effects', methods=['GET'])
+    def get_facility_effects():
+        """Get aggregate facility effects on game state."""
+        game_state = get_game_state()
+        if not game_state:
+            return jsonify({"success": False, "message": "Game state not initialized"}), 503
+        
+        try:
+            effects = facility_system.apply_facility_effects(game_state)
+            
+            return jsonify({
+                "success": True,
+                "data": effects,
+                "timestamp": datetime.utcnow().isoformat()
+            })
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 500
+    
+    return bp

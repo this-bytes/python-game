@@ -1,3 +1,8 @@
+---
+applies_to:
+  - "**/*"
+---
+
 # Core Standards - Instructions
 
 **This file contains the absolute standards, quality gates, and daily checklists.**
@@ -312,7 +317,7 @@ But code that's crystal clear, thoroughly tested, properly documented, and truly
 
 ## See Also
 
-- **[copilot-instructions.md](copilot-instructions.md)** - Main instructions and overview
+- **[copilot-instructions.md](../copilot-instructions.md)** - Main instructions and overview
 - **[code-style.instructions.md](code-style.instructions.md)** - Code style and anti-patterns
 - **[testing.instructions.md](testing.instructions.md)** - Testing requirements
 - **[architecture.instructions.md](architecture.instructions.md)** - System architecture

@@ -1,3 +1,10 @@
+---
+applies_to:
+  - "docs/**/*"
+  - "**/*.md"
+  - ".github/**/*.md"
+---
+
 # Documentation Guidelines - Instructions
 
 **This file explains when to add to instruction files vs feature documentation.**
@@ -367,7 +374,7 @@ Review instruction files:
 
 ## See Also
 
-- **[copilot-instructions.md](copilot-instructions.md)** - Main instructions and navigation hub
+- **[copilot-instructions.md](../copilot-instructions.md)** - Main instructions and navigation hub
 - **[core-standards.instructions.md](core-standards.instructions.md)** - Quality standards
 - **[workflows.instructions.md](workflows.instructions.md)** - How to add features
 - **[architecture.instructions.md](architecture.instructions.md)** - Project structure

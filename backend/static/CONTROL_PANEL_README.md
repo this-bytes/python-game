@@ -30,6 +30,7 @@ Advanced editors for every game entity type:
 - **Incidents** - Create and edit incident types
 - **Specialists** - Manage specialist templates
 - **Equipment** - Edit equipment items with rarity tiers
+- **Facilities** - Configure facility upgrades
 - **Clients** - Manage client data
 - **Automation Scripts** - Edit automation behaviors
 - **Achievements** - Create achievement definitions
@@ -178,6 +179,7 @@ Supported entity types and their JSON files:
 | `incidents` | `incidents.json` | Incident type definitions |
 | `specialist_templates` | `specialist_templates.json` | Specialist archetypes |
 | `equipment` | `equipment.json` | Equipment items |
+| `facilities` | `facilities.json` | Facility types |
 | `clients` | `clients.json` | Client definitions |
 | `automation_scripts` | `automation_scripts.json` | Automation scripts |
 | `achievements` | `achievements.json` | Achievement definitions |

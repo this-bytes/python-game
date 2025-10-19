@@ -1,6 +1,6 @@
 # Cybersecurity Firm Idle/Tycoon/RPG Game - Copilot Instructions
 
-**🚫 ZERO-TOLERANCE FOR MEDIOCRITY - READ [core-standards.instructions.md](core-standards.instructions.md) FIRST**
+**🚫 ZERO-TOLERANCE FOR MEDIOCRITY - READ [core-standards.instructions.md](instructions/core-standards.instructions.md) FIRST**
 
 This is your **main entry point** for working with this codebase. For detailed guidance on specific topics, see the specialized instruction files below.
 
@@ -26,7 +26,7 @@ This is your **main entry point** for working with this codebase. For detailed g
 6. **Self-documenting code** - Clear code needs no explanation - highlevel docstrings only
 7. **Test everything** - Every public function must have tests
 
-👉 **Read [core-standards.instructions.md](core-standards.instructions.md) now. Start there.**
+👉 **Read [core-standards.instructions.md](instructions/core-standards.instructions.md) now. Start there.**
 
 ---
 
@@ -90,14 +90,14 @@ For detailed guidance on specific aspects of development, reference these files:
 
 | Topic | File | When to Use |
 |-------|------|-------------|
-| **Core Standards** | [core-standards.instructions.md](core-standards.instructions.md) | 15-point gate, red flags, quality standards, daily checklist |
-| **Code Style** | [code-style.instructions.md](code-style.instructions.md) | Naming conventions, type hints, docstrings, anti-patterns to avoid |
-| **Architecture** | [architecture.instructions.md](architecture.instructions.md) | Project structure, design patterns, separation of concerns |
-| **Plugin System** | [plugin-system.instructions.md](plugin-system.instructions.md) | Creating new game systems, understanding plugin architecture, event-driven communication |
-| **Testing Standards** | [testing.instructions.md](testing.instructions.md) | Writing tests, test organization, achieving coverage requirements |
-| **Data-Driven Design** | [data-driven.instructions.md](data-driven.instructions.md) | JSON configuration, game balance, hot-reloadable parameters |
-| **Workflows** | [workflows.instructions.md](workflows.instructions.md) | Step-by-step guides for common development tasks |
-| **Documentation Guidelines** | [documentation-guidelines.instructions.md](documentation-guidelines.instructions.md) | When to add to instruction files vs feature docs |
+| **Core Standards** | [core-standards.instructions.md](instructions/core-standards.instructions.md) | 15-point gate, red flags, quality standards, daily checklist |
+| **Code Style** | [code-style.instructions.md](instructions/code-style.instructions.md) | Naming conventions, type hints, docstrings, anti-patterns to avoid |
+| **Architecture** | [architecture.instructions.md](instructions/architecture.instructions.md) | Project structure, design patterns, separation of concerns |
+| **Plugin System** | [plugin-system.instructions.md](instructions/plugin-system.instructions.md) | Creating new game systems, understanding plugin architecture, event-driven communication |
+| **Testing Standards** | [testing.instructions.md](instructions/testing.instructions.md) | Writing tests, test organization, achieving coverage requirements |
+| **Data-Driven Design** | [data-driven.instructions.md](instructions/data-driven.instructions.md) | JSON configuration, game balance, hot-reloadable parameters |
+| **Workflows** | [workflows.instructions.md](instructions/workflows.instructions.md) | Step-by-step guides for common development tasks |
+| **Documentation Guidelines** | [documentation-guidelines.instructions.md](instructions/documentation-guidelines.instructions.md) | When to add to instruction files vs feature docs |
 
 **Pick the right instruction file for your task** - Don't load all context if you only need plugin system guidance.
 
@@ -123,7 +123,7 @@ Every commit must pass this or it's rejected:
 14. ✅ No redundant patterns
 15. ✅ Code clarity verified
 
-**See [core-standards.instructions.md](core-standards.instructions.md) for the 15 red flags that guarantee instant rejection.**
+**See [core-standards.instructions.md](instructions/core-standards.instructions.md) for the 15 red flags that guarantee instant rejection.**
 
 ---
 
@@ -131,14 +131,14 @@ Every commit must pass this or it's rejected:
 
 | Need | File |
 |------|------|
-| **Core standards & red flags** | [core-standards.instructions.md](core-standards.instructions.md) |
-| **Code style & anti-patterns** | [code-style.instructions.md](code-style.instructions.md) |
-| **Architecture & design patterns** | [architecture.instructions.md](architecture.instructions.md) |
-| **Plugin system architecture** | [plugin-system.instructions.md](plugin-system.instructions.md) |
-| **Testing requirements & examples** | [testing.instructions.md](testing.instructions.md) |
-| **JSON configuration patterns** | [data-driven.instructions.md](data-driven.instructions.md) |
-| **Common dev tasks & workflows** | [workflows.instructions.md](workflows.instructions.md) |
-| **Documentation guidelines** | [documentation-guidelines.instructions.md](documentation-guidelines.instructions.md) |
+| **Core standards & red flags** | [core-standards.instructions.md](instructions/core-standards.instructions.md) |
+| **Code style & anti-patterns** | [code-style.instructions.md](instructions/code-style.instructions.md) |
+| **Architecture & design patterns** | [architecture.instructions.md](instructions/architecture.instructions.md) |
+| **Plugin system architecture** | [plugin-system.instructions.md](instructions/plugin-system.instructions.md) |
+| **Testing requirements & examples** | [testing.instructions.md](instructions/testing.instructions.md) |
+| **JSON configuration patterns** | [data-driven.instructions.md](instructions/data-driven.instructions.md) |
+| **Common dev tasks & workflows** | [workflows.instructions.md](instructions/workflows.instructions.md) |
+| **Documentation guidelines** | [documentation-guidelines.instructions.md](instructions/documentation-guidelines.instructions.md) |
 
 ---
 
@@ -166,10 +166,10 @@ Commit format:
 
 ## Before Every Coding Session
 
-1. **Read** [core-standards.instructions.md](core-standards.instructions.md)
-2. **Review** [documentation-guidelines.instructions.md](documentation-guidelines.instructions.md)
+1. **Read** [core-standards.instructions.md](instructions/core-standards.instructions.md)
+2. **Review** [documentation-guidelines.instructions.md](instructions/documentation-guidelines.instructions.md)
 3. **Understand** the architecture from [ARCHITECTURE.md](ARCHITECTURE.md)
-4. **Check** [code-style.instructions.md](code-style.instructions.md) for naming/formatting conventions
+4. **Check** [code-style.instructions.md](instructions/code-style.instructions.md) for naming/formatting conventions
 
 ---
 
@@ -189,7 +189,7 @@ Commit format:
 
 **ALL GAME SYSTEMS ARE PLUGINS.** The plugin system is the ONLY system architecture.
 
-📖 **See [plugin-system.instructions.md](plugin-system.instructions.md) for complete plugin documentation.**
+📖 **See [plugin-system.instructions.md](instructions/plugin-system.instructions.md) for complete plugin documentation.**
 
 **Quick Facts:**
 - All game systems inherit from `GameSystem`
@@ -203,7 +203,7 @@ Commit format:
 
 **ALL GAME PARAMETERS MUST BE IN JSON FILES.**
 
-📖 **See [data-driven.instructions.md](data-driven.instructions.md) for complete JSON configuration patterns.**
+📖 **See [data-driven.instructions.md](instructions/data-driven.instructions.md) for complete JSON configuration patterns.**
 
 If it affects gameplay, it's in JSON config.
 
@@ -213,7 +213,7 @@ If it affects gameplay, it's in JSON config.
 
 **EVERY PUBLIC FUNCTION MUST HAVE TESTS. NO EXCEPTIONS.**
 
-📖 **See [testing.instructions.md](testing.instructions.md) for complete testing standards.**
+📖 **See [testing.instructions.md](instructions/testing.instructions.md) for complete testing standards.**
 
 **Quick Facts:**
 - Minimum 80% coverage for new code
@@ -232,7 +232,7 @@ If it affects gameplay, it's in JSON config.
 - **Add new game system** → Create GameSystem plugin in `/src/core/plugins/` + register in main.py
 - **Debug with godmode** → Use backend admin panel at `http://localhost:5000/admin`
 
-📖 **See [workflows.instructions.md](workflows.instructions.md) for step-by-step guides.**
+📖 **See [workflows.instructions.md](instructions/workflows.instructions.md) for step-by-step guides.**
 
 ---
 
@@ -240,14 +240,14 @@ If it affects gameplay, it's in JSON config.
 
 ### If you're struggling with...
 
-- **Plugin system** → Read [plugin-system.instructions.md](plugin-system.instructions.md) (architecture, events, lifecycle)
-- **Testing** → Read [testing.instructions.md](testing.instructions.md) (fixtures, patterns, coverage)
-- **JSON config** → Read [data-driven.instructions.md](data-driven.instructions.md) (configuration patterns, hot-reload)
-- **Unclear code** → Read [code-style.instructions.md](code-style.instructions.md) (naming, docstrings, clarity)
-- **Bad patterns** → Read [code-style.instructions.md](code-style.instructions.md) (10 anti-patterns with examples)
-- **Architecture questions** → Read [architecture.instructions.md](architecture.instructions.md) (design patterns, separation of concerns)
-- **How to add a feature** → Read [workflows.instructions.md](workflows.instructions.md) (step-by-step guides)
-- **Before committing** → Read [core-standards.instructions.md](core-standards.instructions.md) (commit checklist)
+- **Plugin system** → Read [plugin-system.instructions.md](instructions/plugin-system.instructions.md) (architecture, events, lifecycle)
+- **Testing** → Read [testing.instructions.md](instructions/testing.instructions.md) (fixtures, patterns, coverage)
+- **JSON config** → Read [data-driven.instructions.md](instructions/data-driven.instructions.md) (configuration patterns, hot-reload)
+- **Unclear code** → Read [code-style.instructions.md](instructions/code-style.instructions.md) (naming, docstrings, clarity)
+- **Bad patterns** → Read [code-style.instructions.md](instructions/code-style.instructions.md) (10 anti-patterns with examples)
+- **Architecture questions** → Read [architecture.instructions.md](instructions/architecture.instructions.md) (design patterns, separation of concerns)
+- **How to add a feature** → Read [workflows.instructions.md](instructions/workflows.instructions.md) (step-by-step guides)
+- **Before committing** → Read [core-standards.instructions.md](instructions/core-standards.instructions.md) (commit checklist)
 
 ---
 
@@ -295,7 +295,7 @@ If your code has ANY of these, it gets rejected immediately:
 14. No error logging
 15. Disabled code
 
-See [core-standards.instructions.md](core-standards.instructions.md) for detailed explanations.
+See [core-standards.instructions.md](instructions/core-standards.instructions.md) for detailed explanations.
 
 ---
 
@@ -345,6 +345,8 @@ curl http://localhost:5000/game/state | jq
 | **data-driven.instructions.md** | JSON configuration, hot-reload patterns | Adding game parameters |
 | **workflows.instructions.md** | Step-by-step guides for adding features | Adding features |
 | **documentation-guidelines.instructions.md** | When to add to instruction files vs feature docs | Documenting features |
+
+All instruction files are now located in the `.github/instructions/` subdirectory following GitHub's best practices.
 
 ---
 

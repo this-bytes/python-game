@@ -196,7 +196,7 @@ Points are earned from:
 **POST** `/api/prestige/perform`
 
 Reset the game with prestige bonuses. This will:
-- Reset specialists, incidents, money
+- Reset specialists, incidents, money, facilities
 - Keep clients (reputation reduced to 50%)
 - Award prestige points
 - Maintain prestige upgrades
@@ -260,16 +260,54 @@ Purchase the next level of a prestige upgrade.
 }
 ```
 
-## ⚠️ Removed Features
+## Offline Progress Endpoints
 
-The following API endpoints have been removed as part of vision alignment:
+### Get Offline Progress Report
+**GET** `/api/offline-progress`
 
-- ❌ `GET /api/offline-progress` - Offline progress removed (game is active, not idle)
-- ❌ `POST /api/offline-progress/simulate` - Offline simulation removed
-- ❌ Facility endpoints - Facility system removed (not in core vision)
-- ❌ Market events - Market events removed (not in core vision)
+Get the report from the last offline session.
 
-**See [BRUTAL_REFACTOR_SUMMARY.md](../BRUTAL_REFACTOR_SUMMARY.md) for details on removed features.
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "time_elapsed": 86400,
+    "time_simulated": 86400,
+    "was_capped": false,
+    "summary": {
+      "total_income": 5000.0,
+      "total_xp": 500,
+      "incidents_handled": 120,
+      "incidents_failed": 30
+    }
+  }
+}
+```
+
+### Simulate Offline Progress
+**POST** `/api/offline-progress/simulate`
+
+Simulate offline progress for testing (admin only).
+
+**Request:**
+```json
+{
+  "time_elapsed": 3600
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Simulated 1.0 hours of offline progress",
+  "data": {
+    "time_elapsed": 3600,
+    "time_simulated": 3600,
+    "incidents": [...],
+    "automation": {...},
+    "income": {...}
   }
 }
 ```

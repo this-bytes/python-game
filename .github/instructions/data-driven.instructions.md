@@ -1,3 +1,10 @@
+---
+applies_to:
+  - "data/**/*.json"
+  - "src/**/*.py"
+  - "backend/**/*.py"
+---
+
 # Data-Driven Design - Instructions
 
 **This file contains all JSON configuration patterns and data-driven design principles.**
@@ -466,6 +473,6 @@ curl -X PUT http://localhost:5000/config/update \
 
 ## See Also
 
-- [ARCHITECTURE.md](ARCHITECTURE.md) - Overall architecture
+- [ARCHITECTURE.md](../ARCHITECTURE.md) - Overall architecture
 - [COMMON_TASKS.md](COMMON_TASKS.md) - How to balance economy
-- [copilot-instructions.md](copilot-instructions.md) - Main instructions
+- [copilot-instructions.md](../copilot-instructions.md) - Main instructions
