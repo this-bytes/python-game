@@ -24,7 +24,10 @@ Reference this when:
 /src/models/          → Pure game logic (Specialist, Incident, Client, etc.)
 /src/core/            → Game systems (generation, assignment, resolution, progression)
 /src/ui/              → Pygame rendering ONLY (no game logic)
-/backend/             → Flask/FastAPI CRUD API for live debugging
+/backend/             → Flask/FastAPI CRUD API that provides game backend
+/src/utils/           → Utility functions and helpers
+/src/main.py          → Game entry point and initialization
+/src/config.py        → Configuration management
 /data/                → JSON configuration files (all game parameters)
 /tests/               → Unit tests for all systems
 ```
@@ -111,6 +114,7 @@ class SpecialistPanel:
 - CRUD operations on game state
 - Live parameter editing for debugging
 - No game logic (calls into `/src/core/`)
+- Controls game state via API calls
 - Hot-reload configuration
 
 ```python

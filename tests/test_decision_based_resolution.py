@@ -128,15 +128,23 @@ class TestDecisionBasedResolution:
             else:
                 break
 
-        # Complete resolution
-        result = resolution_system.complete_resolution(session, specialist, incident)
+        # Mock random.random to ensure success
+        import random
+        original_random = random.random
+        random.random = lambda: 0.5  # Will be < final_success_chance
 
-        assert result.success is True
-        assert result.incident_id == incident.id
-        assert result.specialist_id == specialist.id
-        assert result.decisions_made == session.decisions_made
-        assert result.total_burnout_cost == session.total_burnout_cost
-        assert result.total_money_cost == session.total_money_cost
+        try:
+            # Complete resolution
+            result = resolution_system.complete_resolution(session, specialist, incident)
+
+            assert result.success is True
+            assert result.incident_id == incident.id
+            assert result.specialist_id == specialist.id
+            assert result.decisions_made == session.decisions_made
+            assert result.total_burnout_cost == session.total_burnout_cost
+            assert result.total_money_cost == session.total_money_cost
+        finally:
+            random.random = original_random
 
     def test_complete_resolution_with_failure(self, resolution_system, specialist, incident):
         """Verify resolution completion works correctly."""

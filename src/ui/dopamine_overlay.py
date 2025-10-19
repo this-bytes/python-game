@@ -400,12 +400,14 @@ class DopamineFeedbackOverlay:
             x = 20
             y = y_offset
             
-            # Background
+            # Background with alpha blending
             width = 400
             height = 80
-            bg_rect = pygame.Rect(x, y, width, height)
-            pygame.draw.rect(screen, (50, 20, 20, alpha), bg_rect, border_radius=8)
-            pygame.draw.rect(screen, (255, 100, 0, alpha), bg_rect, 3, border_radius=8)
+            bg_surface = pygame.Surface((width, height), pygame.SRCALPHA)
+            bg_surface.set_alpha(alpha)
+            pygame.draw.rect(bg_surface, (50, 20, 20, 255), bg_surface.get_rect(), border_radius=8)
+            pygame.draw.rect(bg_surface, (255, 100, 0, 255), bg_surface.get_rect(), 3, border_radius=8)
+            screen.blit(bg_surface, (x, y))
             
             # Icon
             icon_text = self.combo_font.render(contract.icon, True, (255, 200, 0))

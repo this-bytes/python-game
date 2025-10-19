@@ -188,7 +188,8 @@ def create_contracts_blueprint(game_state_ref):
     
     # Load contract templates
     try:
-        json_loader = JSONLoader()
+        # Use project root data directory since backend runs from backend/
+        json_loader = JSONLoader(data_dir="../data")
         contracts_data = json_loader.load_data("contracts.json")
         if "contract_templates" in contracts_data:
             contract_manager.load_templates(contracts_data["contract_templates"])

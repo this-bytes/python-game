@@ -1,0 +1,84 @@
+{
+  "relationships": {
+    "friendship": {
+      "name": "Friendship",
+      "description": "Specialists who work well together, providing synergy bonuses",
+      "synergy_bonus": 0.15,
+      "morale_boost": 5,
+      "color": [0, 200, 100]
+    },
+    "rivalry": {
+      "name": "Rivalry",
+      "description": "Specialists who compete, creating tension but sometimes driving performance",
+      "synergy_bonus": -0.10,
+      "morale_boost": -3,
+      "color": [200, 100, 0]
+    },
+    "mentorship": {
+      "name": "Mentorship",
+      "description": "Experienced specialist guiding a junior, improving team performance",
+      "synergy_bonus": 0.20,
+      "morale_boost": 8,
+      "color": [100, 150, 255]
+    },
+    "neutral": {
+      "name": "Neutral",
+      "description": "No special relationship, standard team performance",
+      "synergy_bonus": 0.0,
+      "morale_boost": 0,
+      "color": [150, 150, 150]
+    }
+  },
+  "specialist_relationships": {
+    "network_security_1": {
+      "malware_analysis_1": "friendship",
+      "digital_forensics_1": "friendship",
+      "incident_response_1": "rivalry"
+    },
+    "malware_analysis_1": {
+      "network_security_1": "friendship",
+      "application_security_1": "friendship",
+      "cloud_security_1": "rivalry"
+    },
+    "digital_forensics_1": {
+      "network_security_1": "friendship",
+      "incident_response_1": "mentorship",
+      "application_security_1": "neutral"
+    },
+    "application_security_1": {
+      "malware_analysis_1": "friendship",
+      "cloud_security_1": "friendship",
+      "network_security_1": "neutral"
+    },
+    "cloud_security_1": {
+      "application_security_1": "friendship",
+      "malware_analysis_1": "rivalry",
+      "digital_forensics_1": "neutral"
+    },
+    "incident_response_1": {
+      "digital_forensics_1": "mentorship",
+      "network_security_1": "rivalry",
+      "malware_analysis_1": "neutral"
+    }
+  },
+  "morale_config": {
+    "base_morale": 50,
+    "max_morale": 100,
+    "min_morale": 0,
+    "morale_decay_rate": 0.1,
+    "relationship_impact_weight": 0.3,
+    "workload_impact_weight": 0.4,
+    "success_impact_weight": 0.3,
+    "morale_thresholds": {
+      "high": 75,
+      "medium": 50,
+      "low": 25
+    }
+  },
+  "synergy_config": {
+    "team_size_bonus_multiplier": 0.05,
+    "relationship_diversity_bonus": 0.1,
+    "max_synergy_bonus": 0.5,
+    "min_synergy_penalty": -0.3
+  }
+}

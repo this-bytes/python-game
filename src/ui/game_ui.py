@@ -1,7 +1,17 @@
 """Game User Interface using Pygame.
 
 This module handles all visual rendering and user input for the game.
-Following the architecture principle: Pygame renders, it doesn't think.
+Following the architecture pri        self.panel_dict = {
+            "specialist_roster": self.specialist_roster_panel,
+            "incident_queue": self.incident_queue_panel,
+            "metrics": self.metrics_panel,
+            "equipment_shop": self.equipment_shop_panel,
+            "equipment_inventory": self.equipment_inventory_panel,
+            "automation_builder": self.automation_builder_panel,
+            "progressive_difficulty": self.progressive_difficulty_panel,
+            "skill_tree": self.skill_tree_panel,
+            "team_dynamics": self.team_dynamics_panel,
+        }game renders, it doesn't think.
 """
 
 import pygame
@@ -19,6 +29,10 @@ from src.ui.panels.incident_queue_panel import IncidentQueuePanel
 from src.ui.panels.metrics_panel import MetricsPanel
 from src.ui.panels.equipment_shop_panel import EquipmentShopPanel
 from src.ui.panels.equipment_inventory_panel import EquipmentInventoryPanel
+from src.ui.panels.automation_builder_panel import AutomationBuilderPanel
+from src.ui.panels.progressive_difficulty_panel import ProgressiveDifficultyPanel
+from src.ui.panels.skill_tree_panel import SkillTreePanel
+from src.ui.panels.team_dynamics_panel import TeamDynamicsPanel
 from src.ui.components.button import Button, ButtonStyle
 from src.ui.dopamine_overlay import DopamineFeedbackOverlay
 from src.ui.synergy_overlay import SynergySuggestionOverlay, AutoPlayIndicator
@@ -90,6 +104,10 @@ class GameUI:
         self.metrics_panel = MetricsPanel(self.game_state)
         self.equipment_shop_panel = EquipmentShopPanel(self.game_state)
         self.equipment_inventory_panel = EquipmentInventoryPanel(self.game_state)
+        self.automation_builder_panel = AutomationBuilderPanel(self.game_state)
+        self.progressive_difficulty_panel = ProgressiveDifficultyPanel(50, 50, 400, 300)
+        self.skill_tree_panel = SkillTreePanel(50, 50, 600, 400)
+        self.team_dynamics_panel = TeamDynamicsPanel(50, 50, 600, 400)
 
         # Apply theme to panels
         self._apply_theme_to_panels()
@@ -101,6 +119,10 @@ class GameUI:
             self.metrics_panel,
             self.equipment_shop_panel,
             self.equipment_inventory_panel,
+            self.automation_builder_panel,
+            self.progressive_difficulty_panel,
+            self.skill_tree_panel,
+            self.team_dynamics_panel,
         ]
         
         # Initialize navigation menu
@@ -109,6 +131,10 @@ class GameUI:
             MenuItem("operations", "Operations", "⚡", "Incidents & Specialists", pygame.K_F2),
             MenuItem("management", "Management", "🏢", "Equipment & Facilities", pygame.K_F3),
             MenuItem("analytics", "Analytics", "📈", "Metrics & Achievements", pygame.K_F4),
+            MenuItem("automation", "Automation", "🤖", "Build Custom Automation Scripts", pygame.K_F5),
+            MenuItem("progressive_difficulty", "Difficulty", "📈", "Progressive Difficulty & Performance", pygame.K_F6),
+            MenuItem("skill_tree", "Skill Trees", "🌳", "Specialist Skill Trees & Progression", pygame.K_F7),
+            MenuItem("team_dynamics", "Team Dynamics", "👥", "Specialist Relationships & Morale", pygame.K_F8),
         ]
         
         self.navigation_menu = NavigationMenu(
@@ -130,6 +156,9 @@ class GameUI:
             "metrics": self.metrics_panel,
             "equipment_shop": self.equipment_shop_panel,
             "equipment_inventory": self.equipment_inventory_panel,
+            "automation_builder": self.automation_builder_panel,
+            "progressive_difficulty": self.progressive_difficulty_panel,
+            "skill_tree": self.skill_tree_panel,
         }
         
         self.view_manager = ViewManager(

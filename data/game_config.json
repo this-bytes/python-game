@@ -138,6 +138,41 @@
     "auto_save_interval_seconds": 300,
     "max_save_slots": 10
   },
+  "progressive_difficulty": {
+    "base_difficulty_multiplier": 1.0,
+    "max_difficulty_multiplier": 3.0,
+    "excellent_performance_threshold": 0.9,
+    "good_performance_threshold": 0.75,
+    "poor_performance_threshold": 0.6,
+    "performance_scaling_factor": 0.1,
+    "progression_scaling_factor": 0.05,
+    "time_pressure_scaling_factor": 0.02,
+    "difficulty_milestones": {
+      "1": {
+        "name": "Getting Started",
+        "description": "Basic incident handling and response"
+      },
+      "2": {
+        "name": "Building Expertise",
+        "description": "More complex incidents requiring specialized skills"
+      },
+      "3": {
+        "name": "Established Firm",
+        "description": "High-stakes scenarios with critical infrastructure"
+      },
+      "4": {
+        "name": "Elite Operations",
+        "description": "Advanced persistent threats and nation-state attacks"
+      },
+      "5": {
+        "name": "Legendary Status",
+        "description": "Unprecedented cyber threats requiring legendary expertise"
+      }
+    },
+    "damage_multiplier_per_level": 0.15,
+    "reward_multiplier_per_level": 0.1,
+    "sla_reduction_per_level": 0.1
+  },
   "fatigue": {
     "enabled": false,
     "accumulation_rate": 1.0,

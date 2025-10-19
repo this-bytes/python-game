@@ -5,18 +5,22 @@ Manages transitions between major game views (Overview, Operations, Management, 
 and controls which panels are visible in each view.
 """
 
-from typing import Dict, List, Optional, Callable
+from typing import Dict, List, Optional, Callable, Any
 from enum import Enum
 from dataclasses import dataclass
 import pygame
 
 
 class GameView(Enum):
-    """Available game view modes."""
-    OVERVIEW = "overview"      # Dashboard with key metrics and status
-    OPERATIONS = "operations"  # Incidents and Specialists management
-    MANAGEMENT = "management"  # Equipment, Facilities, Resources
-    ANALYTICS = "analytics"    # Detailed metrics and achievements
+    """Available game views."""
+    OVERVIEW = "overview"
+    OPERATIONS = "operations"
+    MANAGEMENT = "management"
+    ANALYTICS = "analytics"
+    AUTOMATION = "automation"
+    PROGRESSIVE_DIFFICULTY = "progressive_difficulty"
+    SKILL_TREE = "skill_tree"
+    TEAM_DYNAMICS = "team_dynamics"
 
 
 @dataclass
@@ -71,7 +75,7 @@ class ViewManager:
     def __init__(
         self,
         views: Dict[GameView, ViewConfig],
-        panels: Dict[str, any],
+        panels: Dict[str, Any],
         initial_view: GameView = GameView.OVERVIEW,
         on_view_changed: Optional[Callable[[ViewConfig], None]] = None,
         transition_duration: float = 0.3
@@ -348,5 +352,61 @@ def create_default_views(screen_width: int = 1280, screen_height: int = 720) -> 
                 }
             },
             description="Detailed metrics and achievement tracking"
+        ),
+        
+        GameView.AUTOMATION: ViewConfig(
+            id="automation",
+            title="Automation",
+            panels=["automation_builder"],
+            layout={
+                "automation_builder": {
+                    "position": (base_x, base_y),
+                    "size": (content_width - 40, content_height - 40),
+                    "visible": True
+                }
+            },
+            description="Build custom automation scripts with visual editor"
+        ),
+        
+        GameView.PROGRESSIVE_DIFFICULTY: ViewConfig(
+            id="progressive_difficulty",
+            title="Progressive Difficulty",
+            panels=["progressive_difficulty"],
+            layout={
+                "progressive_difficulty": {
+                    "position": (base_x, base_y),
+                    "size": (content_width - 40, content_height - 40),
+                    "visible": True
+                }
+            },
+            description="Monitor progressive difficulty and performance metrics"
+        ),
+        
+        GameView.SKILL_TREE: ViewConfig(
+            id="skill_tree",
+            title="Skill Trees",
+            panels=["skill_tree"],
+            layout={
+                "skill_tree": {
+                    "position": (base_x, base_y),
+                    "size": (content_width - 40, content_height - 40),
+                    "visible": True
+                }
+            },
+            description="Specialist skill trees and progression management"
+        ),
+        
+        GameView.TEAM_DYNAMICS: ViewConfig(
+            id="team_dynamics",
+            title="Team Dynamics",
+            panels=["team_dynamics"],
+            layout={
+                "team_dynamics": {
+                    "position": (base_x, base_y),
+                    "size": (content_width - 40, content_height - 40),
+                    "visible": True
+                }
+            },
+            description="Specialist relationships and team morale management"
         )
     }

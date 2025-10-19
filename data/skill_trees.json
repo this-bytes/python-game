@@ -1,0 +1,550 @@
+{
+  "skill_trees": {
+    "network_security": {
+      "name": "Network Security Specialist",
+      "description": "Master of network defense and traffic analysis",
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Foundation",
+          "skills": [
+            {
+              "id": "packet_analysis",
+              "name": "Packet Analysis",
+              "description": "+10% speed on Network Security incidents",
+              "cost": 1,
+              "effects": {
+                "speed_multiplier": 1.1,
+                "specialty_filter": "Network Security"
+              },
+              "icon": "🔍"
+            },
+            {
+              "id": "firewall_mastery",
+              "name": "Firewall Mastery",
+              "description": "+15% accuracy on DDoS incidents",
+              "cost": 1,
+              "effects": {
+                "accuracy_multiplier": 1.15,
+                "incident_type_filter": "DDoS Attack"
+              },
+              "icon": "🛡️"
+            },
+            {
+              "id": "traffic_monitoring",
+              "name": "Traffic Monitoring",
+              "description": "Reduces false positive alerts by 20%",
+              "cost": 1,
+              "effects": {
+                "false_positive_reduction": 0.2
+              },
+              "icon": "📊"
+            }
+          ]
+        },
+        {
+          "tier": 2,
+          "name": "Specialization",
+          "skills": [
+            {
+              "id": "advanced_mitigation",
+              "name": "Advanced Mitigation",
+              "description": "Unlock 'Instant Block' ability for DDoS attacks",
+              "cost": 2,
+              "prerequisites": ["packet_analysis", "firewall_mastery"],
+              "effects": {
+                "unlock_ability": "instant_block"
+              },
+              "icon": "⚡"
+            },
+            {
+              "id": "intrusion_detection",
+              "name": "Intrusion Detection",
+              "description": "+20% detection rate for network intrusions",
+              "cost": 2,
+              "prerequisites": ["traffic_monitoring"],
+              "effects": {
+                "detection_multiplier": 1.2,
+                "specialty_filter": "Network Security"
+              },
+              "icon": "👁️"
+            }
+          ]
+        },
+        {
+          "tier": 3,
+          "name": "Mastery",
+          "skills": [
+            {
+              "id": "zero_trust_architecture",
+              "name": "Zero Trust Architecture",
+              "description": "All network incidents resolved 25% faster",
+              "cost": 3,
+              "prerequisites": ["advanced_mitigation", "intrusion_detection"],
+              "effects": {
+                "speed_multiplier": 1.25,
+                "specialty_filter": "Network Security"
+              },
+              "icon": "🏰"
+            }
+          ]
+        }
+      ]
+    },
+    "malware_analysis": {
+      "name": "Malware Analysis Specialist",
+      "description": "Expert in malware detection and reverse engineering",
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Foundation",
+          "skills": [
+            {
+              "id": "signature_detection",
+              "name": "Signature Detection",
+              "description": "+10% speed on Malware Analysis incidents",
+              "cost": 1,
+              "effects": {
+                "speed_multiplier": 1.1,
+                "specialty_filter": "Malware Analysis"
+              },
+              "icon": "🔬"
+            },
+            {
+              "id": "behavioral_analysis",
+              "name": "Behavioral Analysis",
+              "description": "+15% accuracy on malware incidents",
+              "cost": 1,
+              "effects": {
+                "accuracy_multiplier": 1.15,
+                "incident_type_filter": "Malware Infection"
+              },
+              "icon": "🧬"
+            },
+            {
+              "id": "sandbox_mastery",
+              "name": "Sandbox Mastery",
+              "description": "Reduces analysis time by 20%",
+              "cost": 1,
+              "effects": {
+                "time_reduction": 0.2
+              },
+              "icon": "🧪"
+            }
+          ]
+        },
+        {
+          "tier": 2,
+          "name": "Specialization",
+          "skills": [
+            {
+              "id": "reverse_engineering",
+              "name": "Reverse Engineering",
+              "description": "Unlock 'Deep Analysis' ability for complex malware",
+              "cost": 2,
+              "prerequisites": ["signature_detection", "behavioral_analysis"],
+              "effects": {
+                "unlock_ability": "deep_analysis"
+              },
+              "icon": "🔧"
+            },
+            {
+              "id": "threat_intelligence",
+              "name": "Threat Intelligence",
+              "description": "+20% effectiveness against zero-day threats",
+              "cost": 2,
+              "prerequisites": ["sandbox_mastery"],
+              "effects": {
+                "zero_day_multiplier": 1.2,
+                "specialty_filter": "Malware Analysis"
+              },
+              "icon": "🕵️"
+            }
+          ]
+        },
+        {
+          "tier": 3,
+          "name": "Mastery",
+          "skills": [
+            {
+              "id": "malware_hunter",
+              "name": "Malware Hunter",
+              "description": "Automatically detects 30% more malware incidents",
+              "cost": 3,
+              "prerequisites": ["reverse_engineering", "threat_intelligence"],
+              "effects": {
+                "detection_multiplier": 1.3,
+                "specialty_filter": "Malware Analysis"
+              },
+              "icon": "🎯"
+            }
+          ]
+        }
+      ]
+    },
+    "digital_forensics": {
+      "name": "Digital Forensics Specialist",
+      "description": "Master investigator of digital evidence and breaches",
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Foundation",
+          "skills": [
+            {
+              "id": "evidence_collection",
+              "name": "Evidence Collection",
+              "description": "+10% speed on Digital Forensics incidents",
+              "cost": 1,
+              "effects": {
+                "speed_multiplier": 1.1,
+                "specialty_filter": "Digital Forensics"
+              },
+              "icon": "📂"
+            },
+            {
+              "id": "log_analysis",
+              "name": "Log Analysis",
+              "description": "+15% accuracy on breach investigations",
+              "cost": 1,
+              "effects": {
+                "accuracy_multiplier": 1.15,
+                "incident_type_filter": "Data Breach"
+              },
+              "icon": "📋"
+            },
+            {
+              "id": "chain_of_custody",
+              "name": "Chain of Custody",
+              "description": "Reduces evidence contamination risk by 25%",
+              "cost": 1,
+              "effects": {
+                "contamination_reduction": 0.25
+              },
+              "icon": "🔒"
+            }
+          ]
+        },
+        {
+          "tier": 2,
+          "name": "Specialization",
+          "skills": [
+            {
+              "id": "timeline_analysis",
+              "name": "Timeline Analysis",
+              "description": "Unlock 'Timeline Reconstruction' ability",
+              "cost": 2,
+              "prerequisites": ["evidence_collection", "log_analysis"],
+              "effects": {
+                "unlock_ability": "timeline_reconstruction"
+              },
+              "icon": "⏰"
+            },
+            {
+              "id": "memory_forensics",
+              "name": "Memory Forensics",
+              "description": "+20% success rate on advanced breach analysis",
+              "cost": 2,
+              "prerequisites": ["chain_of_custody"],
+              "effects": {
+                "memory_analysis_multiplier": 1.2,
+                "specialty_filter": "Digital Forensics"
+              },
+              "icon": "🧠"
+            }
+          ]
+        },
+        {
+          "tier": 3,
+          "name": "Mastery",
+          "skills": [
+            {
+              "id": "incident_reconstruction",
+              "name": "Incident Reconstruction",
+              "description": "Complete incident analysis 25% faster",
+              "cost": 3,
+              "prerequisites": ["timeline_analysis", "memory_forensics"],
+              "effects": {
+                "speed_multiplier": 1.25,
+                "specialty_filter": "Digital Forensics"
+              },
+              "icon": "🔍"
+            }
+          ]
+        }
+      ]
+    },
+    "application_security": {
+      "name": "Application Security Specialist",
+      "description": "Guardian of application integrity and secure coding",
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Foundation",
+          "skills": [
+            {
+              "id": "code_review",
+              "name": "Code Review",
+              "description": "+10% speed on Application Security incidents",
+              "cost": 1,
+              "effects": {
+                "speed_multiplier": 1.1,
+                "specialty_filter": "Application Security"
+              },
+              "icon": "💻"
+            },
+            {
+              "id": "vulnerability_scanning",
+              "name": "Vulnerability Scanning",
+              "description": "+15% accuracy on application vulnerabilities",
+              "cost": 1,
+              "effects": {
+                "accuracy_multiplier": 1.15,
+                "incident_type_filter": "Application Vulnerability"
+              },
+              "icon": "🔎"
+            },
+            {
+              "id": "secure_coding",
+              "name": "Secure Coding",
+              "description": "Reduces injection attack success by 20%",
+              "cost": 1,
+              "effects": {
+                "injection_defense": 0.2
+              },
+              "icon": "🛡️"
+            }
+          ]
+        },
+        {
+          "tier": 2,
+          "name": "Specialization",
+          "skills": [
+            {
+              "id": "penetration_testing",
+              "name": "Penetration Testing",
+              "description": "Unlock 'Exploit Simulation' ability",
+              "cost": 2,
+              "prerequisites": ["code_review", "vulnerability_scanning"],
+              "effects": {
+                "unlock_ability": "exploit_simulation"
+              },
+              "icon": "🎭"
+            },
+            {
+              "id": "api_security",
+              "name": "API Security",
+              "description": "+20% effectiveness against API attacks",
+              "cost": 2,
+              "prerequisites": ["secure_coding"],
+              "effects": {
+                "api_defense_multiplier": 1.2,
+                "specialty_filter": "Application Security"
+              },
+              "icon": "🔗"
+            }
+          ]
+        },
+        {
+          "tier": 3,
+          "name": "Mastery",
+          "skills": [
+            {
+              "id": "security_architect",
+              "name": "Security Architect",
+              "description": "All application security incidents resolved 25% faster",
+              "cost": 3,
+              "prerequisites": ["penetration_testing", "api_security"],
+              "effects": {
+                "speed_multiplier": 1.25,
+                "specialty_filter": "Application Security"
+              },
+              "icon": "🏗️"
+            }
+          ]
+        }
+      ]
+    },
+    "cloud_security": {
+      "name": "Cloud Security Specialist",
+      "description": "Protector of cloud infrastructure and services",
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Foundation",
+          "skills": [
+            {
+              "id": "cloud_monitoring",
+              "name": "Cloud Monitoring",
+              "description": "+10% speed on Cloud Security incidents",
+              "cost": 1,
+              "effects": {
+                "speed_multiplier": 1.1,
+                "specialty_filter": "Cloud Security"
+              },
+              "icon": "☁️"
+            },
+            {
+              "id": "configuration_management",
+              "name": "Configuration Management",
+              "description": "+15% accuracy on cloud misconfigurations",
+              "cost": 1,
+              "effects": {
+                "accuracy_multiplier": 1.15,
+                "incident_type_filter": "Cloud Misconfiguration"
+              },
+              "icon": "⚙️"
+            },
+            {
+              "id": "access_control",
+              "name": "Access Control",
+              "description": "Reduces unauthorized access incidents by 20%",
+              "cost": 1,
+              "effects": {
+                "access_violation_reduction": 0.2
+              },
+              "icon": "🔑"
+            }
+          ]
+        },
+        {
+          "tier": 2,
+          "name": "Specialization",
+          "skills": [
+            {
+              "id": "container_security",
+              "name": "Container Security",
+              "description": "Unlock 'Container Hardening' ability",
+              "cost": 2,
+              "prerequisites": ["cloud_monitoring", "configuration_management"],
+              "effects": {
+                "unlock_ability": "container_hardening"
+              },
+              "icon": "🐳"
+            },
+            {
+              "id": "serverless_security",
+              "name": "Serverless Security",
+              "description": "+20% effectiveness against serverless threats",
+              "cost": 2,
+              "prerequisites": ["access_control"],
+              "effects": {
+                "serverless_defense_multiplier": 1.2,
+                "specialty_filter": "Cloud Security"
+              },
+              "icon": "⚡"
+            }
+          ]
+        },
+        {
+          "tier": 3,
+          "name": "Mastery",
+          "skills": [
+            {
+              "id": "cloud_architect",
+              "name": "Cloud Architect",
+              "description": "All cloud security incidents resolved 25% faster",
+              "cost": 3,
+              "prerequisites": ["container_security", "serverless_security"],
+              "effects": {
+                "speed_multiplier": 1.25,
+                "specialty_filter": "Cloud Security"
+              },
+              "icon": "🏰"
+            }
+          ]
+        }
+      ]
+    },
+    "incident_response": {
+      "name": "Incident Response Specialist",
+      "description": "Crisis manager and rapid response coordinator",
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Foundation",
+          "skills": [
+            {
+              "id": "triage_mastery",
+              "name": "Triage Mastery",
+              "description": "+10% speed on Incident Response incidents",
+              "cost": 1,
+              "effects": {
+                "speed_multiplier": 1.1,
+                "specialty_filter": "Incident Response"
+              },
+              "icon": "🚑"
+            },
+            {
+              "id": "communication",
+              "name": "Communication",
+              "description": "+15% accuracy on coordinated responses",
+              "cost": 1,
+              "effects": {
+                "accuracy_multiplier": 1.15,
+                "incident_type_filter": "Coordinated Attack"
+              },
+              "icon": "📞"
+            },
+            {
+              "id": "crisis_management",
+              "name": "Crisis Management",
+              "description": "Reduces response time under pressure by 20%",
+              "cost": 1,
+              "effects": {
+                "pressure_time_reduction": 0.2
+              },
+              "icon": "⏱️"
+            }
+          ]
+        },
+        {
+          "tier": 2,
+          "name": "Specialization",
+          "skills": [
+            {
+              "id": "coordination_center",
+              "name": "Coordination Center",
+              "description": "Unlock 'Team Coordination' ability",
+              "cost": 2,
+              "prerequisites": ["triage_mastery", "communication"],
+              "effects": {
+                "unlock_ability": "team_coordination"
+              },
+              "icon": "🎯"
+            },
+            {
+              "id": "escalation_protocols",
+              "name": "Escalation Protocols",
+              "description": "+20% effectiveness in crisis situations",
+              "cost": 2,
+              "prerequisites": ["crisis_management"],
+              "effects": {
+                "crisis_multiplier": 1.2,
+                "specialty_filter": "Incident Response"
+              },
+              "icon": "📈"
+            }
+          ]
+        },
+        {
+          "tier": 3,
+          "name": "Mastery",
+          "skills": [
+            {
+              "id": "incident_commander",
+              "name": "Incident Commander",
+              "description": "All incident response activities 25% faster",
+              "cost": 3,
+              "prerequisites": ["coordination_center", "escalation_protocols"],
+              "effects": {
+                "speed_multiplier": 1.25,
+                "specialty_filter": "Incident Response"
+              },
+              "icon": "👑"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

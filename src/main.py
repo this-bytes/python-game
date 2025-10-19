@@ -38,6 +38,9 @@ from src.core.plugins.equipment_plugin import EquipmentPlugin
 from src.core.plugins.ability_plugin import AbilityPlugin
 from src.core.plugins.passive_income_plugin import PassiveIncomePlugin
 from src.core.plugins.facility_plugin import FacilityPlugin
+from src.core.plugins.progressive_difficulty_plugin import ProgressiveDifficultyPlugin
+from src.core.plugins.skill_tree_plugin import SkillTreePlugin
+from src.core.plugins.team_dynamics_plugin import TeamDynamicsPlugin
 
 
 class Game:
@@ -285,6 +288,9 @@ class Game:
                         ("AbilityPlugin", AbilityPlugin()),
                         ("PassiveIncomePlugin", PassiveIncomePlugin()),
                         ("FacilityPlugin", FacilityPlugin()),
+                        ("ProgressiveDifficultyPlugin", ProgressiveDifficultyPlugin()),
+                        ("SkillTreePlugin", SkillTreePlugin()),
+                        ("TeamDynamicsPlugin", TeamDynamicsPlugin()),
                     ]
                     
                     for plugin_name, plugin_instance in plugins:
