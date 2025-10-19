@@ -1,6 +1,6 @@
 # Cybersecurity Firm Idle/Tycoon/RPG Game - Copilot Instructions
 
-**🚫 ZERO-TOLERANCE FOR MEDIOCRITY - READ [core-standards.instructions.md](core-standards.instructions.md) FIRST**
+**🚫 ZERO-TOLERANCE FOR MEDIOCRITY - READ [core-standards.instructions.md](instructions/core-standards.instructions.md) FIRST**
 
 This is your **main entry point** for working with this codebase. For detailed guidance on specific topics, see the specialized instruction files below.
 
@@ -241,7 +241,7 @@ If your code has ANY of these, it gets rejected immediately:
 14. No error logging
 15. Disabled code
 
-See [core-standards.instructions.md](core-standards.instructions.md) for detailed explanations.
+See [core-standards.instructions.md](instructions/core-standards.instructions.md) for detailed explanations.
 
 ---
 
