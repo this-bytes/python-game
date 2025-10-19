@@ -203,7 +203,6 @@ for subscription_id in self._subscription_ids:
 - **EquipmentPlugin** (equipment system)
 - **AbilityPlugin** (ability activation)
 - **PassiveIncomePlugin** (passive income)
-- **FacilityPlugin** (facility upgrades)
 
 ---
 

@@ -40,9 +40,7 @@ Never hardcode game balance values in Python. Everything that affects gameplay m
   equipment.json             → Equipment catalog
   achievements.json          → Achievement definitions
   prestige_upgrades.json     → Prestige upgrade tree
-  facilities.json            → Facility upgrade data
   features.json              → Feature flag configuration
-  market_events.json         → Market event definitions
   themes.json                → UI theme configuration
 ```
 

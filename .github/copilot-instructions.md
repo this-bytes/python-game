@@ -30,6 +30,60 @@ This is your **main entry point** for working with this codebase. For detailed g
 
 ---
 
+## 🎮 Game Vision (MANDATORY READING)
+
+### What This Game IS:
+**"Active Strategy Tycoon with Idle Elements"**
+
+**Core Identity:**
+- **Active Decision-Making**: Player makes strategic choices about incident assignment (WHO handles WHAT)
+- **Strategic Team Management**: Compose teams, manage burnout, optimize automation rules
+- **Progressive Automation**: Early game = manual triage, Late game = systems work for you
+- **Prestige Replayability**: Reset for permanent bonuses, multiple runs with different strategies
+
+**The 30-Second Core Loop:**
+```
+Incident Spawns → Player Decides → Specialist Works → Incident Resolves → Rewards Earned → REPEAT
+```
+
+### What This Game IS NOT:
+- ❌ **NOT an offline idle game** - No "click once, play for 8 hours offline"
+- ❌ **NOT a facility management sim** - No break rooms, training centers, office decorations
+- ❌ **NOT a market-driven economy** - No random global events (tech booms, recessions)
+- ❌ **NOT a dating sim** - Relationships are mechanical (synergy bonuses), not narrative
+
+### The 7 Core Systems (Non-Negotiable)
+
+Every feature must serve one or more of these systems:
+
+1. **Incident Generation** - Continuous spawning based on client contracts
+2. **Specialist Assignment** - Decision-based player choices (THE core mechanic)
+3. **Specialist Progression** - Leveling, XP, stats, abilities
+4. **Team Dynamics** - Friendships/rivalries create synergy bonuses
+5. **Economy** - Money management, retainer contracts, investments
+6. **Automation** - Late-game scripts reduce tedium without removing strategy
+7. **Prestige** - Reset for permanent bonuses and replayability
+
+**If a feature doesn't clearly fit into one of these 7 systems, it shouldn't exist.**
+
+### Systems We Keep (Supporting the Core 7)
+- ✅ Burnout mechanics (consequence system)
+- ✅ Equipment drops (progression depth)
+- ✅ Achievement system (goals and rewards)
+- ✅ SLA timers (creates tension and pressure)
+- ✅ Dopamine system (visual feedback for engagement)
+- ✅ Passive income (late-game retainers + investments)
+- ✅ Contract system (retainer generation, negotiation disabled)
+
+### Systems We Removed (Not in Vision)
+- ❌ Offline progress system
+- ❌ Facility upgrade system (break rooms, training centers)
+- ❌ Market events (tech booms, recessions)
+
+**See [BRUTAL_REFACTOR_SUMMARY.md](../BRUTAL_REFACTOR_SUMMARY.md) for complete removal rationale.**
+
+---
+
 ## 📚 Specialized Instruction Files
 
 For detailed guidance on specific aspects of development, reference these files:
