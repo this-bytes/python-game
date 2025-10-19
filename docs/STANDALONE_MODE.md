@@ -15,6 +15,49 @@ The game supports three backend modes:
 
 All modes maintain feature parity - the game functions identically regardless of backend configuration.
 
+**NEW:** Backend now supports **multi-instance architecture** - multiple game sessions can run simultaneously, each with isolated state.
+
+---
+
+## Multi-Instance Architecture
+
+### Overview
+
+The backend supports **multiple concurrent game instances**, each with isolated GameState. This enables:
+
+- **Multiple Players**: Each player's game session is independent
+- **Admin Panel Control**: Select which instance to manage
+- **Testing**: Run multiple game instances simultaneously
+- **Future Multiplayer**: Foundation for synchronized multi-client gameplay
+
+### How It Works
+
+```
+Backend Server
+├── Instance Manager
+│   ├── Instance 1 (Player A's game)
+│   │   └── GameState A
+│   ├── Instance 2 (Player B's game)
+│   │   └── GameState B
+│   └── Instance 3 (Test instance)
+│       └── GameState C
+```
+
+**Key Points:**
+- Each instance has a unique `instance_id` (UUID or custom)
+- All API requests include `instance_id` to route correctly
+- Admin panel lists all instances and can select target
+- Save files are per-instance (e.g., `save_instance-123_slot-1.json`)
+- First instance becomes default if `instance_id` omitted
+
+### Instance Lifecycle
+
+1. **Registration**: Client calls `POST /api/game/register` with optional `instance_id`
+2. **State Updates**: Client periodically sends state via `set_game_state()`
+3. **Admin Control**: Admin panel queries `/api/instances` to list all
+4. **Selection**: Admin selects instance via `/api/instances/{id}/select`
+5. **Cleanup**: Inactive instances auto-removed after timeout (default 1 hour)
+
 ---
 
 ## Command-Line Flags

@@ -12,27 +12,49 @@ This document defines the **canonical communication protocol** between UI client
 
 **Key Principles:**
 1. **Backend is authoritative** - All game logic executes on backend, UI renders state
-2. **Event-driven updates** - WebSocket broadcasts state changes to clients
-3. **Action-based control** - UI submits actions via REST or WebSocket, backend processes them
-4. **Protocol version** - Clients must declare protocol version for compatibility
+2. **Multi-instance support** - Backend manages multiple game instances, each isolated
+3. **Event-driven updates** - WebSocket broadcasts state changes to clients
+4. **Action-based control** - UI submits actions via REST or WebSocket, backend processes them
+5. **Protocol version** - Clients must declare protocol version for compatibility
 
 ---
 
-## Architecture
+## Multi-Instance Architecture
+
+The backend supports **multiple concurrent game instances**, each with isolated GameState:
 
 ```
-┌─────────────┐         WebSocket          ┌─────────────┐
-│             │◄─────────events─────────────┤             │
-│   UI Client │                             │   Backend   │
-│  (Pygame /  │                             │   (Flask +  │
-│     Web)    │─────────actions────────────►│   SocketIO) │
-│             │          REST API           │             │
-└─────────────┘                             └─────────────┘
-     │                                             │
-     └──────────reads/renders state───────────────┘
+┌──────────────────────────────────────────┐
+│            Backend Server                 │
+│  ┌────────────────────────────────────┐ │
+│  │      Instance Manager              │ │
+│  │  ┌──────────┐  ┌──────────┐       │ │
+│  │  │Instance 1│  │Instance 2│  ...  │ │
+│  │  │GameState │  │GameState │       │ │
+│  │  └──────────┘  └──────────┘       │ │
+│  └────────────────────────────────────┘ │
+│              ▲                           │
+│              │                           │
+│         instance_id                      │
+│              │                           │
+└──────────────┼───────────────────────────┘
+               │
+      ┌────────┴─────────┐
+      │                  │
+┌─────▼─────┐     ┌─────▼─────┐
+│  Client 1  │     │  Client 2  │
+│ (Pygame)   │     │   (Web)    │
+└───────────┘     └────────────┘
 ```
 
-### Communication Flow
+**Key Concepts:**
+- Each client/game session gets a unique `instance_id`
+- All API requests include `instance_id` to route to correct game
+- Admin panel can select which instance to manage
+- Save files are per-instance
+- Default instance used when `instance_id` omitted
+
+---
 
 1. **Initialization**
    - Client connects to backend via WebSocket
@@ -60,10 +82,90 @@ This document defines the **canonical communication protocol** between UI client
 
 ## REST API Endpoints
 
+### Instance Management
+
+#### `POST /api/game/register`
+Register a new game instance with the backend.
+
+**Request:**
+```json
+{
+  "instance_id": "optional-custom-id",  # Auto-generated if not provided
+  "client_name": "My Game Client"       # Optional friendly name
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "instance_id": "abc-123-def",
+  "message": "Game registration acknowledged",
+  "backend_ready": true
+}
+```
+
+#### `GET /api/instances`
+List all registered game instances.
+
+**Response:**
+```json
+{
+  "success": true,
+  "instances": [
+    {
+      "instance_id": "abc-123",
+      "client_name": "Player 1",
+      "created_at": "2025-10-19T12:00:00Z",
+      "last_activity": "2025-10-19T12:05:00Z",
+      "connected": true,
+      "has_state": true,
+      "state_summary": {
+        "money": 15000,
+        "specialists": 3,
+        "incidents": 5
+      }
+    }
+  ],
+  "default_instance_id": "abc-123"
+}
+```
+
+#### `GET /api/instances/{instance_id}`
+Get information about a specific instance.
+
+**Response:**
+```json
+{
+  "success": true,
+  "instance": {
+    "instance_id": "abc-123",
+    "client_name": "Player 1",
+    ...
+  }
+}
+```
+
+#### `POST /api/instances/{instance_id}/select`
+Set the default instance for admin panel operations.
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Default instance set to abc-123"
+}
+```
+
+---
+
 ### Game State
 
 #### `GET /api/game/state`
-Get full game state snapshot.
+Get full game state snapshot for a specific instance.
+
+**Query Parameters:**
+- `instance_id` (optional): Instance ID to query, uses default if omitted
 
 **Response:**
 ```json
@@ -111,6 +213,7 @@ Submit player action for backend processing.
 **Request:**
 ```json
 {
+  "instance_id": "abc-123",  # Optional, uses default if omitted
   "action_type": "assign_incident",
   "data": {
     "incident_id": "inc_001",

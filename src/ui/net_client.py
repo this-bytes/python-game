@@ -40,13 +40,15 @@ class NetworkClient:
     All UI interactions with game logic should go through this client.
     """
     
-    def __init__(self, backend_url: str = "http://localhost:5001"):
+    def __init__(self, backend_url: str = "http://localhost:5001", instance_id: Optional[str] = None):
         """Initialize network client.
         
         Args:
             backend_url: Base URL of backend server
+            instance_id: Optional instance ID for multi-client scenarios
         """
         self.backend_url = backend_url
+        self.instance_id = instance_id  # Track which instance this client manages
         self.logger = GameLogger("net_client")
         
         # HTTP session for REST calls
@@ -224,6 +226,10 @@ class NetworkClient:
                 'timestamp': time.time()
             }
             
+            # Include instance_id if set
+            if self.instance_id:
+                payload['instance_id'] = self.instance_id
+            
             response = self.session.post(
                 f"{self.backend_url}/api/action",
                 json=payload,
@@ -262,8 +268,13 @@ class NetworkClient:
             Game state dictionary or None if failed
         """
         try:
+            params = {}
+            if self.instance_id:
+                params['instance_id'] = self.instance_id
+            
             response = self.session.get(
                 f"{self.backend_url}/api/game/state",
+                params=params,
                 timeout=10
             )
             

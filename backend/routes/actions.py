@@ -20,7 +20,7 @@ def create_actions_blueprint(game_state_ref):
     """Create actions blueprint with game state reference.
     
     Args:
-        game_state_ref: Reference to the GameState instance
+        game_state_ref: Reference to the GameState instance (legacy, use instance_manager instead)
         
     Returns:
         Flask Blueprint for action routes
@@ -28,19 +28,37 @@ def create_actions_blueprint(game_state_ref):
     bp = Blueprint('actions', __name__)
     logger = GameLogger("actions_api")
     
-    # Store reference that can be updated
+    # Import instance manager for multi-client support
+    from backend.services.instance_manager import instance_manager
+    
+    # Store reference that can be updated (legacy support)
     state_container = {'game_state': game_state_ref}
     
-    def get_game_state():
-        """Helper to get current game state."""
-        return state_container.get('game_state')
+    def get_game_state(instance_id: Optional[str] = None):
+        """Helper to get current game state for a specific instance.
+        
+        Args:
+            instance_id: Optional instance ID, uses default if not provided
+            
+        Returns:
+            GameState instance or None
+        """
+        # Try instance manager first
+        game_state = instance_manager.get_game_state(instance_id)
+        
+        # Fallback to legacy single state if no instance found
+        if not game_state and instance_id is None:
+            game_state = state_container.get('game_state')
+        
+        return game_state
     
     @bp.route('/action', methods=['POST'])
     def process_action():
-        """Process player action.
+        """Process player action for a specific game instance.
         
         Request body:
         {
+            "instance_id": "optional-instance-id",  # Uses default if not provided
             "action_type": "assign_incident",
             "data": {
                 "incident_id": "inc_001",
@@ -52,16 +70,6 @@ def create_actions_blueprint(game_state_ref):
         Returns:
             JSON response with success status and result
         """
-        game_state = get_game_state()
-        if not game_state:
-            return jsonify({
-                "success": False,
-                "error": {
-                    "code": "INVALID_STATE",
-                    "message": "Game state not initialized"
-                }
-            }), 503
-        
         try:
             data = request.get_json()
             if not data:
@@ -72,6 +80,20 @@ def create_actions_blueprint(game_state_ref):
                         "message": "Request body is required"
                     }
                 }), 400
+            
+            # Extract instance_id from request
+            instance_id = data.get('instance_id')
+            
+            # Get game state for this instance
+            game_state = get_game_state(instance_id)
+            if not game_state:
+                return jsonify({
+                    "success": False,
+                    "error": {
+                        "code": "INVALID_STATE",
+                        "message": f"Game state not initialized for instance: {instance_id or 'default'}"
+                    }
+                }), 503
             
             action_type = data.get('action_type')
             action_data = data.get('data', {})
