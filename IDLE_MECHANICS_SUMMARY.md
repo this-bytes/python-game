@@ -1,18 +1,20 @@
-# TRUE IDLE GAME MECHANICS - IMPLEMENTATION SUMMARY
+# AUTOMATION SYSTEM - IMPLEMENTATION SUMMARY
 
-## 🎮 Core Transformation: Clicker → Idle Game
+> **⚠️ VISION UPDATE**: This document describes the automation system. The game is an **Active Strategy Tycoon with Idle Elements**, NOT a pure idle game. Automation is a late-game quality-of-life feature, not the core mechanic. See [BRUTAL_REFACTOR_SUMMARY.md](BRUTAL_REFACTOR_SUMMARY.md) for vision alignment.
 
-### Before (Broken Gameplay)
-- ❌ Required constant clicking to assign specialists
-- ❌ No progression when not actively playing
-- ❌ Boring, repetitive manual assignments
-- ❌ No strategic depth - just click, click, click
+## 🎮 Core Transformation: Manual → Automated (Late Game)
 
-### After (True Idle Mechanics)
-- ✅ **Auto-play by default** - game progresses automatically
-- ✅ **Strategic intervention** - manual assignment for synergy bonuses
-- ✅ **Offline progression** - earn money/XP even when closed
-- ✅ **Balatro-style depth** - synergy matching adds strategy
+### Early Game (Levels 1-10)
+- Manual assignment of every incident
+- Learn specialist strengths
+- Understand synergy system
+- Core decision-making gameplay
+
+### Mid-Late Game (Levels 10+)
+- ✅ **Automation available** - unlock scripts to handle routine incidents
+- ✅ **Strategic focus** - handle complex incidents yourself
+- ✅ **Configurable rules** - you control the automation logic
+- ✅ **Progressive reduction** - earn the right to reduce tedium
 
 ---
 
@@ -328,17 +330,20 @@ Player: "This is actually fun!"
 
 ## 🏆 Summary
 
-**The game is NOW a true idle/tycoon/RPG hybrid:**
-- ✅ **IDLE**: Auto-assignment, offline progression, passive growth
-- ✅ **TYCOON**: Money management, specialist hiring, facility upgrades
-- ✅ **RPG**: Specialist synergies, leveling, XP multipliers, strategic depth
+**The game is an Active Strategy Tycoon with Idle Elements:**
+- ✅ **ACTIVE**: Decision-based incident assignment is the core mechanic
+- ✅ **STRATEGY**: Team composition, automation rules, specialist synergies
+- ✅ **TYCOON**: Money management, specialist hiring, scaling your firm
+- ✅ **IDLE ELEMENTS**: Late-game automation reduces tedium (NOT core mechanic)
 
-**User's original complaint addressed:**
-> "The single game play loop is click assign to incidents"
+**Core Gameplay Loop:**
+```
+Incident Spawns → Player Decides → Specialist Works → Resolves → Rewards → REPEAT
+```
 
-**Solution implemented:**
-- Auto-assignment removes clicking requirement
-- Synergy system adds strategic depth
-- Balatro-inspired: auto-play + strategic intervention = perfect idle game
+**Automation's Role:**
+- Early game (1-10): Manual assignment teaches the game
+- Mid game (10-20): Automation handles ~50% (routine incidents)
+- Late game (20+): Automation handles ~80% (you focus on complex incidents)
 
-**Result:** Game now plays itself optimally while rewarding strategic manual intervention with synergy bonuses. This is the correct idle game design!
+**Result:** Decision-making is the game. Automation is earned through progression and reduces tedium without removing strategy. This is the correct active tycoon design!

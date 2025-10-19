@@ -17,7 +17,6 @@ from src.models.automation_script import AutomationScript
 from src.core.incident_generator import IncidentGenerator
 from src.core.automation_processor import AutomationProcessor
 from src.core.passive_income_system import PassiveIncomeSystem
-from src.core.offline_progress import OfflineProgressSystem
 from src.core.burnout_system import BurnoutSystem
 from src.core.relationships_system import RelationshipsSystem
 from src.utils.json_loader import JSONLoader
@@ -94,11 +93,8 @@ class GameState:
     
     # Tycoon system entities
     contracts: List = field(default_factory=list)  # List[Contract]
-    facilities: List = field(default_factory=list)  # List[Facility]
     recruitment_pool: List[Dict] = field(default_factory=list)  # Candidate data
     recruitment_refresh_time: float = 0.0
-    active_events: List[Dict] = field(default_factory=list)  # {event_id, remaining_time}
-    event_cooldowns: Dict[str, float] = field(default_factory=dict)  # event_id -> next_allowed_time
 
     # Game progression
     game_start_time: float = field(default_factory=time.time)
@@ -141,7 +137,6 @@ class GameState:
     _incident_generator: Optional[IncidentGenerator] = None
     _automation_processor: Optional[AutomationProcessor] = None
     _passive_income_system: Optional[PassiveIncomeSystem] = None
-    _offline_progress_system: Optional[OfflineProgressSystem] = None
     _burnout_system: Optional[BurnoutSystem] = None  # Specialist burnout tracking
     _relationships_system: Optional[RelationshipsSystem] = None  # Specialist relationships
     _dopamine_system: Optional[Any] = None  # DopamineSystem - lazy imported
@@ -149,7 +144,6 @@ class GameState:
     _equipment_system: Optional[Any] = None  # EquipmentSystem - equipment management
     _last_incident_generation: float = field(default_factory=time.time)
     _incident_generation_accumulator: float = 0.0
-    _offline_progress_calculated: bool = False  # Track if offline progress was calculated
 
     def __post_init__(self):
         """Initialize game state after creation."""
@@ -204,23 +198,12 @@ class GameState:
             except Exception as e:
                 self._logger.logger.warning(f"[GAME_STATE] Could not load game config, using default passive income: {e}")
                 self._passive_income_system = PassiveIncomeSystem({}, self._logger)
-        if self._offline_progress_system is None:
-            # Load game config for offline progress settings
-            try:
-                game_config = self._json_loader.load_data("game_config.json")
-                self._offline_progress_system = OfflineProgressSystem(game_config, self._logger)
-            except Exception as e:
-                self._logger.logger.warning(f"[GAME_STATE] Could not load game config, using default offline progress: {e}")
-                self._offline_progress_system = OfflineProgressSystem({}, self._logger)
 
         # Load initial data if not provided
         if not self.specialists:
             self._load_initial_data()
             # Generate initial incidents so player has something to do immediately
             self._generate_initial_incidents()
-        
-        # Check for offline progress on initialization
-        self._check_offline_progress()
 
     def _generate_initial_incidents(self):
         """Generate starting incidents so player has something to interact with immediately.
@@ -270,55 +253,14 @@ class GameState:
             automation_data = self._json_loader.load_data("automation_scripts.json")
             if "automation_scripts" in automation_data:
                 self.automation_scripts = [AutomationScript.from_dict(a) for a in automation_data["automation_scripts"]]
-            
-            # Load facilities
-            try:
-                facilities_data = self._json_loader.load_data("facilities.json")
-                if "facilities" in facilities_data:
-                    from src.models.facility import Facility
-                    self.facilities = [Facility.from_dict(f) for f in facilities_data["facilities"]]
-            except Exception as e:
-                self._logger.logger.warning(f"[GAME_STATE] Could not load facilities: {e}")
-                self.facilities = []
 
-            self._logger.logger.info(f"[GAME_STATE] Initial data loaded: specialists={len(self.specialists)}, clients={len(self.clients)}, automation_scripts={len(self.automation_scripts)}, facilities={len(self.facilities)}")
+            self._logger.logger.info(f"[GAME_STATE] Initial data loaded: specialists={len(self.specialists)}, clients={len(self.clients)}, automation_scripts={len(self.automation_scripts)}")
 
         except Exception as e:
             self._logger.logger.error(f"[GAME_STATE] Failed to load initial data: {str(e)}")
             raise
 
-    def _check_offline_progress(self):
-        """Check if player was offline and calculate offline progress."""
-        if self._offline_progress_calculated:
-            return  # Already calculated
-        
-        current_time = time.time()
-        time_elapsed = current_time - self.last_save_time
-        
-        # Only calculate if more than 5 minutes elapsed
-        min_offline_time = 300  # 5 minutes
-        
-        if time_elapsed > min_offline_time:
-            self._logger.logger.info(
-                f"[GAME_STATE] Player was offline for {time_elapsed/3600:.1f} hours, calculating progress..."
-            )
-            
-            if self._offline_progress_system:
-                offline_report = self._offline_progress_system.calculate_offline_progress(
-                    self, time_elapsed
-                )
-                
-                # Store the report for display
-                self._last_offline_report = offline_report
-                
-                self._logger.logger.info(
-                    f"[GAME_STATE] Offline progress complete: ${offline_report['summary']['total_income']:.2f} earned"
-                )
-            
-            self._offline_progress_calculated = True
-        
-        # Update last save time to now
-        self.last_save_time = current_time
+
 
     def update(self, delta_time: float):
         """Update game state by the given time delta.
@@ -950,19 +892,7 @@ class GameState:
             "game_speed": self.game_speed_multiplier
         }
         
-        # Add offline progress report if available
-        if hasattr(self, '_last_offline_report'):
-            summary["offline_progress"] = self._last_offline_report
-        
         return summary
-
-    def get_offline_progress_report(self) -> Optional[Dict[str, Any]]:
-        """Get the last offline progress report.
-        
-        Returns:
-            Offline progress report or None if no offline progress
-        """
-        return getattr(self, '_last_offline_report', None)
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert game state to dictionary for serialization.
@@ -975,11 +905,8 @@ class GameState:
             "incidents": [i.to_dict() for i in self.incidents],
             "clients": [c.to_dict() for c in self.clients],
             "contracts": [c.to_dict() for c in self.contracts] if hasattr(self, 'contracts') else [],
-            "facilities": [f.to_dict() for f in self.facilities] if hasattr(self, 'facilities') else [],
             "recruitment_pool": self.recruitment_pool if hasattr(self, 'recruitment_pool') else [],
             "recruitment_refresh_time": self.recruitment_refresh_time if hasattr(self, 'recruitment_refresh_time') else 0.0,
-            "active_events": self.active_events if hasattr(self, 'active_events') else [],
-            "event_cooldowns": self.event_cooldowns.copy() if hasattr(self, 'event_cooldowns') else {},
             "game_start_time": self.game_start_time,
             "current_time": self.current_time,
             "game_speed_multiplier": self.game_speed_multiplier,
@@ -1026,18 +953,8 @@ class GameState:
             except ImportError:
                 pass
         
-        instance.facilities = []
-        if "facilities" in data:
-            try:
-                from src.models.facility import Facility
-                instance.facilities = [Facility.from_dict(f) for f in data["facilities"]]
-            except ImportError:
-                pass
-        
         instance.recruitment_pool = data.get("recruitment_pool", []).copy()
         instance.recruitment_refresh_time = data.get("recruitment_refresh_time", 0.0)
-        instance.active_events = data.get("active_events", []).copy()
-        instance.event_cooldowns = data.get("event_cooldowns", {}).copy()
 
         # Load game state
         instance.game_start_time = data.get("game_start_time", time.time())
@@ -1067,7 +984,6 @@ class GameState:
         instance._automation_processor = AutomationProcessor(instance._logger)
         instance._last_incident_generation = time.time()
         instance._incident_generation_accumulator = 0.0
-        instance._offline_progress_calculated = False
         
         # Initialize passive income system
         try:
@@ -1075,13 +991,6 @@ class GameState:
             instance._passive_income_system = PassiveIncomeSystem(game_config, instance._logger)
         except Exception:
             instance._passive_income_system = PassiveIncomeSystem({}, instance._logger)
-        
-        # Initialize offline progress system
-        try:
-            game_config = instance._json_loader.load_data("game_config.json")
-            instance._offline_progress_system = OfflineProgressSystem(game_config, instance._logger)
-        except Exception:
-            instance._offline_progress_system = OfflineProgressSystem({}, instance._logger)
 
         # Load automation scripts
         try:

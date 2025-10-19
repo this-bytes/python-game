@@ -416,14 +416,12 @@ With backend foundation complete, ready to implement:
 
 ### BATCH 3: Tycoon Systems
 - Client relationship system (reputation, satisfaction)
-- Contract management (negotiation, renewals)
-- Facility upgrades (offices, training centers)
+- Contract management (retainer generation)
 - Hiring & recruitment system
 
-### BATCH 4: Idle Systems
+### BATCH 4: Progression Systems
 - Advanced automation (multi-condition, chained)
 - Passive income (investments, retainers)
-- Offline progress calculation
 - Prestige/rebirth mechanics
 
 ### BATCH 5: Core Enhancements

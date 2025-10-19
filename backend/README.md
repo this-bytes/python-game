@@ -84,10 +84,6 @@ Open your browser to:
 - `GET /api/prestige/upgrades` - List all prestige upgrades
 - `POST /api/prestige/upgrades/{id}/purchase` - Purchase prestige upgrade
 
-### Offline Progress
-- `GET /api/offline-progress` - Get offline progress report
-- `POST /api/offline-progress/simulate` - Simulate offline time (testing)
-
 ### Save/Load
 - `POST /api/state/save` - Save game to slot
 - `POST /api/state/load` - Load game from slot
