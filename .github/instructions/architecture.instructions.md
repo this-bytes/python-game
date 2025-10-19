@@ -180,7 +180,12 @@ class GameSystem:
         pass
     
     def load_state(self, game_state, state: Dict[str, Any]) -> None:
-        """Load plugin state from persistence."""
+        """Load plugin state from persistence.
+        
+        Args:
+            game_state: The current game state object.
+            state (Dict[str, Any]): Dictionary containing the plugin's persisted state as returned by save_state.
+        """
         pass
 ```
 
