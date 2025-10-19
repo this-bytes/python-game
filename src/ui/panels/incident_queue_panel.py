@@ -17,9 +17,10 @@ class IncidentQueuePanel(Panel):
         Args:
             game_state: Game state reference
         """
+        # Position accounts for navigation menu (200px) + specialist panel (380px) + margins (40px)
         super().__init__(
             title="Active Incidents",
-            position=(420, 80),
+            position=(640, 80),
             size=(400, 500),
             closeable=True,
             minimizable=True,

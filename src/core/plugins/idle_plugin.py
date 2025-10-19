@@ -32,6 +32,7 @@ class IdlePlugin(GameSystem):
         self.idle_core = IdleCore()
         self._game_state = None
         self._event_bus = None
+        self._subscription_ids = []  # Store subscription IDs for cleanup
     
     def get_name(self) -> str:
         """Get the unique name of this system."""
@@ -52,10 +53,12 @@ class IdlePlugin(GameSystem):
         self._game_state = game_state
         self._event_bus = get_event_bus()
         
-        # Subscribe to events that trigger auto-assignment
-        self._event_bus.subscribe("incident_generated", self._on_incident_generated)
-        self._event_bus.subscribe("specialist_available", self._on_specialist_available)
-        self._event_bus.subscribe("game_state_updated", self._on_game_state_updated)
+        # Subscribe to events that trigger auto-assignment and store subscription IDs
+        self._subscription_ids = [
+            self._event_bus.subscribe("incident_generated", self._on_incident_generated),
+            self._event_bus.subscribe("specialist_available", self._on_specialist_available),
+            self._event_bus.subscribe("game_state_updated", self._on_game_state_updated)
+        ]
         
         logger.info("Idle Core Plugin initialized - auto-assignment active")
     
@@ -78,11 +81,11 @@ class IdlePlugin(GameSystem):
         """
         logger.info("Shutting down Idle Core Plugin...")
         
-        if self._event_bus:
-            # Unsubscribe from events
-            self._event_bus.unsubscribe("incident_generated", self._on_incident_generated)
-            self._event_bus.unsubscribe("specialist_available", self._on_specialist_available)
-            self._event_bus.unsubscribe("game_state_updated", self._on_game_state_updated)
+        if self._event_bus and self._subscription_ids:
+            # Unsubscribe from events using stored subscription IDs
+            for subscription_id in self._subscription_ids:
+                self._event_bus.unsubscribe(subscription_id)
+            self._subscription_ids.clear()
         
         logger.info("Idle Core Plugin shut down")
     

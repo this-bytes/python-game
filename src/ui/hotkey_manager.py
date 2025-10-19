@@ -19,6 +19,8 @@ class HotkeyAction(Enum):
     TOGGLE_AUTOMATION_PANEL = "toggle_automation_panel"
     TOGGLE_SHOP_PANEL = "toggle_shop_panel"
     TOGGLE_INVENTORY_PANEL = "toggle_inventory_panel"
+    DEBUG_TOGGLE = "debug_toggle"
+    DEBUG_INSPECTOR = "debug_inspector"
 
 
 class HotkeyManager:
@@ -47,6 +49,8 @@ class HotkeyManager:
             pygame.K_5: HotkeyAction.TOGGLE_AUTOMATION_PANEL,
             pygame.K_6: HotkeyAction.TOGGLE_SHOP_PANEL,
             pygame.K_7: HotkeyAction.TOGGLE_INVENTORY_PANEL,
+            pygame.K_F11: HotkeyAction.DEBUG_INSPECTOR,
+            pygame.K_F12: HotkeyAction.DEBUG_TOGGLE,
         }
 
     def register_callback(self, action: HotkeyAction, callback: Callable) -> None:

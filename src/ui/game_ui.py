@@ -5,7 +5,8 @@ Following the architecture principle: Pygame renders, it doesn't think.
 """
 
 import pygame
-from typing import List, Optional, Any
+import time
+from typing import List, Optional, Any, Tuple
 from dataclasses import dataclass
 
 from src.models.game_state import GameState
@@ -25,6 +26,10 @@ from src.ui.components.navigation_menu import NavigationMenu, MenuItem, MenuPosi
 from src.ui.components.hud_overlay import HUDOverlay
 from src.ui.components.quick_reference import QuickReference
 from src.ui.view_manager import ViewManager, GameView, create_default_views
+from src.ui.layout_manager import LayoutManager, GridConfig, GridConstraints, AnchorConstraints, LayerManager, LayoutMode
+from src.ui.panel_inspector import PanelInspector
+from src.ui.layout_validator import validate_layout
+from src.ui.debug_overlay import LayoutDebugOverlay, DebugOverlayMode
 
 
 @dataclass
@@ -62,6 +67,12 @@ class GameUI:
         self.theme_manager = ThemeManager()
         self.notification_manager = NotificationManager(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
         self.hotkey_manager = HotkeyManager()
+        
+        # Initialize layout system
+        self._initialize_layout_system()
+        
+        # Initialize dopamine feedback overlay for addictive gameplay
+        self.dopamine_overlay = DopamineFeedbackOverlay(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
         
         # Initialize dopamine feedback overlay for addictive gameplay
         self.dopamine_overlay = DopamineFeedbackOverlay(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
@@ -106,6 +117,12 @@ class GameUI:
             on_item_selected=self._on_menu_item_selected
         )
         
+        # Update layout system with reserved zones for navigation menu and HUD
+        self._update_reserved_zones()
+        
+        # Initialize panels with layout constraints
+        self._initialize_panels_with_layout()
+
         # Initialize view manager
         panel_dict = {
             "specialist_roster": self.specialist_roster_panel,
@@ -135,6 +152,19 @@ class GameUI:
             auto_hide_delay=15.0  # Auto-hide after 15 seconds
         )
 
+        # Debug overlay for layout visualization and diagnostics
+        try:
+            self.debug_overlay = LayoutDebugOverlay(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
+        except Exception:
+            # Fail-safe: if debug overlay cannot be created (pygame font issues etc.), disable it
+            self.debug_overlay = None
+
+        # Panel inspector (shows details for selected panel in debug overlay)
+        try:
+            self.panel_inspector = PanelInspector(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
+        except Exception:
+            self.panel_inspector = None
+
         # Create assign button
         self.assign_button = Button(
             text="Assign Specialist",
@@ -155,7 +185,146 @@ class GameUI:
 
         self.logger.logger.info("[GAME_UI] Game UI initialized with drag-and-drop support")
     
+    def _initialize_layout_system(self) -> None:
+        """Initialize the layout management system."""
+        # Create grid configuration (12x12 for responsive design)
+        grid_config = GridConfig(
+            rows=12,
+            cols=12,
+            gutter=10,
+            margin=20,
+            reserved_zones=[]  # Will be updated after navigation menu init
+        )
+        
+        # Initialize layout manager
+        self.layout_manager = LayoutManager(
+            screen_size=(self.WINDOW_WIDTH, self.WINDOW_HEIGHT),
+            grid_config=grid_config
+        )
+        
+        # Initialize layer manager for z-order control
+        self.layer_manager = LayerManager()
+    
+    def _update_reserved_zones(self) -> None:
+        """Update layout system with reserved zones for navigation and HUD."""
+        # Get navigation menu bounds
+        nav_rect = self.navigation_menu.get_rect(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
+        
+        # Get HUD bounds (top area)
+        hud_height = 60  # Approximate HUD height
+        hud_rect = pygame.Rect(0, 0, self.WINDOW_WIDTH, hud_height)
+        
+        # Update layout manager with reserved zones
+        self.layout_manager.grid_config.reserved_zones = [nav_rect, hud_rect]
+        self.layout_manager._calculate_grid()  # Recalculate grid with new reserved zones
+    
+    def _initialize_panels_with_layout(self) -> None:
+        """Initialize panels with layout constraints instead of absolute positioning."""
+        # Operations view layout (specialists left, incidents right)
+        self.layout_manager.add_panel(
+            "specialist_roster",
+            self.specialist_roster_panel,
+            LayoutMode.GRID,
+            GridConstraints(
+                row=1, col=0, row_span=8, col_span=4,
+                padding=10, alignment="fill"
+            )
+        )
+        
+        self.layout_manager.add_panel(
+            "incident_queue",
+            self.incident_queue_panel,
+            LayoutMode.GRID,
+            GridConstraints(
+                row=1, col=4, row_span=8, col_span=4,
+                padding=10, alignment="fill"
+            )
+        )
+        
+        # Management view layout (equipment panels)
+        self.layout_manager.add_panel(
+            "equipment_shop",
+            self.equipment_shop_panel,
+            LayoutMode.GRID,
+            GridConstraints(
+                row=1, col=0, row_span=8, col_span=6,
+                padding=10, alignment="fill"
+            )
+        )
+        
+        self.layout_manager.add_panel(
+            "equipment_inventory",
+            self.equipment_inventory_panel,
+            LayoutMode.GRID,
+            GridConstraints(
+                row=1, col=6, row_span=8, col_span=6,
+                padding=10, alignment="fill"
+            )
+        )
+        
+        # Analytics view layout (metrics panel)
+        self.layout_manager.add_panel(
+            "metrics",
+            self.metrics_panel,
+            LayoutMode.GRID,
+            GridConstraints(
+                row=1, col=0, row_span=10, col_span=12,
+                padding=10, alignment="fill"
+            )
+        )
+    
+    def handle_resize(self, new_size: Tuple[int, int]) -> None:
+        """Handle window resize event.
+        
+        Args:
+            new_size: New window size (width, height)
+        """
+        self.WINDOW_WIDTH, self.WINDOW_HEIGHT = new_size
+        self.screen = pygame.display.set_mode(new_size)
+        
+        # Update layout system with new screen size
+        self.layout_manager.screen_size = new_size
+        self.layout_manager._calculate_grid()
+        self.layout_manager.layout()
+        
+        # Update HUD and other components
+        self.hud_overlay = HUDOverlay(
+            screen_width=self.WINDOW_WIDTH,
+            screen_height=self.WINDOW_HEIGHT,
+            position="top"
+        )
+        
+        # Update quick reference
+        self.quick_reference = QuickReference(
+            position="bottom-right",
+            auto_hide_delay=15.0
+        )
+        
+        # Update dopamine overlay
+        self.dopamine_overlay = DopamineFeedbackOverlay(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
+        
+        # Update synergy overlay
+        self.synergy_overlay = SynergySuggestionOverlay(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
+        
+        # Update navigation menu bounds
+        self._update_reserved_zones()
+    
     def _on_menu_item_selected(self, item_id: str) -> None:
+        """Handle menu item selection.
+        
+        Args:
+            item_id: ID of selected menu item
+        """
+        # Map menu item IDs to views
+        view_map = {
+            "overview": GameView.OVERVIEW,
+            "operations": GameView.OPERATIONS,
+            "management": GameView.MANAGEMENT,
+            "analytics": GameView.ANALYTICS,
+        }
+        
+        if item_id in view_map:
+            self.view_manager.switch_to_view(view_map[item_id])
         """Handle menu item selection.
         
         Args:
@@ -199,6 +368,39 @@ class GameUI:
             HotkeyAction.TOGGLE_METRICS_PANEL,
             lambda: self._toggle_panel(self.metrics_panel)
         )
+        # Debug overlay toggles (F12 cycles modes)
+        try:
+            self.hotkey_manager.register_callback(
+                HotkeyAction.DEBUG_TOGGLE,
+                lambda: self._toggle_debug_overlay()
+            )
+        except Exception:
+            pass
+        # F11 toggles panel inspector
+        try:
+            self.hotkey_manager.register_callback(
+                HotkeyAction.DEBUG_INSPECTOR,
+                lambda: self._toggle_panel_inspector()
+            )
+        except Exception:
+            pass
+
+    def _toggle_panel_inspector(self) -> None:
+        inspector = getattr(self, 'panel_inspector', None)
+        if not inspector:
+            return
+        inspector.toggle()
+
+    def _toggle_debug_overlay(self) -> None:
+        """Toggle the debug overlay visibility and cycle modes if held."""
+        debug = getattr(self, 'debug_overlay', None)
+        if not debug:
+            return
+        # If already enabled, cycle modes; otherwise enable
+        if getattr(debug, 'enabled', False):
+            debug.cycle_mode()
+        else:
+            debug.toggle_enabled()
         self.hotkey_manager.register_callback(
             HotkeyAction.TOGGLE_SHOP_PANEL,
             lambda: self._toggle_panel(self.equipment_shop_panel)
@@ -268,6 +470,11 @@ class GameUI:
         actions = []
 
         for event in events:
+            # Handle window resize events
+            if event.type == pygame.VIDEORESIZE:
+                self.handle_resize((event.w, event.h))
+                continue
+            
             # Handle navigation menu first
             if self.navigation_menu.handle_event(event, self.WINDOW_WIDTH, self.WINDOW_HEIGHT):
                 continue
@@ -280,17 +487,24 @@ class GameUI:
             if self.hotkey_manager.handle_key_event(event):
                 continue
 
-            # Handle panel events (in reverse z-order) - only if visible
+            # Handle panel events (in reverse z-order from layout system) - only if visible
             event_consumed = False
-            for panel in reversed(self.panels):
+            # Let debug overlay capture click events when enabled
+            debug = getattr(self, 'debug_overlay', None)
+            if debug and getattr(debug, 'enabled', False):
+                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    if debug.handle_click(event.pos, self.layout_manager):
+                        event_consumed = True
+                        # don't pass through
+                        continue
+            for panel in reversed(self.layout_manager.layer_manager.get_render_order()):
                 if hasattr(panel, 'visible') and not panel.visible:
                     continue
                     
                 if panel.handle_event(event):
                     # Bring panel to front if clicked
                     if event.type == pygame.MOUSEBUTTONDOWN:
-                        self.panels.remove(panel)
-                        self.panels.append(panel)
+                        self.layout_manager.layer_manager.bring_to_front(panel)
                     event_consumed = True
                     break
 
@@ -427,6 +641,12 @@ class GameUI:
         Args:
             delta_time: Time elapsed since last update
         """
+        # Update layout if needed (responsive resize, etc.)
+        layout_start = time.time()
+        self.layout_manager.layout()
+        layout_end = time.time()
+        self._last_layout_time = layout_end - layout_start
+        
         # Update view manager
         self.view_manager.update(delta_time)
         
@@ -461,6 +681,35 @@ class GameUI:
         incident = self.incident_queue_panel.get_selected_incident()
         self.assign_button.set_enabled(specialist is not None and incident is not None)
 
+        # Update debug metrics (approx)
+        debug = getattr(self, 'debug_overlay', None)
+        if debug:
+            try:
+                fps = self.clock.get_fps() or self.FPS
+                layout_time = getattr(self, '_last_layout_time', 0.0)
+                render_time = getattr(self, '_last_render_time', 0.0)
+                panel_count = len(self.layout_manager.panels)
+                # quick collision count
+                collision_count = 0
+                panels = list(self.layout_manager.panels.values())
+                for i, p1 in enumerate(panels):
+                    if not hasattr(p1, 'rect'):
+                        continue
+                    for p2 in panels[i+1:]:
+                        if hasattr(p2, 'rect') and p1.rect.colliderect(p2.rect):
+                            collision_count += 1
+
+                debug.update_metrics(fps, layout_time, render_time, panel_count, collision_count)
+                # Run layout validation and populate overlay issues
+                try:
+                    issues = validate_layout(self.layout_manager)
+                    debug.validation_issues = issues
+                except Exception:
+                    debug.validation_issues = []
+            except Exception:
+                # Non-fatal; continue without debug metrics
+                pass
+
     def render(self) -> None:
         """Render the game UI."""
         # Get background color from theme
@@ -475,8 +724,8 @@ class GameUI:
         # Render navigation menu
         self.navigation_menu.render(self.screen, self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
 
-        # Render all visible panels (in z-order)
-        for panel in self.panels:
+        # Render all visible panels (in z-order from layout system)
+        for panel in self.layout_manager.layer_manager.get_render_order():
             if hasattr(panel, 'visible') and panel.visible:
                 panel.render(self.screen)
 
@@ -484,9 +733,10 @@ class GameUI:
         current_view = self.view_manager.current_view
         if current_view == GameView.OPERATIONS:
             self._render_controls()
-        
-        # Render AUTO-PLAY INDICATOR (always visible - core idle mechanic)
-        if hasattr(self.game_state, '_idle_core') and self.game_state._idle_core:
+            render_start = time.time()
+            # Get background color from theme
+            bg_color = self.theme_manager.get_color("background", (15, 15, 25))
+            self.screen.fill(bg_color)
             self.autoplay_indicator.render(
                 self.screen,
                 self.game_state._idle_core,
@@ -522,6 +772,26 @@ class GameUI:
         if self.show_help_overlay:
             self._render_help_overlay()
 
+        # Render debug overlay on top of everything (if present)
+        debug = getattr(self, 'debug_overlay', None)
+        if debug:
+            try:
+                debug.render(self.screen, self.layout_manager)
+            except Exception:
+                # Ensure rendering never crashes the main loop
+                pass
+
+        # Render panel inspector (uses debug overlay selection)
+        inspector = getattr(self, 'panel_inspector', None)
+        if inspector:
+            try:
+                panel_info = None
+                if debug:
+                    panel_info = debug.get_panel_info(self.layout_manager)
+                inspector.render(self.screen, panel_info)
+            except Exception:
+                pass
+
         # Update display
         pygame.display.flip()
 
@@ -530,8 +800,10 @@ class GameUI:
         if not self.dragged_incident:
             return
 
-        # Render dragged incident preview
+        # Get current mouse position for drag preview
         mouse_x, mouse_y = pygame.mouse.get_pos()
+
+        # Compute preview position using stored offset
         drag_x = mouse_x - self.drag_offset[0]
         drag_y = mouse_y - self.drag_offset[1]
         
@@ -552,10 +824,10 @@ class GameUI:
         if self.small_font:
             type_text = self.small_font.render(self.dragged_incident.incident_type[:15], True, (255, 255, 255))
             drag_surface.blit(type_text, (8, 8))
-            
+
             specialty_text = self.small_font.render(self.dragged_incident.specialty_required, True, (150, 150, 200))
             drag_surface.blit(specialty_text, (8, 28))
-        
+
         # Render to screen
         self.screen.blit(drag_surface, (drag_x, drag_y))
 

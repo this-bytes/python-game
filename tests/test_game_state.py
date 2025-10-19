@@ -393,6 +393,9 @@ class TestGameState:
         # Mock random for guaranteed success
         mock_random.return_value = 0.1  # Below success probability threshold
         
+        # Clear initial incidents generated on game state creation
+        sample_game_state.incidents.clear()
+        
         # Create and assign incident
         incident = Incident(
             id="test_incident",
@@ -425,6 +428,9 @@ class TestGameState:
 
     def test_sla_violation_penalty(self, sample_game_state):
         """Test SLA violation penalties."""
+        # Clear initial incidents generated on game state creation
+        sample_game_state.incidents.clear()
+        
         # Create incident that's already past SLA
         incident = Incident(
             id="test_incident",
@@ -450,6 +456,9 @@ class TestGameState:
 
     def test_repr(self, sample_game_state):
         """Test string representation of game state."""
+        # Clear initial incidents for consistent repr test
+        sample_game_state.incidents.clear()
+        
         repr_str = repr(sample_game_state)
 
         assert "GameState" in repr_str

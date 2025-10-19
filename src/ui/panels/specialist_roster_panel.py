@@ -18,9 +18,10 @@ class SpecialistRosterPanel(Panel):
         Args:
             game_state: Game state reference
         """
+        # Position accounts for navigation menu (200px) + margin (20px)
         super().__init__(
             title="Specialist Roster",
-            position=(20, 80),
+            position=(220, 80),
             size=(380, 500),
             closeable=True,
             minimizable=True,

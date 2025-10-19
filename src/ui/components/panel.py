@@ -1,10 +1,11 @@
 """Panel component for game UI.
 
 Draggable, resizable window panel with title bar and control buttons.
+Enhanced with layout constraint support for proper layout management.
 """
 
 import pygame
-from typing import Tuple, Optional, Any
+from typing import Tuple, Optional, Any, Union
 from enum import Enum
 
 
@@ -36,6 +37,12 @@ class Panel:
         maximizable: bool = False,
         draggable: bool = True,
         resizable: bool = False,
+        # Layout system integration (optional)
+        layout_mode: Optional[str] = None,
+        layout_constraints: Optional[Any] = None,
+        layer: int = 10,  # UILayer.PANELS
+        responsive: bool = True,
+        collision_behavior: Optional[str] = None,
     ):
         """Initialize panel.
 
@@ -48,6 +55,11 @@ class Panel:
             maximizable: Whether panel can be maximized
             draggable: Whether panel can be dragged
             resizable: Whether panel can be resized
+            layout_mode: Layout mode (grid, anchored, floating, fixed)
+            layout_constraints: Layout constraints object
+            layer: Rendering layer (higher = on top)
+            responsive: Whether panel responds to window resize
+            collision_behavior: How to handle collisions (overlap, push, block, resize)
         """
         self.title = title
         self.position = list(position)
@@ -61,6 +73,14 @@ class Panel:
         self.state = PanelState.NORMAL
         self.visible = True
         self.z_order = 0
+        
+        # Layout system integration
+        self.layout_mode = layout_mode
+        self.layout_constraints = layout_constraints
+        self.layer = layer
+        self.responsive = responsive
+        self.collision_behavior = collision_behavior or "overlap"
+        self._managed_by_layout = layout_mode is not None
 
         # Drag state
         self.is_dragging = False
@@ -375,6 +395,54 @@ class Panel:
             self.size = self.saved_size
         self.state = PanelState.NORMAL
 
+    def set_position(self, x: int, y: int) -> None:
+        """Set panel position.
+        
+        Args:
+            x: X coordinate
+            y: Y coordinate
+        """
+        self.position = [x, y]
+    
+    def set_size(self, width: int, height: int) -> None:
+        """Set panel size.
+        
+        Args:
+            width: Panel width
+            height: Panel height
+        """
+        self.size = [max(width, self.MIN_WIDTH), max(height, self.MIN_HEIGHT)]
+    
+    def get_bounds(self) -> pygame.Rect:
+        """Get panel bounds for collision detection.
+        
+        Returns:
+            Rectangle representing panel bounds
+        """
+        return self.get_rect()
+    
+    def check_collision(self, other: 'Panel') -> bool:
+        """Check if this panel collides with another.
+        
+        Args:
+            other: Other panel to check
+            
+        Returns:
+            True if panels overlap
+        """
+        return self.get_bounds().colliderect(other.get_bounds())
+    
+    def set_layout_constraints(self, constraints: Any, layout_mode: str) -> None:
+        """Set layout constraints for this panel.
+        
+        Args:
+            constraints: Layout constraints object (GridConstraints, AnchorConstraints, etc.)
+            layout_mode: Layout mode string ('grid', 'anchored', 'floating', 'fixed')
+        """
+        self.layout_constraints = constraints
+        self.layout_mode = layout_mode
+        self._managed_by_layout = True
+    
     def set_theme_colors(self, theme: dict) -> None:
         """Apply theme colors to panel.
 

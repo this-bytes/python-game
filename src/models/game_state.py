@@ -216,10 +216,35 @@ class GameState:
         # Load initial data if not provided
         if not self.specialists:
             self._load_initial_data()
+            # Generate initial incidents so player has something to do immediately
+            self._generate_initial_incidents()
         
         # Check for offline progress on initialization
         self._check_offline_progress()
 
+    def _generate_initial_incidents(self):
+        """Generate starting incidents so player has something to interact with immediately.
+        
+        This creates 3-5 initial incidents of varying difficulty to give the player
+        an immediate gameplay experience instead of waiting for random generation.
+        """
+        if not self.clients or not self._incident_generator:
+            return
+        
+        initial_incident_count = random.randint(3, 5)
+        self._logger.logger.info(f"[GAME_STATE] Generating {initial_incident_count} initial incidents for new game")
+        
+        for _ in range(initial_incident_count):
+            # Pick a random client
+            client = random.choice(self.clients)
+            try:
+                incident = self._incident_generator.generate_incident(client)
+                if incident:
+                    self.incidents.append(incident)
+                    self._logger.logger.info(f"[GAME_STATE] Generated initial incident: {incident.incident_type} (difficulty {incident.difficulty})")
+            except Exception as e:
+                self._logger.logger.warning(f"[GAME_STATE] Failed to generate initial incident: {e}")
+    
     def _load_initial_data(self):
         """Load initial game data from JSON files."""
         try:
@@ -1028,6 +1053,8 @@ class GameState:
         instance.total_prestiges = data.get("total_prestiges", 0)
         instance.unlocked_achievements = data.get("unlocked_achievements", []).copy()
         instance.achievement_progress = data.get("achievement_progress", {}).copy()
+        instance.dopamine_feedback_queue = data.get("dopamine_feedback_queue", []).copy()
+        instance.active_risk_contracts = data.get("active_risk_contracts", {}).copy()
         instance.max_active_incidents = data.get("max_active_incidents", 50)
         instance.max_specialists = data.get("max_specialists", 10)
         instance.incident_generation_enabled = data.get("incident_generation_enabled", True)
@@ -1063,6 +1090,29 @@ class GameState:
                 instance.automation_scripts = [AutomationScript.from_dict(a) for a in automation_data["automation_scripts"]]
         except Exception:
             instance.automation_scripts = []
+        
+        # Initialize systems that are normally created in __post_init__
+        # These MUST be initialized for loaded games to work properly
+        from src.core.dopamine_system import DopamineSystem
+        from src.core.idle_core import IdleCore
+        from src.core.equipment_system import EquipmentSystem
+        
+        instance._dopamine_system = DopamineSystem()
+        instance._burnout_system = BurnoutSystem()
+        
+        try:
+            game_config = instance._json_loader.load_data("game_config.json")
+            instance._relationships_system = RelationshipsSystem(game_config)
+        except Exception:
+            instance._relationships_system = RelationshipsSystem({})
+        
+        instance._idle_core = IdleCore()
+        
+        try:
+            equipment_config = instance._json_loader.load_data("equipment.json")
+            instance._equipment_system = EquipmentSystem(equipment_config)
+        except Exception:
+            instance._equipment_system = EquipmentSystem({})
 
         return instance
     

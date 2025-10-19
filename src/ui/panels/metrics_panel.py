@@ -14,10 +14,12 @@ class MetricsPanel(Panel):
         Args:
             game_state: Game state reference
         """
+        # Position accounts for navigation menu (200px) + other panels + margins
+        # Will be repositioned by ViewManager based on current view
         super().__init__(
             title="Game Metrics",
-            position=(840, 80),
-            size=(420, 300),
+            position=(220, 80),
+            size=(840, 600),
             closeable=True,
             minimizable=True,
             draggable=True,

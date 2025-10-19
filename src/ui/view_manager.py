@@ -273,10 +273,15 @@ def create_default_views(screen_width: int = 1280, screen_height: int = 720) -> 
         Dictionary of view configurations
     """
     # Calculate dimensions based on screen size
+    # Navigation menu is 200px wide on left, HUD overlay is 60px tall at top
     sidebar_width = 200
     header_height = 60
     content_width = screen_width - sidebar_width
     content_height = screen_height - header_height
+    
+    # Base positions account for navigation menu and HUD
+    base_x = sidebar_width + 20  # 220px from left
+    base_y = header_height + 20   # 80px from top
     
     return {
         GameView.OVERVIEW: ViewConfig(
@@ -285,7 +290,7 @@ def create_default_views(screen_width: int = 1280, screen_height: int = 720) -> 
             panels=["metrics"],
             layout={
                 "metrics": {
-                    "position": (sidebar_width + 20, header_height + 20),
+                    "position": (base_x, base_y),
                     "size": (content_width - 40, content_height - 40),
                     "visible": True
                 }
@@ -299,12 +304,12 @@ def create_default_views(screen_width: int = 1280, screen_height: int = 720) -> 
             panels=["specialist_roster", "incident_queue"],
             layout={
                 "specialist_roster": {
-                    "position": (sidebar_width + 20, header_height + 20),
+                    "position": (base_x, base_y),
                     "size": (400, content_height - 40),
                     "visible": True
                 },
                 "incident_queue": {
-                    "position": (sidebar_width + 440, header_height + 20),
+                    "position": (base_x + 420, base_y),  # After specialist panel + margin
                     "size": (content_width - 460, content_height - 40),
                     "visible": True
                 }
@@ -318,12 +323,12 @@ def create_default_views(screen_width: int = 1280, screen_height: int = 720) -> 
             panels=["equipment_shop", "equipment_inventory"],
             layout={
                 "equipment_shop": {
-                    "position": (sidebar_width + 20, header_height + 20),
+                    "position": (base_x, base_y),
                     "size": (400, content_height - 40),
                     "visible": True
                 },
                 "equipment_inventory": {
-                    "position": (sidebar_width + 440, header_height + 20),
+                    "position": (base_x + 420, base_y),  # After shop panel + margin
                     "size": (content_width - 460, content_height - 40),
                     "visible": True
                 }
@@ -337,7 +342,7 @@ def create_default_views(screen_width: int = 1280, screen_height: int = 720) -> 
             panels=["metrics"],
             layout={
                 "metrics": {
-                    "position": (sidebar_width + 20, header_height + 20),
+                    "position": (base_x, base_y),
                     "size": (content_width - 40, content_height - 40),
                     "visible": True
                 }

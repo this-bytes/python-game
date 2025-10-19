@@ -15,16 +15,16 @@ from src.models.game_state import GameState
 class BackendIntegration:
     """Handles integration between game and backend API server."""
 
-    def __init__(self, host: str = "localhost", port: int = 5000, logger: Optional[GameLogger] = None):
+    def __init__(self, host: str = "localhost", port: int = 5001, logger: Optional[GameLogger] = None):
         """Initialize backend integration.
 
         Args:
-            host: Backend server host
-            port: Backend server port
+            host: Backend server host (default: localhost)
+            port: Backend server port (default: 5001 - matches backend/config.py)
             logger: Optional logger instance
         """
         self.host = host
-        self.port = port
+        self.port = port if port else 5001
         self.base_url = f"http://{host}:{port}"
         self.logger = logger or GameLogger("backend_integration")
 
@@ -397,14 +397,14 @@ def get_backend_integration() -> Optional[BackendIntegration]:
 
 def initialize_backend_integration(
     host: str = "localhost",
-    port: int = 5000,
+    port: int = 5001,  # Default port matches backend/config.py
     logger: Optional[GameLogger] = None
 ) -> BackendIntegration:
     """Initialize the global backend integration.
 
     Args:
-        host: Backend server host
-        port: Backend server port
+        host: Backend server host (default: localhost)
+        port: Backend server port (default: 5001 - matches backend/config.py)
         logger: Optional logger instance
 
     Returns:

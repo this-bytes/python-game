@@ -555,9 +555,3 @@ def incident():
 - **[testing.instructions.md](testing.instructions.md)** - Testing requirements
 - **[workflows.instructions.md](workflows.instructions.md)** - Common development tasks
 
-
-## See Also
-
-- [ABSOLUTE_STANDARDS.md](ABSOLUTE_STANDARDS.md) - Core standards
-- [CODE_STYLE.md](CODE_STYLE.md) - Naming and formatting
-- [TESTING_STANDARDS.md](TESTING_STANDARDS.md) - Testing requirements

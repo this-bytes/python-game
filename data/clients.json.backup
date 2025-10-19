@@ -61,14 +61,14 @@
       "active": true
     },
     {
-      "active": true,
-      "contract_value": 10000,
       "id": "client_010",
-      "incident_rate_per_minute": 1.5,
-      "industry": "Technology",
       "name": "TechCorp Inc.",
+      "industry": "Technology",
+      "incident_rate_per_minute": 0.5,
+      "sla_multiplier": 1,
       "reputation": 80,
-      "sla_multiplier": 1
+      "contract_value": 10000,
+      "active": true
     }
   ]
 }

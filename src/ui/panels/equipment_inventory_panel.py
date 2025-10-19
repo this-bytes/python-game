@@ -20,10 +20,12 @@ class EquipmentInventoryPanel(Panel):
         Args:
             game_state: Game state reference
         """
+        # Position accounts for navigation menu (200px) + shop panel (380px) + margins (40px)
+        # ViewManager will reposition based on current view
         super().__init__(
             title="Equipment Inventory",
-            position=(820, 80),
-            size=(440, 500),
+            position=(640, 80),
+            size=(420, 600),
             closeable=True,
             minimizable=True,
             draggable=True,

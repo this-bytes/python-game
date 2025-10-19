@@ -38,16 +38,16 @@
       "upgrade_cost": 10000
     },
     {
-      "bonuses": {
-        "fatigue_reduction": 0.1
-      },
+      "id": "break_room",
+      "name": "Break Room",
       "description": "Reduces specialist fatigue accumulation",
       "facility_type": "break_room",
-      "id": "break_room",
       "level": 1,
-      "max_level": 100,
-      "name": "Break Room",
-      "upgrade_cost": 6000
+      "max_level": 10,
+      "upgrade_cost": 6000,
+      "bonuses": {
+        "fatigue_reduction": 0.1
+      }
     }
   ]
 }
