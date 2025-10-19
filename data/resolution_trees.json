@@ -1,0 +1,491 @@
+{
+  "resolution_trees": {
+    "ddos_attack": {
+      "name": "DDoS Attack Resolution",
+      "description": "Resolve a distributed denial of service attack",
+      "stages": [
+        {
+          "stage_id": "containment",
+          "prompt": "DDoS attack detected. How do you respond?",
+          "time_limit_seconds": 30,
+          "decisions": [
+            {
+              "id": "block_ips",
+              "text": "Block attacking IP ranges",
+              "effects": {
+                "time_multiplier": 0.8,
+                "accuracy_check": true,
+                "burnout_cost": 5,
+                "success_chance": 0.85
+              },
+              "next_stage": "investigation"
+            },
+            {
+              "id": "migrate_cdn",
+              "text": "Migrate traffic to CDN",
+              "effects": {
+                "time_multiplier": 0.5,
+                "money_cost": 2000,
+                "burnout_cost": 2,
+                "success_chance": 0.95
+              },
+              "next_stage": "investigation"
+            },
+            {
+              "id": "analyze_first",
+              "text": "Analyze attack pattern first",
+              "effects": {
+                "time_multiplier": 1.2,
+                "accuracy_bonus": 20,
+                "burnout_cost": 10,
+                "success_chance": 0.75
+              },
+              "next_stage": "investigation"
+            }
+          ]
+        },
+        {
+          "stage_id": "investigation",
+          "prompt": "Attack contained. Now investigate the source.",
+          "time_limit_seconds": 45,
+          "decisions": [
+            {
+              "id": "trace_origin",
+              "text": "Trace attack origin",
+              "effects": {
+                "time_multiplier": 1.0,
+                "accuracy_check": true,
+                "burnout_cost": 8,
+                "success_chance": 0.8
+              },
+              "next_stage": "mitigation"
+            },
+            {
+              "id": "check_logs",
+              "text": "Analyze server logs",
+              "effects": {
+                "time_multiplier": 0.7,
+                "accuracy_bonus": 15,
+                "burnout_cost": 6,
+                "success_chance": 0.9
+              },
+              "next_stage": "mitigation"
+            }
+          ]
+        },
+        {
+          "stage_id": "mitigation",
+          "prompt": "Source identified. Implement permanent mitigation.",
+          "time_limit_seconds": 60,
+          "decisions": [
+            {
+              "id": "rate_limiting",
+              "text": "Implement rate limiting",
+              "effects": {
+                "time_multiplier": 0.6,
+                "accuracy_check": true,
+                "burnout_cost": 7,
+                "success_chance": 0.88
+              },
+              "resolution_complete": true
+            },
+            {
+              "id": "firewall_rules",
+              "text": "Update firewall rules",
+              "effects": {
+                "time_multiplier": 0.8,
+                "accuracy_bonus": 10,
+                "burnout_cost": 5,
+                "success_chance": 0.92
+              },
+              "resolution_complete": true
+            }
+          ]
+        }
+      ]
+    },
+    "malware_infection": {
+      "name": "Malware Infection Resolution",
+      "description": "Remove malware and prevent reinfection",
+      "stages": [
+        {
+          "stage_id": "isolation",
+          "prompt": "Malware detected. Isolate affected systems.",
+          "time_limit_seconds": 25,
+          "decisions": [
+            {
+              "id": "network_isolate",
+              "text": "Isolate from network",
+              "effects": {
+                "time_multiplier": 0.9,
+                "accuracy_check": true,
+                "burnout_cost": 4,
+                "success_chance": 0.95
+              },
+              "next_stage": "analysis"
+            },
+            {
+              "id": "shutdown_system",
+              "text": "Shutdown affected systems",
+              "effects": {
+                "time_multiplier": 0.7,
+                "money_cost": 1500,
+                "burnout_cost": 6,
+                "success_chance": 0.98
+              },
+              "next_stage": "analysis"
+            }
+          ]
+        },
+        {
+          "stage_id": "analysis",
+          "prompt": "Systems isolated. Analyze the malware.",
+          "time_limit_seconds": 40,
+          "decisions": [
+            {
+              "id": "reverse_engineer",
+              "text": "Reverse engineer malware",
+              "effects": {
+                "time_multiplier": 1.3,
+                "accuracy_bonus": 25,
+                "burnout_cost": 12,
+                "success_chance": 0.7
+              },
+              "next_stage": "removal"
+            },
+            {
+              "id": "signature_scan",
+              "text": "Use signature scanning",
+              "effects": {
+                "time_multiplier": 0.8,
+                "accuracy_check": true,
+                "burnout_cost": 5,
+                "success_chance": 0.85
+              },
+              "next_stage": "removal"
+            }
+          ]
+        },
+        {
+          "stage_id": "removal",
+          "prompt": "Malware analyzed. Remove and clean up.",
+          "time_limit_seconds": 35,
+          "decisions": [
+            {
+              "id": "manual_removal",
+              "text": "Manual malware removal",
+              "effects": {
+                "time_multiplier": 1.0,
+                "accuracy_check": true,
+                "burnout_cost": 8,
+                "success_chance": 0.8
+              },
+              "resolution_complete": true
+            },
+            {
+              "id": "automated_tools",
+              "text": "Use automated removal tools",
+              "effects": {
+                "time_multiplier": 0.6,
+                "accuracy_bonus": 5,
+                "burnout_cost": 4,
+                "success_chance": 0.75
+              },
+              "resolution_complete": true
+            }
+          ]
+        }
+      ]
+    },
+    "phishing_attack": {
+      "name": "Phishing Attack Resolution",
+      "description": "Investigate and respond to phishing incident",
+      "stages": [
+        {
+          "stage_id": "assessment",
+          "prompt": "Phishing report received. Assess the situation.",
+          "time_limit_seconds": 20,
+          "decisions": [
+            {
+              "id": "interview_user",
+              "text": "Interview affected user",
+              "effects": {
+                "time_multiplier": 0.8,
+                "accuracy_bonus": 15,
+                "burnout_cost": 3,
+                "success_chance": 0.9
+              },
+              "next_stage": "investigation"
+            },
+            {
+              "id": "check_email_logs",
+              "text": "Check email server logs",
+              "effects": {
+                "time_multiplier": 1.0,
+                "accuracy_check": true,
+                "burnout_cost": 5,
+                "success_chance": 0.85
+              },
+              "next_stage": "investigation"
+            }
+          ]
+        },
+        {
+          "stage_id": "investigation",
+          "prompt": "Gather evidence and identify phishing source.",
+          "time_limit_seconds": 50,
+          "decisions": [
+            {
+              "id": "trace_sender",
+              "text": "Trace email sender",
+              "effects": {
+                "time_multiplier": 1.2,
+                "accuracy_check": true,
+                "burnout_cost": 9,
+                "success_chance": 0.75
+              },
+              "next_stage": "response"
+            },
+            {
+              "id": "analyze_headers",
+              "text": "Analyze email headers",
+              "effects": {
+                "time_multiplier": 0.9,
+                "accuracy_bonus": 10,
+                "burnout_cost": 6,
+                "success_chance": 0.88
+              },
+              "next_stage": "response"
+            }
+          ]
+        },
+        {
+          "stage_id": "response",
+          "prompt": "Evidence gathered. Implement response measures.",
+          "time_limit_seconds": 30,
+          "decisions": [
+            {
+              "id": "block_sender",
+              "text": "Block sender domain",
+              "effects": {
+                "time_multiplier": 0.5,
+                "accuracy_check": true,
+                "burnout_cost": 4,
+                "success_chance": 0.92
+              },
+              "resolution_complete": true
+            },
+            {
+              "id": "user_training",
+              "text": "Conduct user training",
+              "effects": {
+                "time_multiplier": 0.7,
+                "accuracy_bonus": 20,
+                "burnout_cost": 7,
+                "success_chance": 0.95
+              },
+              "resolution_complete": true
+            }
+          ]
+        }
+      ]
+    },
+    "data_breach": {
+      "name": "Data Breach Resolution",
+      "description": "Contain and investigate a data breach",
+      "stages": [
+        {
+          "stage_id": "containment",
+          "prompt": "Data breach detected. Contain the breach.",
+          "time_limit_seconds": 15,
+          "decisions": [
+            {
+              "id": "shutdown_services",
+              "text": "Shutdown affected services",
+              "effects": {
+                "time_multiplier": 0.6,
+                "money_cost": 3000,
+                "burnout_cost": 8,
+                "success_chance": 0.98
+              },
+              "next_stage": "assessment"
+            },
+            {
+              "id": "isolate_systems",
+              "text": "Isolate compromised systems",
+              "effects": {
+                "time_multiplier": 0.8,
+                "accuracy_check": true,
+                "burnout_cost": 6,
+                "success_chance": 0.9
+              },
+              "next_stage": "assessment"
+            }
+          ]
+        },
+        {
+          "stage_id": "assessment",
+          "prompt": "Breach contained. Assess the damage.",
+          "time_limit_seconds": 45,
+          "decisions": [
+            {
+              "id": "forensic_analysis",
+              "text": "Conduct forensic analysis",
+              "effects": {
+                "time_multiplier": 1.4,
+                "accuracy_bonus": 30,
+                "burnout_cost": 15,
+                "success_chance": 0.7
+              },
+              "next_stage": "notification"
+            },
+            {
+              "id": "quick_assessment",
+              "text": "Perform quick damage assessment",
+              "effects": {
+                "time_multiplier": 0.9,
+                "accuracy_check": true,
+                "burnout_cost": 7,
+                "success_chance": 0.8
+              },
+              "next_stage": "notification"
+            }
+          ]
+        },
+        {
+          "stage_id": "notification",
+          "prompt": "Assessment complete. Handle notifications and recovery.",
+          "time_limit_seconds": 40,
+          "decisions": [
+            {
+              "id": "notify_regulators",
+              "text": "Notify regulators immediately",
+              "effects": {
+                "time_multiplier": 0.8,
+                "accuracy_bonus": 15,
+                "burnout_cost": 10,
+                "success_chance": 0.85
+              },
+              "resolution_complete": true
+            },
+            {
+              "id": "internal_first",
+              "text": "Notify internal stakeholders first",
+              "effects": {
+                "time_multiplier": 1.0,
+                "money_cost": 1000,
+                "burnout_cost": 5,
+                "success_chance": 0.9
+              },
+              "resolution_complete": true
+            }
+          ]
+        }
+      ]
+    },
+    "ransomware_attack": {
+      "name": "Ransomware Attack Resolution",
+      "description": "Handle ransomware encryption and recovery",
+      "stages": [
+        {
+          "stage_id": "isolation",
+          "prompt": "Ransomware detected. Isolate infected systems.",
+          "time_limit_seconds": 10,
+          "decisions": [
+            {
+              "id": "disconnect_network",
+              "text": "Disconnect from network",
+              "effects": {
+                "time_multiplier": 0.5,
+                "accuracy_check": true,
+                "burnout_cost": 3,
+                "success_chance": 0.95
+              },
+              "next_stage": "assessment"
+            },
+            {
+              "id": "shutdown_immediately",
+              "text": "Immediate shutdown",
+              "effects": {
+                "time_multiplier": 0.3,
+                "money_cost": 2000,
+                "burnout_cost": 5,
+                "success_chance": 0.98
+              },
+              "next_stage": "assessment"
+            }
+          ]
+        },
+        {
+          "stage_id": "assessment",
+          "prompt": "Systems isolated. Assess encryption scope.",
+          "time_limit_seconds": 30,
+          "decisions": [
+            {
+              "id": "analyze_sample",
+              "text": "Analyze ransomware sample",
+              "effects": {
+                "time_multiplier": 1.1,
+                "accuracy_bonus": 20,
+                "burnout_cost": 12,
+                "success_chance": 0.75
+              },
+              "next_stage": "recovery"
+            },
+            {
+              "id": "check_backups",
+              "text": "Verify backup integrity",
+              "effects": {
+                "time_multiplier": 0.8,
+                "accuracy_check": true,
+                "burnout_cost": 6,
+                "success_chance": 0.88
+              },
+              "next_stage": "recovery"
+            }
+          ]
+        },
+        {
+          "stage_id": "recovery",
+          "prompt": "Assessment complete. Choose recovery strategy.",
+          "time_limit_seconds": 60,
+          "decisions": [
+            {
+              "id": "restore_backups",
+              "text": "Restore from backups",
+              "effects": {
+                "time_multiplier": 1.2,
+                "accuracy_check": true,
+                "burnout_cost": 8,
+                "success_chance": 0.82
+              },
+              "resolution_complete": true
+            },
+            {
+              "id": "decrypt_attempt",
+              "text": "Attempt decryption",
+              "effects": {
+                "time_multiplier": 2.0,
+                "money_cost": 5000,
+                "burnout_cost": 20,
+                "success_chance": 0.3
+              },
+              "resolution_complete": true
+            },
+            {
+              "id": "pay_ransom",
+              "text": "Pay ransom (last resort)",
+              "effects": {
+                "time_multiplier": 0.2,
+                "money_cost": 10000,
+                "burnout_cost": 2,
+                "success_chance": 0.99
+              },
+              "resolution_complete": true
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -168,6 +168,163 @@ def test_supply_chain_attack_creates_correctly():
 
 ---
 
+## TASK 2.5: ADD A NEW RESOLUTION TREE
+
+### Scenario
+You need to add interactive decision-based resolution for a new incident type, like "Zero-Day Exploit" with multiple response strategies.
+
+### Step 1: Design the Decision Tree
+
+Plan your resolution tree:
+- **3-5 stages** for engagement without overwhelming
+- **2-4 decisions per stage** with clear risk/reward tradeoffs
+- **Time pressure** (30-60 seconds per stage)
+- **Specialist skill relevance** (different approaches favor different specialties)
+
+### Step 2: Add to JSON Configuration
+
+Edit `/data/resolution_trees.json`:
+
+```json
+{
+  "zero_day_exploit": {
+    "stages": [
+      {
+        "stage_id": "detection",
+        "prompt": "Unknown exploit detected. Initial assessment needed.",
+        "decisions": [
+          {
+            "id": "quarantine_system",
+            "text": "Quarantine affected systems immediately",
+            "effects": {
+              "time_multiplier": 0.7,
+              "burnout_cost": 8,
+              "success_chance": 0.9
+            },
+            "next_stage": "analysis"
+          },
+          {
+            "id": "monitor_behavior",
+            "text": "Monitor exploit behavior before acting",
+            "effects": {
+              "time_multiplier": 1.3,
+              "accuracy_bonus": 25,
+              "burnout_cost": 12,
+              "success_chance": 0.75
+            },
+            "next_stage": "analysis"
+          }
+        ],
+        "time_limit_seconds": 45.0
+      },
+      {
+        "stage_id": "analysis",
+        "prompt": "Exploit behavior analyzed. Choose containment strategy.",
+        "decisions": [
+          {
+            "id": "patch_deployment",
+            "text": "Deploy emergency security patches",
+            "effects": {
+              "time_multiplier": 1.0,
+              "money_cost": 3000,
+              "burnout_cost": 6,
+              "success_chance": 0.95
+            },
+            "resolution_complete": true
+          },
+          {
+            "id": "honey_pot",
+            "text": "Set up honeypot to capture attacker data",
+            "effects": {
+              "time_multiplier": 1.5,
+              "accuracy_bonus": 30,
+              "burnout_cost": 15,
+              "success_chance": 0.7
+            },
+            "resolution_complete": true
+          }
+        ],
+        "time_limit_seconds": 60.0
+      }
+    ]
+  }
+}
+```
+
+### Step 3: Balance Decision Effects
+
+Follow these guidelines:
+- **Time Multipliers**: 0.5-2.0 (faster/slower resolution)
+- **Success Chances**: 0.6-0.95 (realistic probabilities)
+- **Burnout Costs**: 5-20 points (fatigue accumulation)
+- **Money Costs**: 0-5000 credits (expensive options)
+- **Accuracy Bonuses**: 0-50 points (precision improvements)
+
+### Step 4: Test the Resolution Tree
+
+Create comprehensive tests in `/tests/test_decision_based_resolution.py`:
+
+```python
+def test_zero_day_resolution_tree(self, resolution_system, specialist):
+    """Test zero-day exploit resolution tree navigation."""
+    # Create zero-day incident
+    incident = Incident(
+        id="inc_zero_day_001",
+        incident_type="Zero-Day Exploit",
+        specialty_required="Network Security",
+        difficulty=4,
+        sla_seconds=900,
+        base_reward=2000,
+        xp_reward=300,
+        client_id="client_001"
+    )
+    
+    session = resolution_system.start_resolution(incident, specialist)
+    
+    # Navigate through stages
+    assert session.current_stage == "detection"
+    
+    # Make first decision
+    resolution_system.make_decision(session, "quarantine_system", specialist)
+    assert session.current_stage == "analysis"
+    
+    # Complete resolution
+    stage_info = resolution_system.get_current_stage_info(session)
+    if stage_info["decisions"]:
+        resolution_system.make_decision(session, stage_info["decisions"][0]["id"], specialist)
+    
+    result = resolution_system.complete_resolution(session, specialist, incident)
+    assert isinstance(result, ResolutionResult)
+```
+
+### Step 5: Update Incident Mapping
+
+Ensure the new incident type maps to the resolution tree in `ResolutionSystem._get_tree_id_for_incident()`:
+
+```python
+def _get_tree_id_for_incident(self, incident: Incident) -> str:
+    """Map incident type to resolution tree ID."""
+    type_mapping = {
+        "DDoS Attack": "ddos_attack",
+        "Malware Infection": "malware_infection",
+        "Phishing": "phishing_attack",
+        "Data Breach": "data_breach",
+        "Ransomware": "ransomware_attack",
+        "Zero-Day Exploit": "zero_day_exploit"  # Add new mapping
+    }
+    return type_mapping.get(incident.incident_type, "ddos_attack")
+```
+
+### Step 6: Verify Integration
+
+- Run all tests: `pytest tests/test_decision_based_resolution.py`
+- Test in-game resolution flow
+- Verify time pressure mechanics work
+- Confirm specialist skill modifiers apply
+- Check burnout accumulation is correct
+
+---
+
 ## TASK 3: IMPLEMENT A NEW AUTOMATION SCRIPT
 
 ### Scenario

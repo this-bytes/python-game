@@ -1,11 +1,11 @@
 {
   "metadata": {
-    "save_time": 1760841965.817798,
-    "save_time_formatted": "2025-10-19T13:46:05.817799",
+    "save_time": 1760867847.1922247,
+    "save_time_formatted": "2025-10-19T20:57:27.192227",
     "game_version": "0.2.0",
     "slot": 0,
-    "playtime_seconds": 378.61172437667847,
-    "money": 92673.81177434503,
+    "playtime_seconds": 393.48414945602417,
+    "money": 92674.54443308714,
     "specialist_count": 5,
     "prestige_level": 0
   },
@@ -453,6 +453,22 @@
         "assignment_time": null,
         "completion_time": null,
         "sla_deadline": 1760842140.788581
+      },
+      {
+        "id": "inc_1760867842164_4423",
+        "incident_type": "Port Scan Detection",
+        "specialty_required": "Network Security",
+        "difficulty": 3,
+        "sla_seconds": 180,
+        "base_reward": 200,
+        "xp_reward": 50,
+        "client_id": "client_010",
+        "status": "pending",
+        "assigned_specialist_id": null,
+        "spawn_time": 1760867842.1646736,
+        "assignment_time": null,
+        "completion_time": null,
+        "sla_deadline": 1760868022.1646736
       }
     ],
     "clients": [
@@ -626,11 +642,11 @@
     "active_events": [],
     "event_cooldowns": {},
     "game_start_time": 1760827904.6092675,
-    "current_time": 1760828283.2209918,
+    "current_time": 1760828298.093417,
     "game_speed_multiplier": 1.0,
     "is_paused": false,
-    "current_money": 92673.81177434503,
-    "total_money_earned": 88018.81177434503,
+    "current_money": 92674.54443308714,
+    "total_money_earned": 88019.54443308714,
     "investments": {},
     "last_save_time": 1760827904.6176195,
     "prestige_points": 0,
