@@ -108,8 +108,7 @@ class BackendApp:
         from backend.routes.incidents import create_incidents_blueprint
         from backend.routes.clients import (
             create_clients_blueprint,
-            create_contracts_blueprint,
-            create_facilities_blueprint
+            create_contracts_blueprint
         )
         from backend.routes.economy import create_economy_blueprint
         from backend.routes.automation import create_automation_blueprint
@@ -140,10 +139,6 @@ class BackendApp:
         )
         self.app.register_blueprint(
             create_contracts_blueprint(self.game_state),
-            url_prefix=BackendConfig.API_PREFIX
-        )
-        self.app.register_blueprint(
-            create_facilities_blueprint(self.game_state),
             url_prefix=BackendConfig.API_PREFIX
         )
         self.app.register_blueprint(

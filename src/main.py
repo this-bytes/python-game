@@ -37,7 +37,6 @@ from src.core.plugins.dopamine_plugin import DopaminePlugin
 from src.core.plugins.equipment_plugin import EquipmentPlugin
 from src.core.plugins.ability_plugin import AbilityPlugin
 from src.core.plugins.passive_income_plugin import PassiveIncomePlugin
-from src.core.plugins.facility_plugin import FacilityPlugin
 
 
 class Game:
@@ -284,7 +283,6 @@ class Game:
                         ("EquipmentPlugin", EquipmentPlugin()),
                         ("AbilityPlugin", AbilityPlugin()),
                         ("PassiveIncomePlugin", PassiveIncomePlugin()),
-                        ("FacilityPlugin", FacilityPlugin()),
                     ]
                     
                     for plugin_name, plugin_instance in plugins:
