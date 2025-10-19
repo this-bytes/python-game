@@ -15,6 +15,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from backend.config import BackendConfig
 from src.utils.logger import GameLogger
 from backend.services.websocket_service import ws_service
+from backend.services.instance_manager import instance_manager
 
 
 class BackendApp:
@@ -24,13 +25,23 @@ class BackendApp:
         """Initialize the backend application.
         
         Args:
-            game_state: Optional GameState instance to manage
+            game_state: Optional GameState instance to manage (creates default instance)
         """
         # Set up Flask with static folder
         static_folder = os.path.join(os.path.dirname(__file__), 'static')
         self.app = Flask(__name__, static_folder=static_folder, static_url_path='/static')
         self.logger = GameLogger("backend")
-        self.game_state = game_state
+        
+        # Use instance manager for multi-client support
+        # If game_state provided, create default instance
+        if game_state:
+            instance_manager.create_instance(
+                instance_id='default',
+                game_state=game_state,
+                client_name='Default Client'
+            )
+        
+        self.game_state = game_state  # Kept for backward compatibility
         
         # Configure CORS
         CORS(self.app, origins=BackendConfig.CORS_ORIGINS)
@@ -83,16 +94,80 @@ class BackendApp:
             """Register a game client's GameState with the backend.
             
             This endpoint is called by the game client to provide its GameState
-            reference to the backend for live control.
+            reference to the backend for live control. Each client gets a unique
+            instance ID.
             
-            Note: In Python, we can't pass object references via HTTP, so this
-            endpoint confirms the game is running and ready for control.
+            Request body:
+                instance_id: Optional specific instance ID
+                client_name: Optional friendly name for this client
             """
+            data = request.get_json() or {}
+            instance_id = data.get('instance_id')
+            client_name = data.get('client_name')
+            
+            # Create instance entry (actual state will be set via set_game_state)
+            if not instance_id or not instance_manager.get_instance(instance_id):
+                instance_id = instance_manager.create_instance(
+                    instance_id=instance_id,
+                    client_name=client_name
+                )
+            
             return jsonify({
                 "success": True,
                 "message": "Game registration acknowledged",
+                "instance_id": instance_id,
                 "backend_ready": True
             })
+        
+        @self.app.route(f"{BackendConfig.API_PREFIX}/instances", methods=['GET'])
+        def list_instances():
+            """List all registered game instances.
+            
+            Returns list of instance metadata for admin panel selection.
+            """
+            instances = instance_manager.list_instances()
+            return jsonify({
+                "success": True,
+                "instances": instances,
+                "default_instance_id": instance_manager.get_default_instance_id()
+            })
+        
+        @self.app.route(f"{BackendConfig.API_PREFIX}/instances/<instance_id>", methods=['GET'])
+        def get_instance_info(instance_id: str):
+            """Get information about a specific instance.
+            
+            Args:
+                instance_id: Instance ID to query
+            """
+            instance = instance_manager.get_instance(instance_id)
+            if not instance:
+                return jsonify({
+                    "success": False,
+                    "message": f"Instance {instance_id} not found"
+                }), 404
+            
+            return jsonify({
+                "success": True,
+                "instance": instance.to_dict()
+            })
+        
+        @self.app.route(f"{BackendConfig.API_PREFIX}/instances/<instance_id>/select", methods=['POST'])
+        def select_default_instance(instance_id: str):
+            """Set the default instance for admin panel operations.
+            
+            Args:
+                instance_id: Instance ID to set as default
+            """
+            if instance_manager.set_default_instance(instance_id):
+                return jsonify({
+                    "success": True,
+                    "message": f"Default instance set to {instance_id}"
+                })
+            else:
+                return jsonify({
+                    "success": False,
+                    "message": f"Instance {instance_id} not found"
+                }), 404
         
         @self.app.route(f"{BackendConfig.API_PREFIX}/config")
         def get_config():
@@ -120,6 +195,7 @@ class BackendApp:
         from backend.routes.entity_management import create_entity_management_blueprint
         from backend.routes.game_integration import create_game_integration_blueprint
         from backend.routes.schemas import create_schemas_blueprint
+        from backend.routes.actions import create_actions_blueprint
         
         # Register blueprints with game_state reference
         self.app.register_blueprint(
@@ -182,27 +258,53 @@ class BackendApp:
             create_schemas_blueprint(),
             url_prefix=BackendConfig.API_PREFIX
         )
+        self.app.register_blueprint(
+            create_actions_blueprint(self.game_state),
+            url_prefix=BackendConfig.API_PREFIX
+        )
         
         self.logger.logger.info("[BACKEND] All routes registered")
     
-    def set_game_state(self, game_state):
-        """Update the game state reference.
+    def set_game_state(self, game_state, instance_id: Optional[str] = None, client_name: Optional[str] = None):
+        """Update or register a game state instance.
         
-        This allows the running game to provide its GameState to the backend
-        for live manipulation and control.
+        This allows multiple game clients to register their GameState with the backend.
+        Each client gets a unique instance ID for isolation.
         
         Args:
             game_state: GameState instance
+            instance_id: Optional specific instance ID, or auto-generate
+            client_name: Optional friendly name for the client
+            
+        Returns:
+            The instance ID that was created/updated
         """
+        # For backward compatibility, update self.game_state with default instance
         self.game_state = game_state
-        self.logger.logger.info("[BACKEND] Game state reference updated")
+        
+        # Register or update in instance manager
+        if instance_id and instance_manager.get_instance(instance_id):
+            # Update existing instance
+            instance_manager.update_game_state(game_state, instance_id)
+            self.logger.logger.info(f"[BACKEND] Game state updated for instance: {instance_id}")
+        else:
+            # Create new instance
+            instance_id = instance_manager.create_instance(
+                instance_id=instance_id,
+                game_state=game_state,
+                client_name=client_name
+            )
+            self.logger.logger.info(f"[BACKEND] New game instance registered: {instance_id}")
         
         # Broadcast to connected clients
-        ws_service.broadcast('game_connected', {
-            'message': 'Game client connected with shared state',
+        ws_service.broadcast('game_instance_registered', {
+            'instance_id': instance_id,
+            'client_name': client_name or f'Client-{instance_id[:8]}',
             'specialists': len(game_state.specialists) if game_state else 0,
             'money': game_state.current_money if game_state else 0
         })
+        
+        return instance_id
     
     def run(self, host: Optional[str] = None, port: Optional[int] = None, debug: Optional[bool] = None):
         """Run the Flask development server with SocketIO.

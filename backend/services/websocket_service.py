@@ -89,8 +89,102 @@ class WebSocketService:
             'message': f"Incident spawned: {incident_dict.get('name', 'Unknown')}"
         })
     
+    def broadcast_specialist_updated(self, specialist_id: str, changes: Dict[str, Any]):
+        """Broadcast specialist updated event (protocol-compliant).
+        
+        Args:
+            specialist_id: ID of updated specialist
+            changes: Dictionary of changed properties
+        """
+        self.broadcast('specialist_updated', {
+            'specialist_id': specialist_id,
+            'changes': changes,
+            'timestamp': datetime.utcnow().timestamp()
+        })
+    
+    def broadcast_incident_updated(self, incident_id: str, changes: Dict[str, Any]):
+        """Broadcast incident updated event (protocol-compliant).
+        
+        Args:
+            incident_id: ID of updated incident
+            changes: Dictionary of changed properties
+        """
+        self.broadcast('incident_updated', {
+            'incident_id': incident_id,
+            'changes': changes,
+            'timestamp': datetime.utcnow().timestamp()
+        })
+    
+    def broadcast_incident_resolved(self, incident_id: str, specialist_id: str, 
+                                   success: bool, reward: float, xp_earned: int,
+                                   resolution_time: float, sla_met: bool):
+        """Broadcast incident resolved event (protocol-compliant).
+        
+        Args:
+            incident_id: ID of resolved incident
+            specialist_id: ID of specialist who resolved it
+            success: Whether incident was successfully resolved
+            reward: Money reward earned
+            xp_earned: XP earned
+            resolution_time: Time taken to resolve (seconds)
+            sla_met: Whether SLA was met
+        """
+        self.broadcast('incident_resolved', {
+            'incident_id': incident_id,
+            'specialist_id': specialist_id,
+            'success': success,
+            'resolution_time': resolution_time,
+            'reward': reward,
+            'xp_earned': xp_earned,
+            'sla_met': sla_met,
+            'timestamp': datetime.utcnow().timestamp()
+        })
+    
+    def broadcast_plugin_event(self, plugin_name: str, event_type: str, data: Dict[str, Any]):
+        """Broadcast plugin-specific event (protocol-compliant).
+        
+        Args:
+            plugin_name: Name of plugin emitting event
+            event_type: Type of plugin event
+            data: Event-specific data
+        """
+        self.broadcast('plugin_event', {
+            'plugin_name': plugin_name,
+            'event_type': event_type,
+            'data': data,
+            'timestamp': datetime.utcnow().timestamp()
+        })
+    
+    def broadcast_game_snapshot(self, game_state_dict: Dict[str, Any], incremental: bool = False):
+        """Broadcast game snapshot event (protocol-compliant).
+        
+        Args:
+            game_state_dict: Dictionary representation of game state
+            incremental: Whether this is an incremental (delta) update
+        """
+        self.broadcast('game_snapshot', {
+            'data': game_state_dict,
+            'incremental': incremental,
+            'timestamp': datetime.utcnow().timestamp()
+        })
+    
+    def broadcast_error(self, code: str, message: str, details: Dict[str, Any] = None):
+        """Broadcast error event (protocol-compliant).
+        
+        Args:
+            code: Error code
+            message: Error message
+            details: Optional additional error details
+        """
+        self.broadcast('error', {
+            'code': code,
+            'message': message,
+            'details': details or {},
+            'timestamp': datetime.utcnow().timestamp()
+        })
+    
     def broadcast_specialist_action(self, action: str, specialist_dict: Dict[str, Any]):
-        """Broadcast specialist action event.
+        """Broadcast specialist action event (legacy, deprecated).
         
         Args:
             action: Action type (e.g., 'assigned', 'level_up', 'hired')

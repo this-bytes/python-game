@@ -4,34 +4,58 @@ Provides endpoints for managing the overall game state.
 """
 from flask import Blueprint, jsonify, request
 from datetime import datetime
+from typing import Optional
 
 
 def create_state_blueprint(game_state_ref):
     """Create the state blueprint with game state reference.
     
     Args:
-        game_state_ref: Reference to the GameState instance (can be None initially)
+        game_state_ref: Reference to the GameState instance (legacy, use instance_manager instead)
     
     Returns:
         Flask Blueprint for state routes
     """
     bp = Blueprint('state', __name__)
     
-    # Store reference that can be updated
+    # Import instance manager for multi-client support
+    from backend.services.instance_manager import instance_manager
+    
+    # Store reference that can be updated (legacy support)
     state_container = {'game_state': game_state_ref}
     
-    def get_game_state():
-        """Helper to get current game state."""
-        return state_container.get('game_state')
+    def get_game_state(instance_id: Optional[str] = None):
+        """Helper to get current game state for a specific instance.
+        
+        Args:
+            instance_id: Optional instance ID, uses default if not provided
+            
+        Returns:
+            GameState instance or None
+        """
+        # Try instance manager first
+        game_state = instance_manager.get_game_state(instance_id)
+        
+        # Fallback to legacy single state if no instance found
+        if not game_state and instance_id is None:
+            game_state = state_container.get('game_state')
+        
+        return game_state
     
     @bp.route('/state', methods=['GET'])
     def get_state():
-        """Get full game state snapshot."""
-        game_state = get_game_state()
+        """Get full game state snapshot for a specific instance.
+        
+        Query parameters:
+            instance_id: Optional instance ID, uses default if not provided
+        """
+        instance_id = request.args.get('instance_id')
+        game_state = get_game_state(instance_id)
+        
         if not game_state:
             return jsonify({
                 "success": False,
-                "message": "Game state not initialized"
+                "message": f"Game state not initialized for instance: {instance_id or 'default'}"
             }), 503
         
         try:
