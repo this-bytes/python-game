@@ -1,3 +1,11 @@
+---
+applies_to:
+  - "src/**/*"
+  - "backend/**/*"
+  - "tests/**/*"
+  - "data/**/*"
+---
+
 # Architecture - Instructions
 
 **This file contains project structure, design patterns, and architectural decisions.**
@@ -171,213 +179,118 @@ class GameSystem:
         """Save plugin state for persistence."""
         pass
     
-    def load_state(self, game_state, state_data: Dict[str, Any]) -> None:
-        """Load plugin state from saved data."""
+    def load_state(self, game_state, state: Dict[str, Any]) -> None:
+        """Load plugin state from persistence."""
         pass
 ```
 
 #### Event-Driven Communication
 
 ```python
-# In plugin initialization
-self._event_bus = get_event_bus()
-self._subscription_ids = [
-    self._event_bus.subscribe("incident_completed", self._on_incident_completed),
-    self._event_bus.subscribe("specialist_leveled_up", self._on_specialist_leveled_up),
-]
+from src.core.event_bus import EventBus
 
-# In plugin shutdown
-for subscription_id in self._subscription_ids:
-    self._event_bus.unsubscribe(subscription_id)
+class IncidentPlugin(GameSystem):
+    """Plugin that manages incidents."""
+    
+    def initialize(self, game_state) -> None:
+        """Subscribe to events."""
+        EventBus.subscribe("specialist_assigned", self._on_specialist_assigned)
+        EventBus.subscribe("incident_resolved", self._on_incident_resolved)
+    
+    def _on_specialist_assigned(self, event_data: dict) -> None:
+        """Handle specialist assignment event."""
+        specialist_id = event_data["specialist_id"]
+        incident_id = event_data["incident_id"]
+        logger.info(f"Incident {incident_id} assigned to {specialist_id}")
+    
+    def update(self, game_state, delta_time: float) -> None:
+        """Generate new incidents if needed."""
+        if self._should_generate_incident(game_state):
+            incident = self._generate_incident()
+            game_state.add_incident(incident)
+            
+            # Emit event
+            EventBus.emit("incident_generated", {
+                "incident_id": incident.id,
+                "type": incident.type
+            })
 ```
 
-### Registered Plugins
+#### Plugin Registration
 
-**ALL SYSTEMS CONVERTED TO PLUGINS:**
-- **IdlePlugin** (idle mechanics)
-- **PrestigeSystem** (prestige progression)
-- **AchievementSystem** (achievement tracking)
-- **BurnoutPlugin** (specialist burnout)
-- **RelationshipsPlugin** (team relationships)
-- **DopaminePlugin** (addictive mechanics)
-- **EquipmentPlugin** (equipment system)
-- **AbilityPlugin** (ability activation)
-- **PassiveIncomePlugin** (passive income)
-- **FacilityPlugin** (facility upgrades)
+```python
+# src/main.py
+from src.core.system_manager import SystemManager
+from src.core.plugins.incident_plugin import IncidentPlugin
+from src.core.plugins.specialist_plugin import SpecialistPlugin
+from src.core.plugins.burnout_plugin import BurnoutPlugin
+
+# Register plugins
+system_manager = SystemManager()
+system_manager.register_plugin(IncidentPlugin())
+system_manager.register_plugin(SpecialistPlugin())
+system_manager.register_plugin(BurnoutPlugin())
+
+# Initialize all plugins
+system_manager.initialize(game_state)
+
+# Game loop
+while running:
+    delta_time = clock.tick(60) / 1000.0
+    system_manager.update(game_state, delta_time)
+```
 
 ---
 
-## DATA-DRIVEN EVERYTHING
+## DATA-DRIVEN DESIGN
 
-All game parameters live in JSON, not hardcoded in Python.
+**ALL GAME PARAMETERS MUST BE IN JSON FILES.**
 
-### Specialists Configuration (`/data/specialists.json`)
-```json
-{
-  "specialists": [
-    {
-      "id": "spec_001",
-      "name": "Alice Chen",
-      "specialty": "Network Security",
-      "level": 5,
-      "xp": 2340,
-      "stats": {
-        "speed": 85,
-        "accuracy": 90,
-        "experience_bonus": 1.2
-      }
-    }
-  ]
-}
+Never hardcode game balance values in Python. Everything that affects gameplay must be configurable through JSON files in `/data/`.
+
+### Configuration Structure
+
+```
+/data/
+  game_config.json              → Core game settings (tick rates, XP curves)
+  specialist_templates.json     → Specialist types and starting stats
+  incidents.json                → Incident types and parameters
+  clients.json                  → Client contracts and payouts
+  automation_scripts.json       → Automation parameters
+  burnout_config.json           → Burnout thresholds and recovery
 ```
 
-### Incident Types (`/data/incidents.json`)
-```json
-{
-  "incident_types": [
-    {
-      "id": "inc_type_001",
-      "name": "DDoS Attack",
-      "specialty_required": "Network Security",
-      "difficulty_range": [1, 5],
-      "base_sla_seconds": 300,
-      "base_reward": 500,
-      "xp_reward": 100
-    }
-  ]
-}
-```
+### Example Configuration
 
-### Game Configuration (`/data/game_config.json`)
 ```json
+// data/game_config.json
 {
   "game_settings": {
-    "starting_specialists": 2,
-    "starting_money": 5000,
-    "time_scale": 1.0,
-    "max_active_incidents": 50
+    "tick_rate_seconds": 1.0,
+    "max_specialists": 10,
+    "max_incidents": 20,
+    "starting_cash": 10000
   },
   "xp_curve": {
     "base_xp": 100,
     "exponent": 1.5,
-    "level_cap": 20
+    "incident_xp_multiplier": 1.2
   },
   "economy": {
-    "sla_failure_penalty_multiplier": 0.5,
-    "perfect_completion_bonus": 1.2,
-    "specialist_hiring_cost_base": 2000
+    "specialist_hire_cost": 5000,
+    "incident_base_payout": 500,
+    "automation_unlock_cost": 10000
   }
 }
 ```
 
 ---
 
-## DESIGN PATTERNS
+## ERROR HANDLING
 
-### Event-Driven Architecture
-
-Use observer pattern for state changes:
+### Exception Hierarchy
 
 ```python
-class GameState:
-    """Game state with observer pattern for events."""
-    
-    def __init__(self):
-        self._observers: list[Callable] = []
-    
-    def register_observer(self, callback: Callable) -> None:
-        """Register callback for state changes."""
-        self._observers.append(callback)
-    
-    def notify_observers(self, event_type: str, data: dict) -> None:
-        """Notify all observers of state change."""
-        for observer in self._observers:
-            observer(event_type, data)
-    
-    def complete_incident(self, incident: Incident, specialist: Specialist) -> None:
-        """Complete incident and notify observers."""
-        reward = self.calculate_reward(incident, specialist)
-        specialist.gain_xp(reward)
-        
-        # Notify observers
-        self.notify_observers("incident_completed", {
-            "incident_id": incident.id,
-            "specialist_id": specialist.id,
-            "reward": reward
-        })
-
-# UI listens to events
-def on_incident_completed(event_type: str, data: dict) -> None:
-    specialist_id = data["specialist_id"]
-    reward = data["reward"]
-    ui.show_reward_popup(specialist_id, reward)
-
-game_state.register_observer(on_incident_completed)
-```
-
-### Factory Pattern for Entity Creation
-
-```python
-class SpecialistFactory:
-    """Create Specialist instances from JSON data."""
-    
-    @staticmethod
-    def create_from_json(specialist_data: dict, game_config: GameConfig) -> Specialist:
-        """Create Specialist instance from JSON data."""
-        specialist = Specialist(
-            id=specialist_data['id'],
-            name=specialist_data['name'],
-            specialty=specialist_data['specialty'],
-            level=specialist_data.get('level', 1),
-            xp=specialist_data.get('xp', 0)
-        )
-        
-        # Load stats from JSON
-        if 'stats' in specialist_data:
-            specialist.speed = specialist_data['stats'].get('speed', 100)
-            specialist.accuracy = specialist_data['stats'].get('accuracy', 100)
-            specialist.xp_bonus = specialist_data['stats'].get('experience_bonus', 1.0)
-        
-        return specialist
-```
-
-### Strategy Pattern for Different Behaviors
-
-```python
-class IncidentResolutionStrategy(ABC):
-    """Base strategy for resolving incidents."""
-    
-    @abstractmethod
-    def resolve(self, incident: Incident, specialist: Specialist) -> float:
-        """Resolve incident, return time taken."""
-        pass
-
-class StandardResolution(IncidentResolutionStrategy):
-    """Standard resolution with synergy bonus."""
-    
-    def resolve(self, incident: Incident, specialist: Specialist) -> float:
-        if specialist.specialty == incident.specialty_required:
-            multiplier = 1.5  # Synergy bonus
-        else:
-            multiplier = 1.0
-        
-        return incident.base_time / multiplier
-
-class QuickFixResolution(IncidentResolutionStrategy):
-    """Quick fix with lower accuracy."""
-    
-    def resolve(self, incident: Incident, specialist: Specialist) -> float:
-        return incident.base_time * 0.5  # 50% faster
-```
-
----
-
-## ERROR HANDLING ARCHITECTURE
-
-### Custom Exceptions
-
-```python
-# src/core/exceptions.py
 class GameError(Exception):
     """Base exception for all game errors."""
     pass
@@ -548,10 +461,9 @@ def incident():
 
 ## See Also
 
-- **[copilot-instructions.md](copilot-instructions.md)** - Main instructions and overview
+- **[copilot-instructions.md](../copilot-instructions.md)** - Main instructions and overview
 - **[plugin-system.instructions.md](plugin-system.instructions.md)** - Plugin architecture details
 - **[core-standards.instructions.md](core-standards.instructions.md)** - Absolute standards
 - **[code-style.instructions.md](code-style.instructions.md)** - Code style and anti-patterns
 - **[testing.instructions.md](testing.instructions.md)** - Testing requirements
 - **[workflows.instructions.md](workflows.instructions.md)** - Common development tasks
-

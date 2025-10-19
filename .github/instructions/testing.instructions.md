@@ -1,3 +1,9 @@
+---
+applies_to:
+  - "tests/**/*.py"
+  - "src/**/*.py"
+---
+
 # Testing Standards - Instructions
 
 **This file contains comprehensive testing requirements and patterns.**
@@ -412,5 +418,5 @@ Before every commit:
 
 - [ABSOLUTE_STANDARDS.md](ABSOLUTE_STANDARDS.md) - Core testing mandate
 - [CODE_STYLE.md](CODE_STYLE.md) - Code style for tests
-- [ARCHITECTURE.md](ARCHITECTURE.md) - System architecture
-- [copilot-instructions.md](copilot-instructions.md) - Main instructions
+- [ARCHITECTURE.md](../ARCHITECTURE.md) - System architecture
+- [copilot-instructions.md](../copilot-instructions.md) - Main instructions

@@ -1,3 +1,8 @@
+---
+applies_to:
+  - "**/*"
+---
+
 # Workflows - Instructions
 
 **This file contains step-by-step guides for common development tasks.**
@@ -684,7 +689,7 @@ Before committing ANY changes:
 
 ## See Also
 
-- **[copilot-instructions.md](copilot-instructions.md)** - Main instructions and overview
+- **[copilot-instructions.md](../copilot-instructions.md)** - Main instructions and overview
 - **[core-standards.instructions.md](core-standards.instructions.md)** - Absolute standards
 - **[code-style.instructions.md](code-style.instructions.md)** - Code style and anti-patterns
 - **[architecture.instructions.md](architecture.instructions.md)** - Project structure
