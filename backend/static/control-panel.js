@@ -30,6 +30,23 @@ class ControlPanel {
         this.undoStack = [];
         this.redoStack = [];
         
+        // Entity type to array property mapping
+        // This maps the entity type used in the API to the actual array property name in the JSON file
+        this.entityPropertyMap = {
+            'incidents': 'incident_types',
+            'specialist_templates': 'specialist_archetypes',
+            'equipment': 'equipment',
+            'facilities': 'facilities',
+            'clients': 'clients',
+            'automation_scripts': 'automation_scripts',
+            'achievements': 'achievements',
+            'abilities': 'abilities',
+            'contracts': 'contract_templates',
+            'features': 'features',
+            'market_events': 'market_events',
+            'prestige_upgrades': 'prestige_upgrades'
+        };
+        
         this.init();
     }
     
@@ -362,26 +379,39 @@ ${JSON.stringify(this.gameState, null, 2)}
         `;
     }
     
+    extractEntitiesArray(entityType, data) {
+        /**
+         * Generic method to extract entities array from loaded data.
+         * Uses the entityPropertyMap to determine the correct property name.
+         */
+        if (!data) {
+            return [];
+        }
+        
+        // If data is already an array, return it
+        if (Array.isArray(data)) {
+            return data;
+        }
+        
+        // Use the mapping to find the correct property
+        const propertyName = this.entityPropertyMap[entityType];
+        if (propertyName && data[propertyName]) {
+            return Array.isArray(data[propertyName]) ? data[propertyName] : [];
+        }
+        
+        // Fallback: try to find any array property in the data
+        for (const key in data) {
+            if (Array.isArray(data[key])) {
+                return data[key];
+            }
+        }
+        
+        return [];
+    }
+    
     renderEntityEditor(entityType, title) {
         const data = this.entities[entityType] || {};
-        let entities = [];
-        
-        // Extract entities array from different structures
-        if (Array.isArray(data)) {
-            entities = data;
-        } else if (data.incident_types) {
-            entities = data.incident_types;
-        } else if (data.specialist_archetypes) {
-            entities = data.specialist_archetypes;
-        } else if (data.equipment) {
-            entities = data.equipment;
-        } else if (data.facilities) {
-            entities = data.facilities;
-        } else if (data.automation_scripts) {
-            entities = data.automation_scripts;
-        } else if (data.achievements) {
-            entities = data.achievements;
-        }
+        const entities = this.extractEntitiesArray(entityType, data);
         
         return `
             <div class="view-header">
@@ -706,43 +736,42 @@ ${JSON.stringify(this.gameState, null, 2)}
     }
     
     // Entity Management Methods
-    createEntity(entityType) {
-        // Get template for entity type
-        fetch(`${API_BASE}/entities/templates/${entityType}`)
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    entityEditorModal.show(entityType, data.data, null, 'create');
-                } else {
-                    this.showToast('Error', 'Failed to load template', 'error');
+    async createEntity(entityType) {
+        try {
+            // Try to load schema and generate template from it
+            const schemaRes = await fetch(`${API_BASE}/schemas/${entityType}`);
+            const schemaData = await schemaRes.json();
+            
+            if (schemaData.success && entityEditorModal) {
+                const template = entityEditorModal.generateTemplateFromSchema(schemaData.data);
+                if (template) {
+                    await entityEditorModal.show(entityType, template, null, 'create');
+                    return;
                 }
-            })
-            .catch(error => {
-                this.showToast('Error', 'Failed to load template: ' + error.message, 'error');
-            });
+            }
+        } catch (error) {
+            console.warn('Could not generate template from schema:', error);
+        }
+        
+        // Fallback: Get hardcoded template for entity type
+        try {
+            const res = await fetch(`${API_BASE}/entities/templates/${entityType}`);
+            const data = await res.json();
+            
+            if (data.success) {
+                await entityEditorModal.show(entityType, data.data, null, 'create');
+            } else {
+                this.showToast('Error', 'Failed to load template', 'error');
+            }
+        } catch (error) {
+            this.showToast('Error', 'Failed to load template: ' + error.message, 'error');
+        }
     }
     
     editEntity(entityType, index) {
         // Load entity data
         const data = this.entities[entityType] || {};
-        let entities = [];
-        
-        // Extract entities array from different structures
-        if (Array.isArray(data)) {
-            entities = data;
-        } else if (data.incident_types) {
-            entities = data.incident_types;
-        } else if (data.specialist_archetypes) {
-            entities = data.specialist_archetypes;
-        } else if (data.equipment) {
-            entities = data.equipment;
-        } else if (data.facilities) {
-            entities = data.facilities;
-        } else if (data.automation_scripts) {
-            entities = data.automation_scripts;
-        } else if (data.achievements) {
-            entities = data.achievements;
-        }
+        const entities = this.extractEntitiesArray(entityType, data);
         
         if (entities[index]) {
             entityEditorModal.show(entityType, entities[index], index, 'edit');
@@ -754,24 +783,7 @@ ${JSON.stringify(this.gameState, null, 2)}
     duplicateEntity(entityType, index) {
         // Load entity data
         const data = this.entities[entityType] || {};
-        let entities = [];
-        
-        // Extract entities array from different structures
-        if (Array.isArray(data)) {
-            entities = data;
-        } else if (data.incident_types) {
-            entities = data.incident_types;
-        } else if (data.specialist_archetypes) {
-            entities = data.specialist_archetypes;
-        } else if (data.equipment) {
-            entities = data.equipment;
-        } else if (data.facilities) {
-            entities = data.facilities;
-        } else if (data.automation_scripts) {
-            entities = data.automation_scripts;
-        } else if (data.achievements) {
-            entities = data.achievements;
-        }
+        const entities = this.extractEntitiesArray(entityType, data);
         
         if (entities[index]) {
             const duplicated = JSON.parse(JSON.stringify(entities[index]));
