@@ -39,7 +39,7 @@ Reference this when:
 1. **IdlePlugin** (`idle_plugin.py`)
    - Idle mechanics and passive progression
    - Time-based resource generation
-   - Offline progress simulation
+   - Auto-assignment of incidents
 
 2. **PrestigeSystem** (`prestige_plugin.py`)
    - Prestige progression and resets
@@ -80,11 +80,6 @@ Reference this when:
    - Retainer income from contracts
    - Investment management
    - Reputation-based income bonuses
-
-10. **FacilityPlugin** (`facility_plugin.py`)
-    - Facility upgrade management
-    - Aggregate bonus calculations
-    - Facility effect application
 
 ---
 
