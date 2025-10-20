@@ -33,6 +33,7 @@ from src.ui.panels.automation_builder_panel import AutomationBuilderPanel
 from src.ui.panels.progressive_difficulty_panel import ProgressiveDifficultyPanel
 from src.ui.panels.skill_tree_panel import SkillTreePanel
 from src.ui.panels.team_dynamics_panel import TeamDynamicsPanel
+from src.ui.panels.economy_panel import EconomyPanel
 from src.ui.components.button import Button, ButtonStyle
 from src.ui.dopamine_overlay import DopamineFeedbackOverlay
 from src.ui.synergy_overlay import SynergySuggestionOverlay, AutoPlayIndicator
@@ -108,6 +109,7 @@ class GameUI:
         self.progressive_difficulty_panel = ProgressiveDifficultyPanel(50, 50, 400, 300)
         self.skill_tree_panel = SkillTreePanel(50, 50, 600, 400)
         self.team_dynamics_panel = TeamDynamicsPanel(50, 50, 600, 400)
+        self.economy_panel = EconomyPanel(50, 50, 600, 400)
 
         # Apply theme to panels
         self._apply_theme_to_panels()
@@ -123,6 +125,7 @@ class GameUI:
             self.progressive_difficulty_panel,
             self.skill_tree_panel,
             self.team_dynamics_panel,
+            self.economy_panel,
         ]
         
         # Initialize navigation menu
@@ -135,6 +138,7 @@ class GameUI:
             MenuItem("progressive_difficulty", "Difficulty", "📈", "Progressive Difficulty & Performance", pygame.K_F6),
             MenuItem("skill_tree", "Skill Trees", "🌳", "Specialist Skill Trees & Progression", pygame.K_F7),
             MenuItem("team_dynamics", "Team Dynamics", "👥", "Specialist Relationships & Morale", pygame.K_F8),
+            MenuItem("economy", "Economy", "💰", "Market Conditions & Investments", pygame.K_F9),
         ]
         
         self.navigation_menu = NavigationMenu(
@@ -159,6 +163,8 @@ class GameUI:
             "automation_builder": self.automation_builder_panel,
             "progressive_difficulty": self.progressive_difficulty_panel,
             "skill_tree": self.skill_tree_panel,
+            "team_dynamics": self.team_dynamics_panel,
+            "economy": self.economy_panel,
         }
         
         self.view_manager = ViewManager(

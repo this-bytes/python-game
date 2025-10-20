@@ -7,6 +7,7 @@ from src.ui.components.progress_bar import ProgressBar
 from src.ui.components.scroll_container import ScrollContainer
 from src.models.game_state import GameState
 from src.models.specialist import Specialist
+from src.ui.drag_drop_manager import get_drag_drop_manager
 
 
 class SpecialistRosterPanel(Panel):
@@ -36,6 +37,7 @@ class SpecialistRosterPanel(Panel):
         self.selected_specialist: Optional[Specialist] = None
         self.selected_team: list[Specialist] = []
         self.drag_highlight: Optional[str] = None  # Specialist ID being highlighted for drop
+        self.drag_drop_manager = get_drag_drop_manager()
 
         # Card styling
         self.card_height = 80
@@ -115,12 +117,20 @@ class SpecialistRosterPanel(Panel):
         """
         # Card background
         bg_color = (45, 45, 60) if specialist != self.selected_specialist else (60, 60, 80)
+        
+        # Highlight for drag-and-drop
+        if self.drag_highlight == specialist.id:
+            bg_color = (80, 120, 80)  # Green highlight for valid drop target
+        
         pygame.draw.rect(screen, bg_color, rect, border_radius=4)
 
         # Border
         border_color = (80, 80, 100)
         if specialist == self.selected_specialist:
             border_color = (0, 180, 255)
+        elif self.drag_highlight == specialist.id:
+            border_color = (0, 255, 100)  # Green border for drop target
+        
         pygame.draw.rect(screen, border_color, rect, 2, border_radius=4)
 
         # Specialist name
@@ -314,7 +324,7 @@ class SpecialistRosterPanel(Panel):
 
         # Handle drag over (highlight potential drop targets)
         elif event.type == pygame.MOUSEMOTION:
-            if self._is_incident_being_dragged():
+            if self.drag_drop_manager.is_incident_being_dragged():
                 rect = self.get_rect()
                 content_rect = pygame.Rect(
                     rect.x + self.BORDER_WIDTH,
@@ -344,16 +354,16 @@ class SpecialistRosterPanel(Panel):
 
         # Handle drop event (mouse button up during drag)
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
-            if self.drag_highlight and self._is_incident_being_dragged():
+            if self.drag_highlight and self.drag_drop_manager.is_incident_being_dragged():
                 # Attempt assignment
-                dragged_incident = self._get_dragged_incident()
+                dragged_incident = self.drag_drop_manager.get_dragged_incident()
                 if dragged_incident:
                     success = self.game_state.assign_incident_to_specialist(
                         dragged_incident.id, self.drag_highlight
                     )
                     if success:
-                        # Clear drag state in incident panel (cross-panel communication needed)
-                        # For now, just clear our highlight
+                        # Clear drag state
+                        self.drag_drop_manager.end_drag()
                         self.drag_highlight = None
                         return True
 
@@ -401,25 +411,20 @@ class SpecialistRosterPanel(Panel):
         return self.game_state.assign_incident_to_specialist(incident_id, self.selected_specialist.id)
 
     def _is_incident_being_dragged(self) -> bool:
-        """Check if an incident is currently being dragged from another panel.
-        
+        """Check if an incident is currently being dragged.
+
         Returns:
             True if incident is being dragged
         """
-        # Cross-panel drag state requires a shared UI state manager.
-        # Current architecture doesn't support this - incidents are dropped
-        # directly on specialist cards for assignment. Full drag-drop between
-        # panels would require refactoring to use a centralized DragDropManager.
-        return False  # Not implemented - use direct click assignment instead
+        return self.drag_drop_manager.is_incident_being_dragged()
 
     def _get_dragged_incident(self) -> Optional[Any]:
         """Get the incident currently being dragged.
-        
+
         Returns:
             Dragged incident or None
         """
-        # See _is_incident_being_dragged() - requires shared UI state manager.
-        return None  # Not implemented - use direct click assignment instead
+        return self.drag_drop_manager.get_dragged_incident()
 
     def _render_team_synergy_info(self, screen: pygame.Surface, content_rect: pygame.Rect) -> None:
         """Render team synergy information.

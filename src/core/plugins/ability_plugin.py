@@ -43,9 +43,11 @@ class AbilityPlugin(GameSystem):
         Args:
             game_state: Current game state
         """
-        # Initialize ability system with game config
-        game_config = getattr(game_state, 'config', {})
-        abilities_config = game_config.get('abilities', {})
+        # Load abilities configuration directly from abilities.json
+        from src.utils.json_loader import JSONLoader
+        json_loader = JSONLoader()
+        abilities_config = json_loader.load_data("abilities.json")
+        
         self._ability_system = AbilitySystem(abilities_config)
 
         # Subscribe to relevant events

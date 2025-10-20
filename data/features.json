@@ -29,6 +29,76 @@
       "description": "Visual feedback and dopamine-driven engagement"
     },
     {
+      "id": "team_dynamics",
+      "enabled": true,
+      "rollout_percentage": 100.0,
+      "dependencies": [],
+      "description": "Team dynamics and specialist relationships"
+    },
+    {
+      "id": "skill_tree",
+      "enabled": true,
+      "rollout_percentage": 100.0,
+      "dependencies": [],
+      "description": "Specialist skill tree and progression"
+    },
+    {
+      "id": "economy_system",
+      "enabled": true,
+      "rollout_percentage": 100.0,
+      "dependencies": [],
+      "description": "Market events, investments, and financial management"
+    },
+    {
+      "id": "equipment_system",
+      "enabled": true,
+      "rollout_percentage": 100.0,
+      "dependencies": [],
+      "description": "Equipment drops and specialist gear"
+    },
+    {
+      "id": "ability_system",
+      "enabled": true,
+      "rollout_percentage": 100.0,
+      "dependencies": [],
+      "description": "Specialist abilities and active skills"
+    },
+    {
+      "id": "burnout_system",
+      "enabled": true,
+      "rollout_percentage": 100.0,
+      "dependencies": [],
+      "description": "Specialist burnout mechanics and recovery"
+    },
+    {
+      "id": "relationships_system",
+      "enabled": true,
+      "rollout_percentage": 100.0,
+      "dependencies": [],
+      "description": "Specialist relationships and team synergies"
+    },
+    {
+      "id": "passive_income_system",
+      "enabled": true,
+      "rollout_percentage": 100.0,
+      "dependencies": [],
+      "description": "Retainer contracts and passive income"
+    },
+    {
+      "id": "facility_system",
+      "enabled": true,
+      "rollout_percentage": 100.0,
+      "dependencies": [],
+      "description": "Facility upgrades and office improvements"
+    },
+    {
+      "id": "progressive_difficulty",
+      "enabled": true,
+      "rollout_percentage": 100.0,
+      "dependencies": [],
+      "description": "Progressive difficulty scaling"
+    },
+    {
       "id": "contract_negotiation",
       "enabled": false,
       "rollout_percentage": 0.0,

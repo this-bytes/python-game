@@ -41,9 +41,8 @@ class SkillTreePlugin(GameSystem):
             True if initialization successful, False otherwise
         """
         try:
-            event_bus = get_event_bus()
-            self.skill_tree_system = SkillTreeSystem(event_bus, game_state)
-            success = self.skill_tree_system.initialize()
+            self.skill_tree_system = SkillTreeSystem()
+            success = self.skill_tree_system.initialize(game_state)
 
             if success:
                 self.logger.info("Skill tree plugin initialized successfully")

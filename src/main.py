@@ -41,6 +41,7 @@ from src.core.plugins.facility_plugin import FacilityPlugin
 from src.core.plugins.progressive_difficulty_plugin import ProgressiveDifficultyPlugin
 from src.core.plugins.skill_tree_plugin import SkillTreePlugin
 from src.core.plugins.team_dynamics_plugin import TeamDynamicsPlugin
+from src.core.plugins.economy_plugin import EconomyPlugin
 
 
 class Game:
@@ -291,6 +292,7 @@ class Game:
                         ("ProgressiveDifficultyPlugin", ProgressiveDifficultyPlugin()),
                         ("SkillTreePlugin", SkillTreePlugin()),
                         ("TeamDynamicsPlugin", TeamDynamicsPlugin()),
+                        ("EconomyPlugin", EconomyPlugin()),
                     ]
                     
                     for plugin_name, plugin_instance in plugins:
@@ -304,6 +306,17 @@ class Game:
                     self.logger.debug("[SYSTEM] Initializing all registered systems...")
                     self.system_manager.initialize_all(self.game_state)
                     self.logger.info("[SYSTEM] All systems initialized successfully")
+
+                # Connect UI panels to their corresponding plugins
+                with self.logger.operation("UI-Plugin Connection"):
+                    self.logger.debug("[SYSTEM] Connecting UI panels to plugins...")
+                    # Find and connect economy plugin to economy panel
+                    for system in self.system_manager._systems.values():
+                        if isinstance(system, EconomyPlugin):
+                            self.ui.economy_panel.economy_plugin = system
+                            self.logger.debug("[SYSTEM] Connected economy plugin to economy panel")
+                            break
+                    self.logger.info("[SYSTEM] UI panels connected to plugins successfully")
 
                 # Initialize development systems
                 with self.logger.operation("Development Systems Initialization"):

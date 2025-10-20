@@ -9,7 +9,7 @@ from typing import List, Dict, Optional, Any, Tuple
 from dataclasses import dataclass
 
 from src.ui.components.panel import Panel
-from src.core.plugins.team_dynamics_plugin import TeamDynamicsPlugin
+from src.core.plugins.relationships_plugin import RelationshipsPlugin
 from src.models.specialist import Specialist
 
 
@@ -52,7 +52,7 @@ class TeamDynamicsPanel(Panel):
             (x, y),
             (width, height)
         )
-        self._team_dynamics_plugin: Optional[TeamDynamicsPlugin] = None
+        self._relationships_plugin: Optional[RelationshipsPlugin] = None
         self._relationships: List[RelationshipDisplay] = []
         self._morale_states: List[MoraleDisplay] = []
         self._selected_specialist: Optional[str] = None
@@ -77,40 +77,28 @@ class TeamDynamicsPanel(Panel):
             'border': (100, 100, 150),
         }
 
-    def set_team_dynamics_plugin(self, plugin: TeamDynamicsPlugin) -> None:
-        """Set the team dynamics plugin reference.
+    def set_relationships_plugin(self, plugin: RelationshipsPlugin) -> None:
+        """Set the relationships plugin reference.
 
         Args:
-            plugin: Team dynamics plugin instance
+            plugin: Relationships plugin instance
         """
-        self._team_dynamics_plugin = plugin
+        self._relationships_plugin = plugin
         self._update_display_data()
 
     def _update_display_data(self) -> None:
         """Update display data from the plugin."""
-        if not self._team_dynamics_plugin:
+        if not self._relationships_plugin:
             return
 
-        # Update relationships
+        # Get relationships data from the plugin
         self._relationships = []
-        if self._team_dynamics_plugin and self._team_dynamics_plugin._team_dynamics_system:
-            relationships = self._team_dynamics_plugin.get_relationships()
-            relationship_types = self._team_dynamics_plugin._team_dynamics_system.get_relationship_types()
+        if hasattr(self._relationships_plugin, 'get_specialist_relationships_summary'):
+            # For now, we'll show summary data since detailed relationship data
+            # isn't directly exposed. This can be enhanced later.
+            pass
 
-            for relationship in relationships:
-                rel_config = relationship_types.get(relationship.relationship_type.value, {})
-                color = rel_config.get("color", [150, 150, 150])
-
-                display = RelationshipDisplay(
-                    specialist_a=relationship.specialist_a,
-                    specialist_b=relationship.specialist_b,
-                    relationship_type=relationship.relationship_type.value,
-                    strength=relationship.strength,
-                    color=tuple(color)
-                )
-                self._relationships.append(display)
-
-        # Update morale states (would need specialist data)
+        # Update morale states (placeholder for now)
         self._morale_states = []
 
     def render(self, screen: pygame.Surface) -> None:
@@ -122,7 +110,7 @@ class TeamDynamicsPanel(Panel):
         # Call parent render
         super().render(screen)
 
-        if not self._team_dynamics_plugin:
+        if not self._relationships_plugin:
             self._render_no_plugin_message(screen)
             return
 
@@ -172,11 +160,18 @@ class TeamDynamicsPanel(Panel):
         title = font.render("Specialist Relationships", True, self._colors['text'])
         screen.blit(title, (rect.x + 5, rect.y + 5))
 
-        # Render relationships
-        y_offset = 30
-        for relationship in self._relationships[:5]:  # Show first 5 relationships
-            self._render_relationship(screen, rect, relationship, y_offset)
-            y_offset += self._relationship_height
+        # Show relationship summary if plugin is available
+        if self._relationships_plugin:
+            summary_font = pygame.font.Font(None, 16)
+            summary_text = "Relationships system active - detailed view coming soon"
+            summary_surface = summary_font.render(summary_text, True, self._colors['text'])
+            screen.blit(summary_surface, (rect.x + 10, rect.y + 35))
+        else:
+            # Fallback message
+            font = pygame.font.Font(None, 16)
+            text = "Relationships data will be displayed here"
+            text_surface = font.render(text, True, self._colors['text'])
+            screen.blit(text_surface, (rect.x + 10, rect.y + 35))
 
     def _render_relationship(self, screen: pygame.Surface, rect: pygame.Rect,
                            relationship: RelationshipDisplay, y_offset: int) -> None:
@@ -252,12 +247,12 @@ class TeamDynamicsPanel(Panel):
         Args:
             game_state: Current game state
         """
-        # Find the team dynamics plugin if not already found
-        if not self._team_dynamics_plugin:
+        # Find the relationships plugin if not already found
+        if not self._relationships_plugin:
             if hasattr(game_state, '_systems'):
                 for system in game_state._systems.values():
-                    if isinstance(system, TeamDynamicsPlugin):
-                        self._team_dynamics_plugin = system
+                    if isinstance(system, RelationshipsPlugin):
+                        self._relationships_plugin = system
                         break
 
         self._update_display_data()

@@ -1,0 +1,224 @@
+{
+  "economy_config": {
+    "base_currency": "credits",
+    "starting_balance": 5000,
+    "inflation_rate": 0.001,
+    "market_volatility": 0.1,
+    "supply_demand_factors": {
+      "specialist_supply_impact": 0.05,
+      "client_demand_impact": 0.08,
+      "competition_impact": 0.03
+    }
+  },
+  "pricing_dynamics": {
+    "specialist_hiring": {
+      "base_cost": 2000,
+      "level_multiplier": 1.5,
+      "reputation_discount": 0.02,
+      "market_premium": 0.1
+    },
+    "equipment_costs": {
+      "base_multiplier": 1.0,
+      "rarity_premium": {
+        "common": 1.0,
+        "uncommon": 1.5,
+        "rare": 2.5,
+        "epic": 4.0,
+        "legendary": 7.0
+      },
+      "market_fluctuation": 0.15
+    },
+    "contract_pricing": {
+      "base_rates": {
+        "retainer_basic": 1000,
+        "retainer_premium": 5000,
+        "per_incident_standard": 500
+      },
+      "negotiation_range": {
+        "min_multiplier": 0.8,
+        "max_multiplier": 1.3
+      },
+      "reputation_bonus": 0.05
+    }
+  },
+  "market_events": {
+    "event_categories": [
+      {
+        "id": "security_breach",
+        "name": "Security Breach",
+        "impact_type": "demand_spike",
+        "duration_range": [300, 900],
+        "effects": {
+          "incident_rate_multiplier": 1.5,
+          "reward_multiplier": 1.3,
+          "contract_value_multiplier": 1.2
+        }
+      },
+      {
+        "id": "tech_boom",
+        "name": "Tech Boom",
+        "impact_type": "value_increase",
+        "duration_range": [600, 1800],
+        "effects": {
+          "reward_multiplier": 1.4,
+          "contract_value_multiplier": 1.5,
+          "investment_returns": 1.2
+        }
+      },
+      {
+        "id": "recession",
+        "name": "Recession",
+        "impact_type": "value_decrease",
+        "duration_range": [1200, 3600],
+        "effects": {
+          "reward_multiplier": 0.7,
+          "contract_value_multiplier": 0.8,
+          "incident_rate_multiplier": 0.9
+        }
+      },
+      {
+        "id": "regulation_change",
+        "name": "Regulation Change",
+        "impact_type": "requirement_shift",
+        "duration_range": [1800, 7200],
+        "effects": {
+          "sla_multiplier": 0.85,
+          "compliance_cost_multiplier": 1.3,
+          "specialist_demand_shift": {
+            "compliance": 1.4,
+            "general_security": 0.9
+          }
+        }
+      }
+    ],
+    "event_probability_weights": {
+      "security_breach": 0.25,
+      "tech_boom": 0.20,
+      "recession": 0.15,
+      "regulation_change": 0.10,
+      "random_event": 0.30
+    },
+    "cooldown_periods": {
+      "min_cooldown": 1800,
+      "max_cooldown": 7200,
+      "event_type_cooldowns": {
+        "security_breach": 3600,
+        "tech_boom": 5400,
+        "recession": 10800,
+        "regulation_change": 14400
+      }
+    }
+  },
+  "financial_management": {
+    "income_sources": {
+      "incident_resolution": {
+        "base_multiplier": 1.0,
+        "difficulty_bonus": {
+          "1": 1.0,
+          "2": 1.2,
+          "3": 1.5,
+          "4": 1.8,
+          "5": 2.2
+        },
+        "quality_bonus": 1.1,
+        "speed_bonus": 1.05
+      },
+      "retainer_contracts": {
+        "monthly_payment": true,
+        "performance_bonus": 1.25,
+        "renewal_bonus": 1.1
+      },
+      "investments": {
+        "types": {
+          "stocks": {
+            "base_return": 0.08,
+            "volatility": 0.15,
+            "risk_level": "medium"
+          },
+          "bonds": {
+            "base_return": 0.04,
+            "volatility": 0.05,
+            "risk_level": "low"
+          },
+          "crypto": {
+            "base_return": 0.20,
+            "volatility": 0.40,
+            "risk_level": "high"
+          }
+        }
+      }
+    },
+    "expenses": {
+      "specialist_salaries": {
+        "base_salary": 500,
+        "level_multiplier": 1.2,
+        "performance_bonus": 0.1
+      },
+      "facility_maintenance": {
+        "base_cost": 200,
+        "upgrade_multiplier": 1.5
+      },
+      "equipment_maintenance": {
+        "base_cost": 50,
+        "rarity_multiplier": {
+          "common": 1.0,
+          "uncommon": 1.2,
+          "rare": 1.5,
+          "epic": 2.0,
+          "legendary": 3.0
+        }
+      }
+    },
+    "taxes_and_fees": {
+      "corporate_tax_rate": 0.25,
+      "transaction_fees": {
+        "investment_trading": 0.005,
+        "contract_negotiation": 0.02
+      },
+      "regulatory_fees": {
+        "base_fee": 1000,
+        "compliance_multiplier": 1.2
+      }
+    }
+  },
+  "investment_system": {
+    "investment_options": [
+      {
+        "id": "tech_stocks",
+        "name": "Technology Sector Stocks",
+        "description": "Invest in cybersecurity and tech companies",
+        "base_return_rate": 0.10,
+        "volatility": 0.20,
+        "min_investment": 10000,
+        "market_correlation": 0.8
+      },
+      {
+        "id": "government_bonds",
+        "name": "Government Security Bonds",
+        "description": "Low-risk government bonds with steady returns",
+        "base_return_rate": 0.04,
+        "volatility": 0.03,
+        "min_investment": 5000,
+        "market_correlation": -0.2
+      },
+      {
+        "id": "crypto_fund",
+        "name": "Cryptocurrency Investment Fund",
+        "description": "High-risk, high-reward crypto investments",
+        "base_return_rate": 0.25,
+        "volatility": 0.50,
+        "min_investment": 25000,
+        "market_correlation": 1.2
+      }
+    ],
+    "investment_mechanics": {
+      "compounding_frequency": "monthly",
+      "withdrawal_penalties": {
+        "early_withdrawal_fee": 0.05,
+        "tax_on_gains": 0.15
+      },
+      "diversification_bonus": 0.02,
+      "market_event_impact": 1.5
+    }
+  }
+}

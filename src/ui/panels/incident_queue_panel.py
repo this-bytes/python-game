@@ -6,6 +6,7 @@ from src.ui.components.panel import Panel
 from src.ui.components.scroll_container import ScrollContainer
 from src.models.game_state import GameState
 from src.models.incident import Incident
+from src.ui.drag_drop_manager import get_drag_drop_manager
 
 
 class IncidentQueuePanel(Panel):
@@ -33,8 +34,7 @@ class IncidentQueuePanel(Panel):
             content_height=0
         )
         self.selected_incident: Optional[Incident] = None
-        self.dragged_incident: Optional[Incident] = None
-        self.drag_offset = (0, 0)
+        self.drag_drop_manager = get_drag_drop_manager()
 
         # Card styling
         self.card_height = 70
@@ -123,7 +123,7 @@ class IncidentQueuePanel(Panel):
         self.scroll_container.render(screen)
 
         # Render dragged incident if any
-        if self.dragged_incident:
+        if self.drag_drop_manager.is_incident_being_dragged():
             self._render_dragged_incident(screen)
 
     def _render_dragged_incident(self, screen: pygame.Surface) -> None:
@@ -132,15 +132,17 @@ class IncidentQueuePanel(Panel):
         Args:
             screen: Pygame surface to render on
         """
-        if not self.dragged_incident:
+        dragged_incident = self.drag_drop_manager.get_dragged_incident()
+        if not dragged_incident:
             return
 
         # Get mouse position
         mouse_x, mouse_y = pygame.mouse.get_pos()
+        drag_offset = self.drag_drop_manager.get_drag_offset()
         
         # Calculate dragged card position (offset from mouse)
-        drag_x = mouse_x - self.drag_offset[0]
-        drag_y = mouse_y - self.drag_offset[1]
+        drag_x = mouse_x - drag_offset[0]
+        drag_y = mouse_y - drag_offset[1]
         
         # Create semi-transparent dragged card
         dragged_rect = pygame.Rect(drag_x, drag_y, self.card_height * 1.2, self.card_height)  # Slightly wider for visibility
@@ -155,12 +157,12 @@ class IncidentQueuePanel(Panel):
         
         # Incident type (simplified for drag preview)
         if self.card_font:
-            type_text = self.card_font.render(self.dragged_incident.incident_type, True, (255, 255, 255))
+            type_text = self.card_font.render(dragged_incident.incident_type, True, (255, 255, 255))
             drag_surface.blit(type_text, (10, 10))
         
         # Specialty
         if self.small_font:
-            specialty_text = self.small_font.render(self.dragged_incident.specialty_required, True, (150, 150, 200))
+            specialty_text = self.small_font.render(dragged_incident.specialty_required, True, (150, 150, 200))
             drag_surface.blit(specialty_text, (10, 35))
         
         # Render to screen
@@ -283,20 +285,17 @@ class IncidentQueuePanel(Panel):
 
                     if card_rect.collidepoint(event.pos):
                         self.selected_incident = incident
-                        # Start drag operation
-                        self.dragged_incident = incident
-                        self.drag_offset = (event.pos[0] - card_rect.x, event.pos[1] - card_rect.y)
+                        # Start drag operation using drag drop manager
+                        self.drag_drop_manager.start_drag(incident, event.pos, card_rect)
                         return True
 
                     y_offset += self.card_height + self.card_margin
 
         # Handle drag end (mouse button up)
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
-            if self.dragged_incident:
-                # Check if dropped on a specialist panel (cross-panel communication needed)
-                # For now, just clear the drag state
-                self.dragged_incident = None
-                self.drag_offset = (0, 0)
+            if self.drag_drop_manager.is_incident_being_dragged():
+                # End drag operation
+                self.drag_drop_manager.end_drag()
                 return True
 
         return False

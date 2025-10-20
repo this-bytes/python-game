@@ -22,6 +22,7 @@ from src.core.burnout_system import BurnoutSystem
 from src.core.relationships_system import RelationshipsSystem
 from src.utils.json_loader import JSONLoader
 from src.utils.logger import GameLogger
+from src.core.event_bus import get_event_bus
 
 
 @dataclass
@@ -222,6 +223,44 @@ class GameState:
         # Check for offline progress on initialization
         self._check_offline_progress()
 
+        # Set up event bus subscriptions for dopamine feedback
+        self._setup_event_subscriptions()
+
+    def _setup_event_subscriptions(self):
+        """Set up event bus subscriptions for game state integration."""
+        event_bus = get_event_bus()
+        
+        # Subscribe to dopamine plugin events and convert to feedback queue
+        event_bus.subscribe("combo_feedback", self._on_combo_feedback)
+        event_bus.subscribe("completion_feedback", self._on_completion_feedback)
+        event_bus.subscribe("risk_contract_offered", self._on_risk_contract_offered)
+        
+        self._logger.logger.info("[GAME_STATE] Event bus subscriptions established")
+
+    def _on_combo_feedback(self, event):
+        """Handle combo feedback event from dopamine plugin."""
+        self.dopamine_feedback_queue.append({
+            "type": "assignment",
+            "feedback": event.data
+        })
+        self._logger.logger.debug(f"[GAME_STATE] Processed combo feedback: {event.data}")
+
+    def _on_completion_feedback(self, event):
+        """Handle completion feedback event from dopamine plugin."""
+        self.dopamine_feedback_queue.append({
+            "type": "completion",
+            "feedback": event.data
+        })
+        self._logger.logger.debug(f"[GAME_STATE] Processed completion feedback: {event.data}")
+
+    def _on_risk_contract_offered(self, event):
+        """Handle risk contract offered event from dopamine plugin."""
+        self.dopamine_feedback_queue.append({
+            "type": "risk_contract_offer",
+            "contract": event.data
+        })
+        self._logger.logger.debug(f"[GAME_STATE] Processed risk contract offer: {event.data}")
+
     def _generate_initial_incidents(self):
         """Generate starting incidents so player has something to interact with immediately.
         
@@ -364,19 +403,8 @@ class GameState:
         if self._passive_income_system:
             passive_income_result = self._passive_income_system.apply_passive_income(self, effective_delta)
 
-        # Update specialist ability cooldowns
-        self._update_ability_cooldowns(effective_delta)
-        
         # Update dopamine system (combo timers, etc.)
         self._dopamine_system.update(effective_delta)
-        
-        # Check for achievements periodically (every 10 seconds)
-        if not hasattr(self, '_last_achievement_check'):
-            self._last_achievement_check = 0.0
-        self._last_achievement_check += effective_delta
-        if self._last_achievement_check >= 10.0:
-            self._check_achievements()
-            self._last_achievement_check = 0.0
 
         # Update metrics
         self._update_metrics()
@@ -542,6 +570,23 @@ class GameState:
                 "specialist_id": specialist.id
             })
 
+            # Publish event for dopamine plugin
+            event_bus = get_event_bus()
+            event_bus.publish("incident_completed", {
+                "incident": incident,
+                "specialist": specialist,
+                "success": success,
+                "is_sla_met": sla_met,
+                "final_reward": reward,
+                "final_xp": xp_gain,
+                "combo_count": dopamine_feedback.get("combo_count", 0),
+                "multiplier": dopamine_feedback.get("multiplier", 1.0),
+                "is_perfect": dopamine_feedback.get("is_perfect", False),
+                "reward_tier": dopamine_feedback.get("reward_tier"),
+                "message": dopamine_feedback.get("message", ""),
+                "combo_broken": dopamine_feedback.get("combo_broken", False)
+            })
+
             self._logger.logger.info(f"[GAME_STATE] Incident {incident.id} resolved by {specialist.id}: reward=${reward}, XP={xp_gain}, SLA={'met' if sla_met else 'missed'}, combo={dopamine_feedback.get('combo_count', 0)}")
             
             # Generate equipment drop
@@ -631,50 +676,6 @@ class GameState:
         total_incidents = self.metrics.total_incidents_handled + self.metrics.total_incidents_failed
         if total_incidents > 0:
             self.metrics.sla_compliance_rate = (self.metrics.total_incidents_handled / total_incidents) * 100.0
-    
-    def _update_ability_cooldowns(self, delta_time: float):
-        """Update ability cooldowns for all specialists.
-        
-        Args:
-            delta_time: Time elapsed in seconds
-        """
-        try:
-            from src.core.ability_system import AbilitySystem
-            from src.utils.json_loader import JSONLoader
-            
-            # Load abilities config
-            json_loader = JSONLoader()
-            abilities_config = json_loader.load_data("abilities.json")
-            ability_system = AbilitySystem(abilities_config)
-            
-            # Update cooldowns for all specialists
-            for specialist in self.specialists:
-                ability_system.update_cooldowns(specialist, delta_time)
-                ability_system.update_active_effects(specialist, delta_time)
-        except Exception as e:
-            self._logger.logger.warning(f"[GAME_STATE] Failed to update ability cooldowns: {e}")
-    
-    def _check_achievements(self):
-        """Check for newly unlocked achievements."""
-        try:
-            from src.core.achievement_system import AchievementSystem
-            from src.utils.json_loader import JSONLoader
-            
-            # Load achievements config
-            json_loader = JSONLoader()
-            achievements_config = json_loader.load_data("achievements.json")
-            achievement_system = AchievementSystem(achievements_config)
-            
-            # Check for newly unlocked achievements
-            newly_unlocked = achievement_system.check_achievements(self)
-            
-            if newly_unlocked:
-                for achievement in newly_unlocked:
-                    self._logger.logger.info(
-                        f"[GAME_STATE] Achievement unlocked: {achievement.name}"
-                    )
-        except Exception as e:
-            self._logger.logger.warning(f"[GAME_STATE] Failed to check achievements: {e}")
     
     def _process_specialist_level_up(self, specialist):
         """Process level-up rewards for a specialist.
@@ -786,15 +787,18 @@ class GameState:
             incident.assigned_specialist_id = specialist_id
             incident.assignment_time = self.current_time
 
-            # DOPAMINE INJECTION: Register assignment for combo system
-            feedback = self._dopamine_system.register_incident_assignment(incident, specialist)
-            self.dopamine_feedback_queue.append({
-                "type": "assignment",
-                "timestamp": time.time(),
-                "feedback": feedback,
-                "incident_id": incident_id,
-                "specialist_id": specialist_id
+            # DOPAMINE INJECTION: Assignment feedback will be handled by dopamine plugin via events
+            # The dopamine plugin listens for incident_assigned events and updates the system
+            # Feedback will be added to queue via event listeners
+
+            # Publish event for dopamine plugin
+            event_bus = get_event_bus()
+            event_bus.publish("incident_assigned", {
+                "incident": incident,
+                "specialist": specialist,
+                "assignment_time": self.current_time
             })
+            self._logger.logger.debug(f"[GAME_STATE] Published incident_assigned event for {incident_id}")
 
             self._logger.logger.info(f"[GAME_STATE] Manual assignment: incident {incident_id} to specialist {specialist_id}")
 
@@ -1115,11 +1119,25 @@ class GameState:
             instance._equipment_system = EquipmentSystem({})
 
         return instance
-    
+
     @property
     def incident_generator(self) -> IncidentGenerator:
         """Get the incident generator instance."""
         return self._incident_generator
+
+    @property
+    def config(self) -> Dict[str, Any]:
+        """Get game configuration (lazy-loaded).
+        
+        Returns:
+            Dictionary containing game configuration from game_config.json
+        """
+        if not hasattr(self, '_cached_config'):
+            if self._json_loader:
+                self._cached_config = self._json_loader.load_data("game_config.json")
+            else:
+                self._cached_config = {}
+        return self._cached_config
 
     def __repr__(self) -> str:
         """String representation of game state."""

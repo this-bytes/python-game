@@ -1,13 +1,13 @@
 {
   "metadata": {
-    "save_time": 1760937156.330367,
-    "save_time_formatted": "2025-10-20T16:12:36.330369",
+    "save_time": 1760951695.3590858,
+    "save_time_formatted": "2025-10-20T20:14:55.359094",
     "game_version": "0.2.0",
-    "slot": 0,
-    "playtime_seconds": 9.574779987335205,
-    "money": 5000.47650677193,
+    "slot": 7,
+    "playtime_seconds": 2.384185791015625e-07,
+    "money": 99999.99,
     "specialist_count": 5,
-    "prestige_level": 0
+    "prestige_level": 3
   },
   "game_state": {
     "specialists": [
@@ -22,11 +22,11 @@
           "accuracy": 90,
           "experience_bonus": 1.2
         },
-        "status": "busy",
+        "status": "available",
         "automation_scripts": [
           "auto_assign_network_low"
         ],
-        "assigned_incident_id": "inc_1760937146769_7344",
+        "assigned_incident_id": null,
         "skill_points": 0,
         "abilities": [],
         "ability_cooldowns": {},
@@ -46,9 +46,9 @@
           "accuracy": 85,
           "experience_bonus": 1.1
         },
-        "status": "busy",
+        "status": "available",
         "automation_scripts": [],
-        "assigned_incident_id": "inc_1760937146769_5209",
+        "assigned_incident_id": null,
         "skill_points": 0,
         "abilities": [],
         "ability_cooldowns": {},
@@ -131,7 +131,7 @@
     ],
     "incidents": [
       {
-        "id": "inc_1760937146769_5209",
+        "id": "inc_1760951695358_1382",
         "incident_type": "Ransomware Infection",
         "specialty_required": "Malware Analysis",
         "difficulty": 1,
@@ -139,44 +139,44 @@
         "base_reward": 1200,
         "xp_reward": 250,
         "client_id": "client_002",
-        "status": "assigned",
-        "assigned_specialist_id": "spec_002",
-        "spawn_time": 1760937146.769645,
-        "assignment_time": 1760937146.8950589,
+        "status": "pending",
+        "assigned_specialist_id": null,
+        "spawn_time": 1760951695.3589644,
+        "assignment_time": null,
         "completion_time": null,
-        "sla_deadline": 1760937626.769645
+        "sla_deadline": 1760952175.3589644
       },
       {
-        "id": "inc_1760937146769_7344",
-        "incident_type": "Port Scan Detection",
+        "id": "inc_1760951695358_9830",
+        "incident_type": "DDoS Attack",
         "specialty_required": "Network Security",
         "difficulty": 1,
+        "sla_seconds": 330,
+        "base_reward": 500,
+        "xp_reward": 100,
+        "client_id": "client_005",
+        "status": "pending",
+        "assigned_specialist_id": null,
+        "spawn_time": 1760951695.358979,
+        "assignment_time": null,
+        "completion_time": null,
+        "sla_deadline": 1760952025.358979
+      },
+      {
+        "id": "inc_1760951695358_4610",
+        "incident_type": "Port Scan Detection",
+        "specialty_required": "Network Security",
+        "difficulty": 3,
         "sla_seconds": 180,
         "base_reward": 200,
         "xp_reward": 50,
-        "client_id": "client_001",
-        "status": "assigned",
-        "assigned_specialist_id": "spec_001",
-        "spawn_time": 1760937146.7699153,
-        "assignment_time": 1760937146.8950589,
-        "completion_time": null,
-        "sla_deadline": 1760937326.7699153
-      },
-      {
-        "id": "inc_1760937146770_4446",
-        "incident_type": "Port Scan Detection",
-        "specialty_required": "Network Security",
-        "difficulty": 1,
-        "sla_seconds": 216,
-        "base_reward": 200,
-        "xp_reward": 50,
-        "client_id": "client_003",
+        "client_id": "client_004",
         "status": "pending",
         "assigned_specialist_id": null,
-        "spawn_time": 1760937146.7701578,
+        "spawn_time": 1760951695.3589904,
         "assignment_time": null,
         "completion_time": null,
-        "sla_deadline": 1760937362.7701578
+        "sla_deadline": 1760951875.3589904
       }
     ],
     "clients": [
@@ -349,17 +349,17 @@
     "recruitment_refresh_time": 0.0,
     "active_events": [],
     "event_cooldowns": {},
-    "game_start_time": 1760937146.763931,
-    "current_time": 1760937156.338711,
+    "game_start_time": 1760951695.3546822,
+    "current_time": 1760951695.3546824,
     "game_speed_multiplier": 1.0,
     "is_paused": false,
-    "current_money": 5000.47650677193,
-    "total_money_earned": 0.4765067719289708,
+    "current_money": 99999.99,
+    "total_money_earned": 0.0,
     "investments": {},
-    "last_save_time": 1760937146.770427,
-    "prestige_points": 0,
+    "last_save_time": 1760951695.3589928,
+    "prestige_points": 42,
     "prestige_upgrades": {},
-    "total_prestiges": 0,
+    "total_prestiges": 3,
     "unlocked_achievements": [],
     "achievement_progress": {},
     "max_active_incidents": 50,
@@ -373,12 +373,12 @@
       "average_resolution_time": 0.0,
       "sla_compliance_rate": 100.0,
       "automation_scripts_triggered": 0,
-      "specialist_utilization_rate": 40.0,
-      "total_assignments_attempted": 2,
-      "total_assignments_successful": 2,
-      "specialty_match_assignments": 2,
+      "specialist_utilization_rate": 0.0,
+      "total_assignments_attempted": 0,
+      "total_assignments_successful": 0,
+      "specialty_match_assignments": 0,
       "specialty_mismatch_assignments": 0,
-      "assignment_success_rate": 100.0
+      "assignment_success_rate": 0.0
     }
   }
 }
