@@ -18,11 +18,16 @@ class Theme:
         self.name = data.get("name", "Unnamed Theme")
         self.colors = {}
         self.fonts = data.get("fonts", {})
+        self.shadows = data.get("shadows", {})
 
         # Convert color lists to tuples
         for key, value in data.get("colors", {}).items():
             if isinstance(value, list) and len(value) >= 3:
-                self.colors[key] = tuple(value[:3])
+                # Handle RGBA colors (4 values) and RGB colors (3 values)
+                if len(value) == 4:
+                    self.colors[key] = tuple(value[:4])
+                else:
+                    self.colors[key] = tuple(value[:3])
 
     def get_color(self, color_key: str, default: Tuple[int, int, int] = (255, 255, 255)) -> Tuple[int, int, int]:
         """Get color from theme.
@@ -36,6 +41,21 @@ class Theme:
         """
         return self.colors.get(color_key, default)
 
+    def get_rgba_color(self, color_key: str, default: Tuple[int, int, int, int] = (255, 255, 255, 255)) -> Tuple[int, int, int, int]:
+        """Get RGBA color from theme.
+
+        Args:
+            color_key: Color key name
+            default: Default RGBA color if key not found
+
+        Returns:
+            RGBA color tuple
+        """
+        color = self.colors.get(color_key, default)
+        if len(color) == 3:
+            return (color[0], color[1], color[2], 255)
+        return color
+
     def get_font_size(self, font_key: str, default: int = 14) -> int:
         """Get font size from theme.
 
@@ -47,6 +67,21 @@ class Theme:
             Font size in pixels
         """
         return self.fonts.get(font_key, default)
+
+    def get_shadow(self, shadow_key: str, default: Tuple[int, int, int, int] = (0, 2, 8, 128)) -> Tuple[int, int, int, int]:
+        """Get shadow parameters from theme.
+
+        Args:
+            shadow_key: Shadow key name
+            default: Default shadow parameters (offset_x, offset_y, blur, alpha)
+
+        Returns:
+            Shadow parameters as (offset_x, offset_y, blur, alpha)
+        """
+        shadow = self.shadows.get(shadow_key, default)
+        if isinstance(shadow, list) and len(shadow) >= 4:
+            return tuple(shadow[:4])
+        return default
 
 
 class ThemeManager:
@@ -68,7 +103,7 @@ class ThemeManager:
 
         self.themes: Dict[str, Theme] = {}
         self.current_theme: Optional[Theme] = None
-        self.font_cache: Dict[Tuple[str, int, bool], pygame.font.Font] = {}
+        self.font_cache: Dict[Tuple[str, int, bool, bool], pygame.font.Font] = {}
 
         # Load themes
         self._load_themes()
@@ -108,12 +143,26 @@ class ThemeManager:
             return True
         return False
 
-    def get_color(self, color_key: str, default: Tuple[int, int, int] = (255, 255, 255)) -> Tuple[int, int, int]:
-        """Get color from current theme.
+    def get_rgba_color(self, color_key: str, default: Tuple[int, int, int, int] = (255, 255, 255, 255)) -> Tuple[int, int, int, int]:
+        """Get RGBA color from current theme.
 
         Args:
             color_key: Color key name
-            default: Default color if key not found
+            default: Default RGBA color if key not found
+
+        Returns:
+            RGBA color tuple
+        """
+        if self.current_theme:
+            return self.current_theme.get_rgba_color(color_key, default)
+        return default
+
+    def get_color(self, color_key: str, default: Tuple[int, int, int] = (255, 255, 255)) -> Tuple[int, int, int]:
+        """Get RGB color from current theme.
+
+        Args:
+            color_key: Color key name
+            default: Default RGB color if key not found
 
         Returns:
             RGB color tuple
@@ -122,34 +171,72 @@ class ThemeManager:
             return self.current_theme.get_color(color_key, default)
         return default
 
-    def get_font(
-        self,
-        font_key: str = "normal",
-        bold: bool = False,
-        italic: bool = False,
-        font_name: str = "Arial"
-    ) -> pygame.font.Font:
-        """Get font from current theme.
+    def get_shadow(self, shadow_key: str, default: Tuple[int, int, int, int] = (0, 2, 8, 128)) -> Tuple[int, int, int, int]:
+        """Get shadow parameters from current theme.
 
         Args:
-            font_key: Font key for size
-            bold: Bold font
-            italic: Italic font
-            font_name: Font family name
+            shadow_key: Shadow key name
+            default: Default shadow parameters
 
         Returns:
-            Pygame font object
+            Shadow parameters as (offset_x, offset_y, blur, alpha)
         """
+        if self.current_theme:
+            return self.current_theme.get_shadow(shadow_key, default)
+        return default
+
+    def get_font(
+        self,
+        font_key: str = "body",
+        bold: bool = False,
+        italic: bool = False,
+        font_family: Optional[str] = None
+    ) -> pygame.font.Font:
+        """Get font from current theme with modern typography.
+
+        Args:
+            font_key: Font key for size and weight
+            bold: Bold font weight
+            italic: Italic style
+            font_family: Override font family
+
+        Returns:
+            Pygame font object with appropriate styling
+        """
+        # Modern font stack with fallbacks
+        if font_family is None:
+            # Primary: Clean, modern sans-serif fonts
+            font_stack = ['dejavusans', 'ubuntumono', 'nimbussans', 'arial']
+            font_family = font_stack[0]  # Use first available
+
         # Get font size from theme
         size = self.current_theme.get_font_size(font_key, 14) if self.current_theme else 14
 
-        # Check cache
-        cache_key = (font_name, size, bold)
+        # Adjust size based on font key for better hierarchy
+        if font_key == "title":
+            size = int(size * 1.2)  # Slightly larger titles
+        elif font_key == "heading":
+            size = int(size * 1.1)  # Slightly larger headings
+        elif font_key == "small":
+            size = max(10, int(size * 0.85))  # Smaller but readable
+        elif font_key == "tiny":
+            size = max(8, int(size * 0.75))  # Very small but legible
+
+        # Create cache key
+        cache_key = (font_family, size, bold, italic)
+
+        # Check cache first
         if cache_key in self.font_cache:
             return self.font_cache[cache_key]
 
-        # Create font
-        font = pygame.font.SysFont(font_name, size, bold=bold, italic=italic)
+        # Create font with styling
+        try:
+            font = pygame.font.SysFont(font_family, size, bold=bold, italic=italic)
+        except:
+            # Fallback to default if font family not available
+            font = pygame.font.SysFont('dejavusans', size, bold=bold, italic=italic)
+
+        # Cache the font
         self.font_cache[cache_key] = font
 
         return font

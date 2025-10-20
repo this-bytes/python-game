@@ -168,27 +168,35 @@ class MainMenu:
                         return MenuAction.CONTINUE
                     return MenuAction.NEW_GAME
             
-            # Handle button clicks
-            if self.new_game_button.handle_event(event):
-                self.logger.logger.info("[MAIN_MENU] New game selected")
-                return MenuAction.NEW_GAME
-            
-            if self.continue_button.handle_event(event):
-                if self.continue_available:
-                    self.logger.logger.info("[MAIN_MENU] Continue selected")
-                    return MenuAction.CONTINUE
-            
-            if self.tutorial_button.handle_event(event):
-                self.logger.logger.info("[MAIN_MENU] Tutorial selected")
-                return MenuAction.TUTORIAL
-            
-            if self.settings_button.handle_event(event):
-                self.logger.logger.info("[MAIN_MENU] Settings selected")
-                return MenuAction.SETTINGS
-            
-            if self.exit_button.handle_event(event):
-                self.logger.logger.info("[MAIN_MENU] Exit selected")
-                return MenuAction.EXIT
+            # Handle button clicks only on mouse up events
+            if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+                if self.new_game_button.handle_event(event):
+                    self.logger.logger.info("[MAIN_MENU] New game selected")
+                    return MenuAction.NEW_GAME
+                
+                if self.continue_button.handle_event(event):
+                    if self.continue_available:
+                        self.logger.logger.info("[MAIN_MENU] Continue selected")
+                        return MenuAction.CONTINUE
+                
+                if self.tutorial_button.handle_event(event):
+                    self.logger.logger.info("[MAIN_MENU] Tutorial selected")
+                    return MenuAction.TUTORIAL
+                
+                if self.settings_button.handle_event(event):
+                    self.logger.logger.info("[MAIN_MENU] Settings selected")
+                    return MenuAction.SETTINGS
+                
+                if self.exit_button.handle_event(event):
+                    self.logger.logger.info("[MAIN_MENU] Exit selected")
+                    return MenuAction.EXIT
+            else:
+                # Still handle mouse motion for hover effects
+                self.new_game_button.handle_event(event)
+                self.continue_button.handle_event(event)
+                self.tutorial_button.handle_event(event)
+                self.settings_button.handle_event(event)
+                self.exit_button.handle_event(event)
         
         return None
     

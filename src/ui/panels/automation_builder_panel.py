@@ -9,7 +9,7 @@ from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
 
-from src.ui.components.panel import Panel
+from src.ui.components.panel import ModernPanel
 from src.models.automation_script import AutomationScript, TriggerConditions
 from src.models.game_state import GameState
 
@@ -108,7 +108,7 @@ class AutomationNode:
             port.position = (x + w, y + 20 + i * 20)
 
 
-class AutomationBuilderPanel(Panel):
+class AutomationBuilderPanel(ModernPanel):
     """Visual drag-and-drop automation script builder."""
 
     def __init__(self, game_state: GameState):

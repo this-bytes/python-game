@@ -8,7 +8,7 @@ import pygame
 from typing import List, Dict, Optional, Any, Tuple
 from dataclasses import dataclass
 
-from src.ui.components.panel import Panel
+from src.ui.components.panel import ModernPanel
 from src.core.plugins.relationships_plugin import RelationshipsPlugin
 from src.models.specialist import Specialist
 
@@ -35,7 +35,7 @@ class MoraleDisplay:
     success_impact: float
 
 
-class TeamDynamicsPanel(Panel):
+class TeamDynamicsPanel(ModernPanel):
     """Panel for displaying team dynamics information."""
 
     def __init__(self, x: int, y: int, width: int, height: int):

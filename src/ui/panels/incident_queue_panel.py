@@ -2,14 +2,14 @@
 
 import pygame
 from typing import Optional, Any
-from src.ui.components.panel import Panel
+from src.ui.components.panel import ModernPanel
 from src.ui.components.scroll_container import ScrollContainer
 from src.models.game_state import GameState
 from src.models.incident import Incident
 from src.ui.drag_drop_manager import get_drag_drop_manager
 
 
-class IncidentQueuePanel(Panel):
+class IncidentQueuePanel(ModernPanel):
     """Display all incidents with urgency indicators."""
 
     def __init__(self, game_state: GameState):
@@ -56,6 +56,13 @@ class IncidentQueuePanel(Panel):
         # Fonts
         self.card_font = None
         self.small_font = None
+
+        # Text color from theme
+        self.text_color = (220, 220, 220)  # Default fallback
+        try:
+            self.text_color = self.theme_manager.get_color("text_primary", (220, 220, 220))
+        except:
+            pass  # Use fallback if theme not available
 
     def assign_selected_to_specialist(self, specialist_id: str) -> bool:
         """Assign selected incident to a specialist.

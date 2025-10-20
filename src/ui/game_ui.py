@@ -45,6 +45,7 @@ from src.ui.layout_manager import LayoutManager, GridConfig, GridConstraints, An
 from src.ui.panel_inspector import PanelInspector
 from src.ui.layout_validator import validate_layout
 from src.ui.debug_overlay import LayoutDebugOverlay, DebugOverlayMode
+from src.ui.drag_drop_manager import get_drag_drop_manager
 
 
 @dataclass
@@ -82,6 +83,7 @@ class GameUI:
         self.theme_manager = ThemeManager()
         self.notification_manager = NotificationManager(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
         self.hotkey_manager = HotkeyManager()
+        self.drag_drop_manager = get_drag_drop_manager()
         
         # Initialize layout system
         self._initialize_layout_system()
@@ -317,11 +319,6 @@ class GameUI:
         self.WINDOW_WIDTH, self.WINDOW_HEIGHT = new_size
         self.screen = pygame.display.set_mode(new_size)
         
-        # Update layout system with new screen size
-        self.layout_manager.screen_size = new_size
-        self.layout_manager._calculate_grid()
-        self.layout_manager.layout()
-        
         # Update HUD and other components
         self.hud_overlay = HUDOverlay(
             screen_width=self.WINDOW_WIDTH,
@@ -532,7 +529,7 @@ class GameUI:
                         event_consumed = True
                         # don't pass through
                         continue
-            for panel in reversed(self.layout_manager.layer_manager.get_render_order()):
+            for panel in reversed(self.panels):
                 if hasattr(panel, 'visible') and not panel.visible:
                     continue
                     
@@ -605,8 +602,8 @@ class GameUI:
             if self.incident_queue_panel.get_rect().collidepoint(event.pos):
                 # Let incident panel handle the drag start
                 if self.incident_queue_panel.handle_event(event):
-                    self.dragged_incident = self.incident_queue_panel.dragged_incident
-                    self.drag_offset = self.incident_queue_panel.drag_offset
+                    self.dragged_incident = self.drag_drop_manager.get_dragged_incident()
+                    self.drag_offset = (0, 0)  # Will be set by mouse motion
                     return True
 
         # Handle drag motion (highlight drop targets)
@@ -663,9 +660,6 @@ class GameUI:
             self.dragged_incident = None
             self.drag_offset = (0, 0)
             self.drag_highlight_specialist = None
-            # Also clear in incident panel
-            self.incident_queue_panel.dragged_incident = None
-            self.incident_queue_panel.drag_offset = (0, 0)
             return True
 
         return False
@@ -676,12 +670,6 @@ class GameUI:
         Args:
             delta_time: Time elapsed since last update
         """
-        # Update layout if needed (responsive resize, etc.)
-        layout_start = time.time()
-        self.layout_manager.layout()
-        layout_end = time.time()
-        self._last_layout_time = layout_end - layout_start
-        
         # Update view manager
         self.view_manager.update(delta_time)
         
@@ -759,8 +747,8 @@ class GameUI:
         # Render navigation menu
         self.navigation_menu.render(self.screen, self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
 
-        # Render all visible panels (in z-order from layout system)
-        for panel in self.layout_manager.layer_manager.get_render_order():
+        # Render all visible panels
+        for panel in self.panels:
             if hasattr(panel, 'visible') and panel.visible:
                 panel.render(self.screen)
 

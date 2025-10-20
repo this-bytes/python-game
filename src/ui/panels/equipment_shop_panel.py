@@ -2,14 +2,14 @@
 
 import pygame
 from typing import Optional, Any, List
-from src.ui.components.panel import Panel
+from src.ui.components.panel import ModernPanel
 from src.ui.components.scroll_container import ScrollContainer
 from src.ui.components.button import Button
 from src.models.game_state import GameState
 from src.models.equipment import Equipment
 
 
-class EquipmentShopPanel(Panel):
+class EquipmentShopPanel(ModernPanel):
     """Shop panel for purchasing equipment items."""
 
     def __init__(self, game_state: GameState):

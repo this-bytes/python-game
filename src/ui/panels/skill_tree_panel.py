@@ -8,7 +8,7 @@ import pygame
 from typing import List, Dict, Optional, Any, Tuple
 from dataclasses import dataclass
 
-from src.ui.components.panel import Panel
+from src.ui.components.panel import ModernPanel
 from src.core.skill_tree_system import SkillTreeSystem, SkillTree, Skill, SkillTier
 from src.models.specialist import Specialist
 from src.core.plugins.skill_tree_plugin import SkillTreePlugin
@@ -56,7 +56,7 @@ class SkillDisplayData:
         )
 
 
-class SkillTreePanel(Panel):
+class SkillTreePanel(ModernPanel):
     """Panel for displaying and managing specialist skill trees."""
 
     def __init__(self, x: int, y: int, width: int, height: int):

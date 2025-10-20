@@ -12,7 +12,7 @@ This module provides reusable UI components for building game interfaces:
 - TabContainer: Multi-tab panel with keyboard navigation
 """
 
-from .panel import Panel
+from .panel import ModernPanel
 from .button import Button
 from .text_input import TextInput
 from .dropdown import Dropdown
@@ -23,7 +23,7 @@ from .modal import Modal, ModalResult, ModalType, ModalButton
 from .tab_container import TabContainer, Tab
 
 __all__ = [
-    "Panel",
+    "ModernPanel",
     "Button",
     "TextInput",
     "Dropdown",

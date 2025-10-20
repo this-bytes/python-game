@@ -2,7 +2,7 @@
 
 import pygame
 from typing import Optional, Any
-from src.ui.components.panel import Panel
+from src.ui.components.panel import ModernPanel
 from src.ui.components.progress_bar import ProgressBar
 from src.ui.components.scroll_container import ScrollContainer
 from src.models.game_state import GameState
@@ -10,7 +10,7 @@ from src.models.specialist import Specialist
 from src.ui.drag_drop_manager import get_drag_drop_manager
 
 
-class SpecialistRosterPanel(Panel):
+class SpecialistRosterPanel(ModernPanel):
     """Display all specialists with filters and sorting."""
 
     def __init__(self, game_state: GameState):
@@ -55,6 +55,13 @@ class SpecialistRosterPanel(Panel):
         self.card_font = None
         self.small_font = None
         self.tiny_font = None
+
+        # Text color from theme
+        self.text_color = (220, 220, 220)  # Default fallback
+        try:
+            self.text_color = self.theme_manager.get_color("text_primary", (220, 220, 220))
+        except:
+            pass  # Use fallback if theme not available
 
     def render_content(self, screen: pygame.Surface, content_rect: pygame.Rect) -> None:
         """Render specialist roster content.

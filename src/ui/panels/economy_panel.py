@@ -3,12 +3,12 @@
 import pygame
 from typing import Optional, Dict, Any, List
 
-from src.ui.components.panel import Panel
+from src.ui.components.panel import ModernPanel
 from src.core.plugins.economy_plugin import EconomyPlugin
 from src.core.economy_system import MarketEvent, Investment
 
 
-class EconomyPanel(Panel):
+class EconomyPanel(ModernPanel):
     """Panel for displaying economy information and managing investments."""
 
     def __init__(self, x: int, y: int, width: int, height: int):

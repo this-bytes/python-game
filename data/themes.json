@@ -1,60 +1,129 @@
 {
   "themes": {
     "dark_cyber": {
-      "name": "Dark Cyber",
+      "name": "Dark Cyber Professional",
       "colors": {
-        "primary": [0, 180, 255],
-        "secondary": [255, 0, 180],
-        "background": [15, 15, 25],
-        "panel_bg": [25, 25, 40],
-        "text": [220, 220, 230],
-        "success": [0, 255, 100],
-        "warning": [255, 200, 0],
-        "danger": [255, 50, 50],
-        "border": [50, 50, 80]
+        "primary": [0, 122, 255],
+        "primary_hover": [30, 144, 255],
+        "primary_pressed": [0, 100, 220],
+        "secondary": [142, 68, 173],
+        "secondary_hover": [155, 89, 182],
+        "secondary_pressed": [125, 60, 152],
+        "background": [13, 17, 23],
+        "background_secondary": [22, 27, 34],
+        "panel_bg": [30, 35, 42],
+        "panel_bg_hover": [35, 40, 47],
+        "text": [201, 209, 217],
+        "text_secondary": [139, 148, 158],
+        "text_muted": [106, 115, 125],
+        "success": [46, 160, 67],
+        "success_hover": [57, 171, 78],
+        "warning": [187, 128, 9],
+        "warning_hover": [204, 143, 16],
+        "danger": [248, 81, 73],
+        "danger_hover": [255, 99, 88],
+        "border": [48, 54, 61],
+        "border_hover": [68, 76, 86],
+        "accent": [136, 46, 252],
+        "accent_hover": [149, 63, 255],
+        "shadow": [0, 0, 0, 40],
+        "glow": [0, 122, 255, 30]
       },
       "fonts": {
-        "title": 24,
-        "normal": 14,
-        "small": 10
+        "title": 28,
+        "heading": 20,
+        "body": 14,
+        "small": 12,
+        "tiny": 10
+      },
+      "shadows": {
+        "panel": [0, 4, 16, 0.1],
+        "button": [0, 2, 8, 0.15],
+        "text": [0, 1, 2, 0.1]
       }
     },
     "light_professional": {
       "name": "Light Professional",
       "colors": {
-        "primary": [0, 120, 215],
-        "secondary": [100, 100, 100],
-        "background": [240, 240, 245],
+        "primary": [0, 122, 255],
+        "primary_hover": [0, 100, 220],
+        "primary_pressed": [0, 85, 185],
+        "secondary": [142, 68, 173],
+        "secondary_hover": [125, 60, 152],
+        "secondary_pressed": [108, 52, 131],
+        "background": [246, 248, 250],
+        "background_secondary": [255, 255, 255],
         "panel_bg": [255, 255, 255],
-        "text": [30, 30, 30],
-        "success": [0, 150, 0],
-        "warning": [200, 150, 0],
-        "danger": [200, 0, 0],
-        "border": [200, 200, 210]
+        "panel_bg_hover": [248, 249, 250],
+        "text": [31, 35, 40],
+        "text_secondary": [87, 96, 106],
+        "text_muted": [134, 142, 150],
+        "success": [46, 160, 67],
+        "success_hover": [38, 141, 59],
+        "warning": [187, 128, 9],
+        "warning_hover": [166, 113, 8],
+        "danger": [248, 81, 73],
+        "danger_hover": [218, 68, 62],
+        "border": [208, 215, 222],
+        "border_hover": [187, 196, 207],
+        "accent": [136, 46, 252],
+        "accent_hover": [120, 40, 220],
+        "shadow": [0, 0, 0, 8],
+        "glow": [0, 122, 255, 15]
       },
       "fonts": {
-        "title": 24,
-        "normal": 14,
-        "small": 10
+        "title": 28,
+        "heading": 20,
+        "body": 14,
+        "small": 12,
+        "tiny": 10
+      },
+      "shadows": {
+        "panel": [0, 1, 3, 0.1],
+        "button": [0, 1, 2, 0.05],
+        "text": [0, 1, 1, 0.05]
       }
     },
-    "hacker_green": {
-      "name": "Hacker Green",
+    "cyberpunk_neon": {
+      "name": "Cyberpunk Neon",
       "colors": {
-        "primary": [0, 255, 0],
-        "secondary": [0, 200, 0],
-        "background": [0, 0, 0],
-        "panel_bg": [5, 10, 5],
-        "text": [0, 255, 0],
+        "primary": [255, 0, 128],
+        "primary_hover": [255, 20, 147],
+        "primary_pressed": [220, 0, 110],
+        "secondary": [0, 255, 255],
+        "secondary_hover": [20, 255, 255],
+        "secondary_pressed": [0, 220, 220],
+        "background": [5, 5, 15],
+        "background_secondary": [10, 10, 25],
+        "panel_bg": [15, 15, 35],
+        "panel_bg_hover": [20, 20, 45],
+        "text": [200, 255, 255],
+        "text_secondary": [150, 200, 255],
+        "text_muted": [100, 150, 200],
         "success": [0, 255, 100],
+        "success_hover": [20, 255, 120],
         "warning": [255, 255, 0],
-        "danger": [255, 0, 0],
-        "border": [0, 150, 0]
+        "warning_hover": [255, 255, 50],
+        "danger": [255, 0, 50],
+        "danger_hover": [255, 50, 80],
+        "border": [50, 50, 100],
+        "border_hover": [80, 80, 150],
+        "accent": [255, 100, 0],
+        "accent_hover": [255, 120, 20],
+        "shadow": [0, 0, 0, 60],
+        "glow": [255, 0, 128, 40]
       },
       "fonts": {
-        "title": 24,
-        "normal": 14,
-        "small": 10
+        "title": 28,
+        "heading": 20,
+        "body": 14,
+        "small": 12,
+        "tiny": 10
+      },
+      "shadows": {
+        "panel": [0, 0, 20, 0.3],
+        "button": [0, 0, 15, 0.4],
+        "text": [0, 0, 5, 0.5]
       }
     }
   }

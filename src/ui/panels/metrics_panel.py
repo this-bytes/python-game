@@ -1,11 +1,11 @@
 """Metrics Dashboard Panel for displaying game statistics."""
 
 import pygame
-from src.ui.components.panel import Panel
+from src.ui.components.panel import ModernPanel
 from src.models.game_state import GameState
 
 
-class MetricsPanel(Panel):
+class MetricsPanel(ModernPanel):
     """Real-time game metrics and statistics."""
 
     def __init__(self, game_state: GameState):
@@ -97,8 +97,10 @@ class MetricsPanel(Panel):
         ]
 
         for metric in metrics_list:
-            metric_text = self.label_font.render(metric, True, self.text_color)
-            screen.blit(metric_text, (content_rect.x + card_margin, y_offset))
+            if self.label_font:
+                text_color = self.theme_manager.get_color("text", (180, 180, 200))
+                metric_text = self.label_font.render(metric, True, text_color)
+                screen.blit(metric_text, (content_rect.x + card_margin, y_offset))
             y_offset += 20
 
     def _render_kpi_card(self, screen: pygame.Surface, rect: pygame.Rect, kpi: dict) -> None:
@@ -118,11 +120,13 @@ class MetricsPanel(Panel):
         pygame.draw.rect(screen, border_color, rect, 2, border_radius=4)
 
         # Value (large, colored)
-        value_text = self.value_font.render(kpi["value"], True, kpi["color"])
-        value_rect = value_text.get_rect(centerx=rect.centerx, top=rect.y + 15)
-        screen.blit(value_text, value_rect)
+        if self.value_font:
+            value_text = self.value_font.render(kpi["value"], True, kpi["color"])
+            value_rect = value_text.get_rect(centerx=rect.centerx, top=rect.y + 15)
+            screen.blit(value_text, value_rect)
 
         # Label (small, below value)
-        label_text = self.label_font.render(kpi["label"], True, (180, 180, 200))
-        label_rect = label_text.get_rect(centerx=rect.centerx, bottom=rect.bottom - 10)
-        screen.blit(label_text, label_rect)
+        if self.label_font:
+            label_text = self.label_font.render(kpi["label"], True, (180, 180, 200))
+            label_rect = label_text.get_rect(centerx=rect.centerx, bottom=rect.bottom - 10)
+            screen.blit(label_text, label_rect)

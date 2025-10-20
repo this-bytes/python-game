@@ -8,7 +8,7 @@ import pygame
 from typing import Optional, Dict, Any, Tuple
 from dataclasses import dataclass
 
-from src.ui.components.panel import Panel
+from src.ui.components.panel import ModernPanel
 from src.models.game_state import GameState
 from src.core.plugins.progressive_difficulty_plugin import ProgressiveDifficultyPlugin
 from src.utils.logger import GameLogger
@@ -51,7 +51,7 @@ class DifficultyDisplayData:
         )
 
 
-class ProgressiveDifficultyPanel(Panel):
+class ProgressiveDifficultyPanel(ModernPanel):
     """UI panel displaying progressive difficulty information."""
 
     def __init__(self, x: int, y: int, width: int, height: int):

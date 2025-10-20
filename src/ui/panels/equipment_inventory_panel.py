@@ -2,7 +2,7 @@
 
 import pygame
 from typing import Optional, Any, List, Dict, Tuple
-from src.ui.components.panel import Panel
+from src.ui.components.panel import ModernPanel
 from src.ui.components.scroll_container import ScrollContainer
 from src.ui.components.button import Button
 from src.ui.components.tooltip import Tooltip
@@ -11,7 +11,7 @@ from src.models.equipment import Equipment
 from src.models.specialist import Specialist
 
 
-class EquipmentInventoryPanel(Panel):
+class EquipmentInventoryPanel(ModernPanel):
     """Inventory panel for managing specialist equipment."""
 
     def __init__(self, game_state: GameState):
