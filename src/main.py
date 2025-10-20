@@ -386,11 +386,12 @@ class Game:
                         self.running = False
                         break
 
-                # Handle menu or game
-                if self.in_menu:
-                    self._run_menu(events, delta_time)
-                else:
-                    self._run_game(events, delta_time)
+                # Handle menu or game (only if still running)
+                if self.running:
+                    if self.in_menu:
+                        self._run_menu(events, delta_time)
+                    else:
+                        self._run_game(events, delta_time)
 
         except KeyboardInterrupt:
             self.logger.logger.info("[GAME] Game interrupted by user")

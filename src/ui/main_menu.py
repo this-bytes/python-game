@@ -48,6 +48,9 @@ class MainMenu:
         self.screen = pygame.display.set_mode((width, height))
         pygame.display.set_caption("Cybersecurity Firm - Main Menu")
         
+        # Clear any events generated during initialization
+        pygame.event.get()
+        
         # Theme and styling
         self.theme_manager = ThemeManager()
         self.theme = self.theme_manager.get_current_theme()
@@ -201,7 +204,9 @@ class MainMenu:
     def render(self) -> None:
         """Render the main menu."""
         # Clear screen with dark background
-        bg_color = self.theme.get_color('background', (20, 20, 30))
+        bg_color = (20, 20, 30)  # Default fallback
+        if self.theme:
+            bg_color = self.theme.get_color('background', (20, 20, 30))
         self.screen.fill(bg_color)
         
         # Render title with pulse effect
