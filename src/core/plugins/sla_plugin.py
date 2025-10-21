@@ -182,45 +182,19 @@ class SLAPlugin(GameSystem):
             raise
     
     def update(self, game_state, delta_time: float) -> None:
-        """Update SLA timers and check for violations.
+        """Update SLA system status.
         
-        Called every game frame. Checks all active SLA trackers for violations
-        and publishes events when SLAs expire.
+        Called every game frame. In the current phase, this is a placeholder
+        as SLA violation detection is event-driven. Future phases may add
+        time-based SLA tracking for response times.
         
         Args:
             game_state: Current game state
             delta_time: Time elapsed since last update (seconds)
         """
-        if not hasattr(game_state, 'game_time'):
-            return
-        
-        current_time: float = game_state.game_time
-        
-        # Check each active SLA for violations
-        for tracker in self._sla_monitor.get_all_trackers():
-            # Skip if already marked as violated
-            if tracker.tracker_id in self._active_violations:
-                continue
-            
-            # Check if resolution SLA expired (simplified: just check if time exceeded)
-            # In full implementation, would check both response and resolution times
-            if hasattr(tracker, 'created_time') and hasattr(tracker, 'sla_resolution_seconds'):
-                time_elapsed = current_time - tracker.created_time
-                sla_threshold = tracker.sla_resolution_seconds
-                
-                if time_elapsed > sla_threshold:
-                    # SLA violated
-                    self._active_violations[tracker.tracker_id] = True
-                    self._event_bus.publish("sla_violated", {
-                        "tracker_id": tracker.tracker_id,
-                        "incident_id": getattr(tracker, 'incident_id', 'unknown'),
-                        "client_id": tracker.client_id,
-                        "time_over_sla": time_elapsed - sla_threshold,
-                    })
-                    logger.warning(
-                        f"[SLA_PLUGIN] SLA {tracker.tracker_id} violated "
-                        f"(over by {time_elapsed - sla_threshold:.1f}s)"
-                    )
+        # SLA tracking is primarily event-driven in this design
+        # Violations are tracked when incidents are created, assigned, and completed
+        pass
     
     def shutdown(self, game_state) -> None:
         """Shutdown SLA plugin and cleanup resources.
@@ -258,29 +232,13 @@ class SLAPlugin(GameSystem):
         """
         trackers_data = []
         for tracker in self._sla_monitor.get_all_trackers():
-            tracker_dict = {
-                'tracker_id': tracker.tracker_id,
-                'client_id': tracker.client_id,
-                'month': tracker.month,
-                'total_incidents': tracker.total_incidents,
-                'response_sla_met': tracker.response_sla_met,
-                'response_sla_missed': tracker.response_sla_missed,
-                'resolution_sla_met': tracker.resolution_sla_met,
-                'resolution_sla_missed': tracker.resolution_sla_missed,
-            }
-            # Include optional fields if present
-            if hasattr(tracker, 'incident_id'):
-                tracker_dict['incident_id'] = tracker.incident_id
-            if hasattr(tracker, 'created_time'):
-                tracker_dict['created_time'] = tracker.created_time
-            if hasattr(tracker, 'sla_resolution_seconds'):
-                tracker_dict['sla_resolution_seconds'] = tracker.sla_resolution_seconds
-            
+            # Use tracker's to_dict() method for proper serialization
+            tracker_dict = tracker.to_dict()
             trackers_data.append(tracker_dict)
         
         return {
             "active_trackers": trackers_data,
-            "active_violations": list(self._active_violations.keys()),
+            "incident_mappings": dict(self._sla_monitor._incident_to_tracker),
         }
     
     def load_state(self, game_state, state_data: Dict[str, Any]) -> None:
@@ -292,34 +250,16 @@ class SLAPlugin(GameSystem):
             game_state: Current game state
             state_data: Previously saved state data
         """
-        # Restore trackers
+        # Restore trackers using from_dict factory method
         trackers_data = state_data.get("active_trackers", [])
         for tracker_dict in trackers_data:
-            tracker = SLATracker(
-                tracker_id=tracker_dict['tracker_id'],
-                client_id=tracker_dict['client_id'],
-                month=tracker_dict['month'],
-                total_incidents=tracker_dict.get('total_incidents', 0),
-                response_sla_met=tracker_dict.get('response_sla_met', 0),
-                response_sla_missed=tracker_dict.get('response_sla_missed', 0),
-                resolution_sla_met=tracker_dict.get('resolution_sla_met', 0),
-                resolution_sla_missed=tracker_dict.get('resolution_sla_missed', 0),
-            )
-            
-            # Restore optional fields
-            if 'incident_id' in tracker_dict:
-                tracker.incident_id = tracker_dict['incident_id']
-            if 'created_time' in tracker_dict:
-                tracker.created_time = tracker_dict['created_time']
-            if 'sla_resolution_seconds' in tracker_dict:
-                tracker.sla_resolution_seconds = tracker_dict['sla_resolution_seconds']
-            
+            tracker = SLATracker.from_dict(tracker_dict)
             self._sla_monitor.add_tracker(tracker)
         
-        # Restore violation state
-        violations = state_data.get("active_violations", [])
-        for violation_id in violations:
-            self._active_violations[violation_id] = True
+        # Restore incident-to-tracker mappings
+        incident_mappings = state_data.get("incident_mappings", {})
+        for incident_id, tracker_id in incident_mappings.items():
+            self._sla_monitor.set_incident_mapping(incident_id, tracker_id)
         
         logger.info(f"[SLA_PLUGIN] Loaded {len(trackers_data)} SLA trackers from save")
     
@@ -359,14 +299,6 @@ class SLAPlugin(GameSystem):
             # Create SLA tracker
             tracker_id = f"sla_{incident_id}"
             
-            # Get SLA thresholds from client or use defaults
-            sla_response_seconds = getattr(
-                client_data, 'sla_response_time', 300
-            ) or client_data.get('sla_response_time', 300)
-            sla_resolution_seconds = getattr(
-                client_data, 'sla_resolution_time', 3600
-            ) or client_data.get('sla_resolution_time', 3600)
-            
             tracker = SLATracker(
                 tracker_id=tracker_id,
                 client_id=client_id,
@@ -374,17 +306,12 @@ class SLAPlugin(GameSystem):
                 total_incidents=1,
             )
             
-            # Attach optional fields for timer tracking
-            tracker.incident_id = incident_id
-            tracker.created_time = getattr(event, 'timestamp', 0.0)
-            tracker.sla_resolution_seconds = sla_resolution_seconds
-            tracker.sla_response_seconds = sla_response_seconds
-            
-            self._sla_monitor.add_tracker(tracker)
+            # Add tracker and register incident mapping
+            self._sla_monitor.add_tracker(tracker, incident_id=incident_id)
             
             logger.info(
                 f"[SLA_PLUGIN] Created SLA tracker for incident {incident_id} "
-                f"(client {client_id}, resolution SLA: {sla_resolution_seconds}s)"
+                f"(client {client_id})"
             )
             
         except Exception as e:
