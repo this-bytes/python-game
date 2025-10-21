@@ -80,7 +80,6 @@ Every feature must serve one or more of these systems:
 - ❌ Facility upgrade system (break rooms, training centers)
 - ❌ Market events (tech booms, recessions)
 
-**See [BRUTAL_REFACTOR_SUMMARY.md](../BRUTAL_REFACTOR_SUMMARY.md) for complete removal rationale.**
 
 ---
 

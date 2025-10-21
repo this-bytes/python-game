@@ -416,7 +416,7 @@ Before every commit:
 
 ## See Also
 
-- [ABSOLUTE_STANDARDS.md](ABSOLUTE_STANDARDS.md) - Core testing mandate
-- [CODE_STYLE.md](CODE_STYLE.md) - Code style for tests
-- [ARCHITECTURE.md](../ARCHITECTURE.md) - System architecture
+- [core-standards.instructions.md](../instructions/core-standards.instructions.md) - Core testing mandate
+- [code-style.instructions.md](../instructions/code-style.instructions.md) - Code style for tests
+- [ARCHITECTURE.md](../instructions/architeture.instructions.md) - System architecture
 - [copilot-instructions.md](../copilot-instructions.md) - Main instructions
