@@ -1,6 +1,5 @@
 ---
-applies_to:
-  - "src/ui/**/*.py"
+applyTo: "src/ui/**/*.py"
 
 ---
 

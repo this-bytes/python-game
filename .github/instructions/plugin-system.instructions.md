@@ -1,9 +1,5 @@
 ---
-applies_to:
-  - "src/core/plugins/**/*.py"
-  - "src/core/event_bus.py"
-  - "src/core/system_manager.py"
-  - "src/main.py"
+applyTo: "src/core/plugins/**/*.py"
 ---
 
 # Plugin System Architecture - Instructions
@@ -34,52 +30,72 @@ Reference this when:
 
 ## Registered Plugins
 
-**ALL SYSTEMS CONVERTED TO PLUGINS:**
+**PHASE 2 CORE SYSTEMS** (Mandatory):
 
-1. **IdlePlugin** (`idle_plugin.py`)
+1. **BudgetPlugin** (`budget_plugin.py`)
+   - Revenue tracking from clients
+   - Specialist salary calculations
+   - Daily profit/loss calculations
+   - Hiring/firing decisions based on budget
+
+2. **SLAPlugin** (`sla_plugin.py`)
+   - SLA timer tracking for incidents
+   - Response time tracking
+   - Resolution time tracking
+   - SLA violation detection and reporting
+
+3. **GameLoopPlugin** (`game_loop_plugin.py`)
+   - Day/phase cycle management
+   - Morning (spawn) → Day (assign) → Evening (resolve) → Night (budget)
+   - Event-driven phase transitions
+   - Client satisfaction updates
+
+**OPTIONAL ENHANCEMENT SYSTEMS** (Phase 3+):
+
+4. **IdlePlugin** (`idle_plugin.py`)
    - Idle mechanics and passive progression
    - Time-based resource generation
    - Auto-assignment of incidents
 
-2. **PrestigeSystem** (`prestige_plugin.py`)
+5. **PrestigeSystem** (`prestige_plugin.py`)
    - Prestige progression and resets
    - Prestige point calculation
    - Prestige upgrade management
 
-3. **AchievementSystem** (`achievement_plugin.py`)
+6. **AchievementSystem** (`achievement_plugin.py`)
    - Achievement tracking and unlocking
    - Progress monitoring
    - Reward distribution
 
-4. **BurnoutPlugin** (`burnout_plugin.py`)
+7. **BurnoutPlugin** (`burnout_plugin.py`)
    - Specialist burnout tracking
    - Performance degradation mechanics
    - Recovery actions (rest, vacation, therapy)
 
-5. **RelationshipsPlugin** (`relationships_plugin.py`)
+8. **RelationshipsPlugin** (`relationships_plugin.py`)
    - Team relationship dynamics
    - Friendship and rivalry mechanics
    - Team synergy calculations
 
-6. **DopaminePlugin** (`dopamine_plugin.py`)
+9. **DopaminePlugin** (`dopamine_plugin.py`)
    - Addictive gameplay mechanics
    - Combo tracking and rewards
    - Risk/reward contracts
 
-7. **EquipmentPlugin** (`equipment_plugin.py`)
-   - Equipment drops on incident completion
-   - Inventory management
-   - Stat bonus calculations
+10. **EquipmentPlugin** (`equipment_plugin.py`)
+    - Equipment drops on incident completion
+    - Inventory management
+    - Stat bonus calculations
 
-8. **AbilityPlugin** (`ability_plugin.py`)
-   - Ability activation and cooldowns
-   - Active effect tracking
-   - Level-based ability unlocking
+11. **AbilityPlugin** (`ability_plugin.py`)
+    - Ability activation and cooldowns
+    - Active effect tracking
+    - Level-based ability unlocking
 
-9. **PassiveIncomePlugin** (`passive_income_plugin.py`)
-   - Retainer income from contracts
-   - Investment management
-   - Reputation-based income bonuses
+12. **PassiveIncomePlugin** (`passive_income_plugin.py`)
+    - Retainer income from contracts
+    - Investment management
+    - Reputation-based income bonuses
 
 ---
 

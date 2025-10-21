@@ -43,6 +43,7 @@ from src.core.plugins.progressive_difficulty_plugin import ProgressiveDifficulty
 from src.core.plugins.skill_tree_plugin import SkillTreePlugin
 from src.core.plugins.team_dynamics_plugin import TeamDynamicsPlugin
 from src.core.plugins.economy_plugin import EconomyPlugin
+from src.core.plugins.budget_plugin import BudgetPlugin
 
 
 class Game:
@@ -302,6 +303,7 @@ class Game:
                         ("DopaminePlugin", DopaminePlugin),
                         ("EquipmentPlugin", EquipmentPlugin),
                         ("AbilityPlugin", AbilityPlugin),
+                        ("BudgetPlugin", BudgetPlugin),
                         ("PassiveIncomePlugin", PassiveIncomePlugin),
                         ("FacilityPlugin", FacilityPlugin),
                         ("ProgressiveDifficultyPlugin", ProgressiveDifficultyPlugin),

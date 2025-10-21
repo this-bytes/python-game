@@ -1,7 +1,7 @@
 """GameState model representing the complete state of the cybersecurity firm game.
 
 The GameState is the central hub that manages all game entities, tracks game progression,
-handles time-based mechanics, and provides the inte for all game operations.
+handles time-based mechanics, and provides the interface for all game operations.
 """
 
 from dataclasses import dataclass, field
@@ -10,12 +10,14 @@ from datetime import datetime
 import time
 import random
 
+# Core Model Imports
 from src.models.specialist import Specialist, SpecialistStats
 from src.models.incident import Incident
 from src.models.client import Client
 from src.models.automation_script import AutomationScript
 from src.models.budget import Budget
 from src.models.sla_tracker import SLATracker
+# Core System Imports (Types used as Optional or for instantiation)
 from src.core.incident_generator import IncidentGenerator
 from src.core.automation_processor import AutomationProcessor
 from src.core.passive_income_system import PassiveIncomeSystem
@@ -25,6 +27,12 @@ from src.core.relationships_system import RelationshipsSystem
 from src.utils.json_loader import JSONLoader
 from src.utils.logger import GameLogger
 from src.core.event_bus import get_event_bus
+
+
+# Forward references for type checking to avoid circular imports
+DopamineSystem = 'src.core.dopamine_system.DopamineSystem'
+IdleCore = 'src.core.idle_core.IdleCore'
+EquipmentSystem = 'src.core.equipment_system.EquipmentSystem'
 
 
 @dataclass
@@ -108,7 +116,6 @@ class GameState:
     current_time: float = field(default_factory=time.time)
     game_speed_multiplier: float = 1.0
     is_paused: bool = False
-    # Flag indicating this GameState was created for a tutorial session
     is_tutorial: bool = False
 
     # Financial state
@@ -126,127 +133,129 @@ class GameState:
     last_save_time: float = field(default_factory=time.time)  # Last time game was saved
     
     # Prestige/Rebirth system
-    prestige_points: int = 0  # Prestige points available to spend
-    prestige_upgrades: Dict[str, int] = field(default_factory=dict)  # Upgrade ID → level
-    total_prestiges: int = 0  # Total number of prestiges performed
+    prestige_points: int = 0
+    prestige_upgrades: Dict[str, int] = field(default_factory=dict)
+    total_prestiges: int = 0
     
     # Achievement system
-    unlocked_achievements: List[str] = field(default_factory=list)  # Achievement IDs
-    achievement_progress: Dict[str, float] = field(default_factory=dict)  # Achievement ID → progress value
+    unlocked_achievements: List[str] = field(default_factory=list)
+    achievement_progress: Dict[str, float] = field(default_factory=dict)
 
     # Dopamine/addictive mechanics
-    dopamine_feedback_queue: List[Dict] = field(default_factory=list)  # Visual feedback queue
-    active_risk_contracts: Dict[str, Any] = field(default_factory=dict)  # incident_id -> contract
+    dopamine_feedback_queue: List[Dict] = field(default_factory=list)
+    active_risk_contracts: Dict[str, Any] = field(default_factory=dict)
 
     # Game configuration
     max_active_incidents: int = 50
-    max_specialists: int = 10  # Affected by office space facility
+    max_specialists: int = 10
     incident_generation_enabled: bool = True
 
     # Metrics and statistics
     metrics: GameMetrics = field(default_factory=GameMetrics)
 
-    # Internal state
+    # Internal state (systems) - Using string literals for type hints
     _json_loader: Optional[JSONLoader] = None
     _logger: Optional[GameLogger] = None
     _incident_generator: Optional[IncidentGenerator] = None
     _automation_processor: Optional[AutomationProcessor] = None
     _passive_income_system: Optional[PassiveIncomeSystem] = None
     _offline_progress_system: Optional[OfflineProgressSystem] = None
-    _burnout_system: Optional[BurnoutSystem] = None  # Specialist burnout tracking
-    _relationships_system: Optional[RelationshipsSystem] = None  # Specialist relationships
-    _dopamine_system: Optional[Any] = None  # DopamineSystem - lazy imported
-    _idle_core: Optional[Any] = None  # IdleCore - TRUE idle game mechanics
-    _equipment_system: Optional[Any] = None  # EquipmentSystem - equipment management
+    _burnout_system: Optional['BurnoutSystem'] = None
+    _relationships_system: Optional['RelationshipsSystem'] = None
+    _dopamine_system: Optional[DopamineSystem] = None
+    _idle_core: Optional[IdleCore] = None
+    _equipment_system: Optional[EquipmentSystem] = None
     _last_incident_generation: float = field(default_factory=time.time)
     _incident_generation_accumulator: float = 0.0
-    _offline_progress_calculated: bool = False  # Track if offline progress was calculated
+    _offline_progress_calculated: bool = False
     _last_offline_report: Optional[Dict[str, Any]] = None
 
     def __post_init__(self):
         """Initialize game state after creation."""
+        # 1. Initialize Essential Systems (Loader/Logger)
         if self._json_loader is None:
-            # Find project root by looking for data directory
             import os
             current_dir = os.getcwd()
-            # If we're in src/, go up one level
             if os.path.basename(current_dir) == 'src':
                 project_root = os.path.dirname(current_dir)
             else:
                 project_root = current_dir
             data_dir = os.path.join(project_root, "data")
             self._json_loader = JSONLoader(data_dir=data_dir)
+            
         if self._logger is None:
             self._logger = GameLogger("game_state")
+
+        # 2. Initialize Core Systems (using a helper)
+        self._initialize_core_systems()
+
+        # 3. Load Initial Data (Only for new games)
+        if not self.specialists:
+            self._load_initial_data()
+            self._generate_initial_incidents()
         
-        # Initialize dopamine system for addictive gameplay
+        # 4. Check for offline progress on initialization
+        self._check_offline_progress()
+
+        # 5. Set up event bus subscriptions
+        self._setup_event_subscriptions()
+
+    def _initialize_core_systems(self):
+        """Initializes all external system dependencies."""
+        if self._json_loader is None:
+             # This should only happen if __post_init__ was skipped entirely
+             return
+             
+        game_config = {}
+        try:
+            game_config = self._json_loader.load_data("game_config.json")
+            equipment_config = self._json_loader.load_data("equipment.json")
+        except Exception as e:
+            if self._logger:
+                self._logger.warning(f"[GAME_STATE] Failed to load config files for system initialization: {e}")
+        
+        # Initialize core systems using lazy imports for systems
+        from src.core.dopamine_system import DopamineSystem
+        from src.core.idle_core import IdleCore
+        from src.core.equipment_system import EquipmentSystem
+        from src.core.burnout_system import BurnoutSystem
+        from src.core.relationships_system import RelationshipsSystem
+        
         if self._dopamine_system is None:
-            from src.core.dopamine_system import DopamineSystem
             self._dopamine_system = DopamineSystem()
-        
-        # Initialize burnout system for specialist management
         if self._burnout_system is None:
             self._burnout_system = BurnoutSystem()
-        
-        # Initialize relationships system for team synergy
         if self._relationships_system is None:
-            config = self._json_loader.load_data("game_config.json") if self._json_loader else {}
-            self._relationships_system = RelationshipsSystem(config)
-        
-        # Initialize idle core for TRUE idle game mechanics
+            self._relationships_system = RelationshipsSystem(game_config)
         if self._idle_core is None:
-            from src.core.idle_core import IdleCore
             self._idle_core = IdleCore()
-        
-        # Initialize equipment system for specialist gear
         if self._equipment_system is None:
-            from src.core.equipment_system import EquipmentSystem
-            equipment_config = self._json_loader.load_data("equipment.json") if self._json_loader else {}
             self._equipment_system = EquipmentSystem(equipment_config)
         
         if self._incident_generator is None:
             self._incident_generator = IncidentGenerator(self._logger)
         if self._automation_processor is None:
             self._automation_processor = AutomationProcessor(self._logger)
-        if self._passive_income_system is None:
-            # Load game config for passive income settings
-            try:
-                game_config = self._json_loader.load_data("game_config.json")
-                self._passive_income_system = PassiveIncomeSystem(game_config, self._logger)
-            except Exception as e:
-                self._logger.warning(f"[GAME_STATE] Could not load game config, using default passive income: {e}")
-                self._passive_income_system = PassiveIncomeSystem({}, self._logger)
-        if self._offline_progress_system is None:
-            # Load game config for offline progress settings
-            try:
-                game_config = self._json_loader.load_data("game_config.json")
-                self._offline_progress_system = OfflineProgressSystem(game_config, self._logger)
-            except Exception as e:
-                self._logger.warning(f"[GAME_STATE] Could not load game config, using default offline progress: {e}")
-                self._offline_progress_system = OfflineProgressSystem({}, self._logger)
-
-        # Load initial data if not provided
-        if not self.specialists:
-            self._load_initial_data()
-            # Generate initial incidents so player has something to do immediately
-            self._generate_initial_incidents()
         
-        # Check for offline progress on initialization
-        self._check_offline_progress()
+        if self._passive_income_system is None:
+            self._passive_income_system = PassiveIncomeSystem(game_config, self._logger)
+        if self._offline_progress_system is None:
+            self._offline_progress_system = OfflineProgressSystem(game_config, self._logger)
 
-        # Set up event bus subscriptions for dopamine feedback
-        self._setup_event_subscriptions()
+        if self._logger:
+            self._logger.info("[GAME_STATE] All core systems initialized.")
+
 
     def _setup_event_subscriptions(self):
         """Set up event bus subscriptions for game state integration."""
         event_bus = get_event_bus()
         
-        # Subscribe to dopamine plugin events and convert to feedback queue
         event_bus.subscribe("combo_feedback", self._on_combo_feedback)
         event_bus.subscribe("completion_feedback", self._on_completion_feedback)
         event_bus.subscribe("risk_contract_offered", self._on_risk_contract_offered)
         
-        self._logger.info("[GAME_STATE] Event bus subscriptions established")
+        if self._logger:
+            self._logger.info("[GAME_STATE] Event bus subscriptions established")
 
     def _on_combo_feedback(self, event):
         """Handle combo feedback event from dopamine plugin."""
@@ -254,7 +263,8 @@ class GameState:
             "type": "assignment",
             "feedback": event.data
         })
-        self._logger.debug(f"[GAME_STATE] Processed combo feedback: {event.data}")
+        if self._logger:
+            self._logger.debug(f"[GAME_STATE] Processed combo feedback: {event.data}")
 
     def _on_completion_feedback(self, event):
         """Handle completion feedback event from dopamine plugin."""
@@ -262,7 +272,8 @@ class GameState:
             "type": "completion",
             "feedback": event.data
         })
-        self._logger.debug(f"[GAME_STATE] Processed completion feedback: {event.data}")
+        if self._logger:
+            self._logger.debug(f"[GAME_STATE] Processed completion feedback: {event.data}")
 
     def _on_risk_contract_offered(self, event):
         """Handle risk contract offered event from dopamine plugin."""
@@ -270,50 +281,52 @@ class GameState:
             "type": "risk_contract_offer",
             "contract": event.data
         })
-        self._logger.debug(f"[GAME_STATE] Processed risk contract offer: {event.data}")
+        if self._logger:
+            self._logger.debug(f"[GAME_STATE] Processed risk contract offer: {event.data}")
 
     def _generate_initial_incidents(self):
-        """Generate starting incidents so player has something to interact with immediately.
-        
-        This creates 3-5 initial incidents of varying difficulty to give the player
-        an immediate gameplay experience instead of waiting for random generation.
-        """
+        """Generate starting incidents so player has something to interact with immediately."""
         if not self.clients or not self._incident_generator:
             return
         
         initial_incident_count = random.randint(3, 5)
-        self._logger.info(f"[GAME_STATE] Generating {initial_incident_count} initial incidents for new game")
+        if self._logger:
+            self._logger.info(f"[GAME_STATE] Generating {initial_incident_count} initial incidents for new game")
         
         for _ in range(initial_incident_count):
-            # Pick a random client
             client = random.choice(self.clients)
             try:
                 incident = self._incident_generator.generate_incident(client)
                 if incident:
                     self.incidents.append(incident)
-                    self._logger.info(f"[GAME_STATE] Generated initial incident: {incident.incident_type} (difficulty {incident.difficulty})")
+                    if self._logger:
+                        self._logger.info(f"[GAME_STATE] Generated initial incident: {incident.incident_type} (difficulty {incident.difficulty})")
             except Exception as e:
-                self._logger.warning(f"[GAME_STATE] Failed to generate initial incident: {e}")
+                if self._logger:
+                    self._logger.warning(f"[GAME_STATE] Failed to generate initial incident: {e}")
     
     def _load_initial_data(self):
         """Load initial game data from JSON files."""
+        if not self._json_loader:
+            if self._logger:
+                self._logger.error("[GAME_STATE] Cannot load initial data: JSONLoader is None.")
+            return
+
         try:
-            # Load game config to get starting specialist count
             game_config = self._json_loader.load_data("game_config.json")
             starting_specialists = game_config.get("game_settings", {}).get("starting_specialists", 2)
             
             # Load specialists - for new games, create starting specialists
             specialists_data = self._json_loader.load_data("specialists.json")
             if "specialists" in specialists_data and specialists_data["specialists"]:
-                # Load existing specialists (for loaded games)
                 self.specialists = [Specialist.from_dict(s) for s in specialists_data["specialists"]]
-                self._logger.info(f"[GAME_STATE] Loaded {len(self.specialists)} existing specialists")
+                if self._logger:
+                    self._logger.info(f"[GAME_STATE] Loaded {len(self.specialists)} existing specialists")
             else:
-                # Create starting specialists for new games
                 self._create_starting_specialists(starting_specialists)
             
             # Generate synergies for all specialists
-            if self._idle_core:
+            if self._idle_core and self._logger:
                 self._logger.info(f"[GAME_STATE] Generating synergies for {len(self.specialists)} specialists")
                 for specialist in self.specialists:
                     if not hasattr(specialist, 'synergies') or not specialist.synergies:
@@ -334,31 +347,33 @@ class GameState:
             try:
                 facilities_data = self._json_loader.load_data("facilities.json")
                 if "facilities" in facilities_data:
-                    from src.models.facility import Facility
+                    from src.models.facility import Facility # Local import for Facility model
                     self.facilities = [Facility.from_dict(f) for f in facilities_data["facilities"]]
             except Exception as e:
-                self._logger.warning(f"[GAME_STATE] Could not load facilities: {e}")
+                if self._logger:
+                    self._logger.warning(f"[GAME_STATE] Could not load facilities: {e}")
                 self.facilities = []
 
-            self._logger.info(f"[GAME_STATE] Initial data loaded: specialists={len(self.specialists)}, clients={len(self.clients)}, automation_scripts={len(self.automation_scripts)}, facilities={len(self.facilities)}")
+            if self._logger:
+                self._logger.info(f"[GAME_STATE] Initial data loaded: specialists={len(self.specialists)}, clients={len(self.clients)}, automation_scripts={len(self.automation_scripts)}, facilities={len(self.facilities)}")
 
         except Exception as e:
-            self._logger.error(f"[GAME_STATE] Failed to load initial data: {str(e)}")
+            if self._logger:
+                self._logger.error(f"[GAME_STATE] Failed to load initial data: {str(e)}")
             raise
 
     def _create_starting_specialists(self, count: int):
-        """Create starting specialists for new games.
-        
-        Args:
-            count: Number of specialists to create
-        """
+        """Create starting specialists for new games."""
+        if not self._json_loader:
+            return
+
         try:
-            # Load specialist templates
             templates_data = self._json_loader.load_data("specialist_templates.json")
             templates = templates_data.get("specialist_archetypes", [])
             
             if not templates:
-                self._logger.warning("[GAME_STATE] No specialist templates found, creating basic specialists")
+                if self._logger:
+                    self._logger.warning("[GAME_STATE] No specialist templates found, creating basic specialists")
                 # Fallback: create basic specialists
                 for i in range(count):
                     specialist = Specialist(
@@ -374,35 +389,12 @@ class GameState:
             
             # Create specialists from templates
             created_count = 0
-            template_index = 0
-            
-            while created_count < count and template_index < len(templates):
-                template = templates[template_index]
-                
-                specialist = Specialist(
-                    id=f"spec_{created_count+1:03d}",
-                    name=template["name"],
-                    specialty=template["specialty"],
-                    level=1,
-                    xp=0,
-                    stats=SpecialistStats(
-                        speed=template["base_stats"]["speed"],
-                        accuracy=template["base_stats"]["accuracy"],
-                        experience_bonus=template["base_stats"]["experience_bonus"]
-                    )
-                )
-                
-                self.specialists.append(specialist)
-                created_count += 1
-                template_index += 1
-            
-            # If we need more specialists, cycle through templates
             while created_count < count:
                 template = templates[created_count % len(templates)]
                 
                 specialist = Specialist(
                     id=f"spec_{created_count+1:03d}",
-                    name=f"{template['name']} {created_count // len(templates) + 1}",
+                    name=template["name"] if created_count < len(templates) else f"{template['name']} {created_count // len(templates) + 1}",
                     specialty=template["specialty"],
                     level=1,
                     xp=0,
@@ -416,10 +408,12 @@ class GameState:
                 self.specialists.append(specialist)
                 created_count += 1
             
-            self._logger.info(f"[GAME_STATE] Created {len(self.specialists)} starting specialists")
+            if self._logger:
+                self._logger.info(f"[GAME_STATE] Created {len(self.specialists)} starting specialists")
 
         except Exception as e:
-            self._logger.error(f"[GAME_STATE] Failed to create starting specialists: {e}")
+            if self._logger:
+                self._logger.error(f"[GAME_STATE] Failed to create starting specialists: {e}")
             # Fallback: create minimal specialists
             for i in range(count):
                 specialist = Specialist(
@@ -435,109 +429,87 @@ class GameState:
     def _check_offline_progress(self):
         """Check if player was offline and calculate offline progress."""
         if self._offline_progress_calculated:
-            return  # Already calculated
+            return
         
         current_time = time.time()
         time_elapsed = current_time - self.last_save_time
         
-        # Only calculate if more than 5 minutes elapsed
         min_offline_time = 300  # 5 minutes
         
         if time_elapsed > min_offline_time:
-            self._logger.info(
-                f"[GAME_STATE] Player was offline for {time_elapsed/3600:.1f} hours, calculating progress..."
-            )
+            if self._logger:
+                self._logger.info(
+                    f"[GAME_STATE] Player was offline for {time_elapsed/3600:.1f} hours, calculating progress..."
+                )
             
             if self._offline_progress_system:
                 offline_report = self._offline_progress_system.calculate_offline_progress(
                     self, time_elapsed
                 )
                 
-                # Store the report for display
                 self._last_offline_report = offline_report
                 
-                self._logger.info(
-                    f"[GAME_STATE] Offline progress complete: ${offline_report['summary']['total_income']:.2f} earned"
-                )
+                if self._logger:
+                    self._logger.info(
+                        f"[GAME_STATE] Offline progress complete: ${offline_report['summary']['total_income']:.2f} earned"
+                    )
             
             self._offline_progress_calculated = True
         
-        # Update last save time to now
         self.last_save_time = current_time
 
     def update(self, delta_time: float):
-        """Update game state by the given time delta.
-
-        Args:
-            delta_time: Time elapsed since last update in seconds
-        """
+        """Update game state by the given time delta."""
         if self.is_paused:
             return
 
-        # Apply game speed multiplier
         effective_delta = delta_time * self.game_speed_multiplier
         self.current_time += effective_delta
 
-        # Update all incidents
+        # Update core game mechanics
         self._update_incidents(effective_delta)
-
-        # Generate new incidents
         self._generate_incidents(effective_delta)
+        self._auto_assign_incidents()
         
-        # AUTO-ASSIGN INCIDENTS (TRUE IDLE GAME MECHANIC)
-        # This makes the game play itself - the core of idle games
-        if self._idle_core and self._idle_core.config.enabled:
-            auto_assignments = self._idle_core.auto_assign_incidents(self)
-            for assignment in auto_assignments:
-                self._logger.debug(
-                    f"[IDLE] Auto-assigned {assignment['incident_id']} to {assignment['specialist_id']}"
-                    f" (synergy: {assignment['synergy_active']}, quality: {assignment['match_quality']})"
-                )
-
-        # Process automation scripts (pass full GameState)
-        automation_results = self._automation_processor.process_automation(self, effective_delta)
-
-        # Update metrics with automation results (number of executed results)
-        try:
-            executed_count = len(automation_results)
-        except Exception:
-            executed_count = 0
-
-        self.metrics.automation_scripts_triggered += executed_count
+        # Process automation
+        if self._automation_processor:
+            automation_results = self._automation_processor.process_automation(self, effective_delta)
+            try:
+                executed_count = len(automation_results)
+            except Exception:
+                executed_count = 0
+            self.metrics.automation_scripts_triggered += executed_count
         
-        # Apply passive income
-        # TODO: Update passive_income_system to use new Client model (satisfaction instead of reputation)
-        # if self._passive_income_system:
-        #     passive_income_result = self._passive_income_system.apply_passive_income(self, effective_delta)
-
         # Update dopamine system (combo timers, etc.)
-        self._dopamine_system.update(effective_delta)
+        if self._dopamine_system:
+            self._dopamine_system.update(effective_delta)
 
-        # Update metrics
         self._update_metrics()
 
-    def _update_incidents(self, delta_time: float):
-        """Update all active incidents.
+    def _auto_assign_incidents(self):
+        """Handles auto-assignment of incidents using the IdleCore."""
+        if self._idle_core and self._idle_core.config.enabled:
+            auto_assignments = self._idle_core.auto_assign_incidents(self)
+            if self._logger:
+                for assignment in auto_assignments:
+                    self._logger.debug(
+                        f"[IDLE] Auto-assigned {assignment['incident_id']} to {assignment['specialist_id']}"
+                        f" (synergy: {assignment['synergy_active']}, quality: {assignment['match_quality']})"
+                    )
 
-        Args:
-            delta_time: Time elapsed in seconds
-        """
+    def _update_incidents(self, delta_time: float):
+        """Update all active incidents."""
         incidents_to_remove = []
 
         for incident in self.incidents:
-            # Update incident status
             if incident.status == "assigned":
-                # Check if assigned specialist is still working on it
                 specialist = self.get_specialist_by_id(incident.assigned_specialist_id)
                 if specialist and specialist.is_available():
                     # Specialist completed the incident
                     self._resolve_incident(incident, specialist)
                     incidents_to_remove.append(incident)
-                elif specialist and not specialist.is_available():
-                    # Specialist is still busy
-                    pass  # Continue waiting
-                else:
-                    # Specialist no longer exists or available
+                elif not specialist:
+                    # Specialist no longer exists - unassign incident
                     incident.status = "pending"
                     incident.assigned_specialist_id = None
                     incident.assignment_time = None
@@ -553,28 +525,20 @@ class GameState:
             self.incidents.remove(incident)
 
     def _generate_incidents(self, delta_time: float):
-        """Generate new incidents based on client rates.
-
-        Args:
-            delta_time: Time elapsed in seconds
-        """
-        if not self.incident_generation_enabled:
+        """Generate new incidents based on client rates."""
+        if not self.incident_generation_enabled or not self._incident_generator or not self._dopamine_system:
             return
 
-        # Generate incidents for each client
         for client in self.clients:
             if self._incident_generator.should_generate_incident(client, delta_time, len(self.incidents)):
                 incident = self._incident_generator.generate_incident(client)
                 if incident:
                     self.incidents.append(incident)
                     
-                    # DOPAMINE INJECTION: Offer risk/reward contracts randomly
-                    # Check if incident has difficulty attribute and is a proper Incident object
                     if hasattr(incident, 'difficulty') and isinstance(incident.difficulty, int):
                         risk_contract = self._dopamine_system.offer_risk_contract(incident, incident.difficulty)
                         if risk_contract:
                             self.active_risk_contracts[incident.id] = risk_contract
-                            # Visual marker will be added by UI
                             self.dopamine_feedback_queue.append({
                                 "type": "risk_contract_offer",
                                 "timestamp": time.time(),
@@ -582,70 +546,56 @@ class GameState:
                                 "contract": risk_contract
                             })
                     
-                    self._logger.info(f"[GAME_STATE] Incident {incident.id} generated for client {client.id}")
+                    if self._logger:
+                        self._logger.info(f"[GAME_STATE] Incident {incident.id} generated for client {client.client_id}")
 
     def _resolve_incident(self, incident: Incident, specialist: Specialist):
-        """Resolve a successfully completed incident.
-
-        Args:
-            incident: The resolved incident
-            specialist: The specialist who resolved it
-        """
-        # Mark incident as resolved
+        """Resolve a successfully completed incident."""
         incident.status = "resolved"
         incident.completion_time = self.current_time
 
-        # Calculate resolution time
-        resolution_time = self.current_time - (incident.assignment_time or incident.spawn_time)
-
         # Calculate success probability
+        # Rely on initialized _equipment_system
         success_prob = specialist.calculate_success_probability(incident.difficulty, self._equipment_system)
         success = random.random() < success_prob
 
-        if success:
-            # Successful resolution
+        if success and self._dopamine_system and self._idle_core:
             base_reward = incident.base_reward
             base_xp = incident.xp_reward
-
-            # Apply SLA bonus/penalty
             sla_met = self.current_time <= incident.sla_deadline
             
-            # IDLE CORE: Check for synergy bonuses (strategic depth)
-            synergy_bonuses = None
-            if self._idle_core:
-                synergy_bonuses = self._idle_core.apply_synergy_bonuses(specialist, incident, self)
+            synergy_bonuses = self._idle_core.apply_synergy_bonuses(specialist, incident, self)
             
-            # Apply synergy multipliers if present
             if synergy_bonuses:
                 base_xp = int(base_xp * synergy_bonuses["xp_multiplier"])
                 base_reward = int(base_reward * synergy_bonuses["reward_multiplier"])
-                # Speed multiplier affects completion time (already handled in simulation)
-                self._logger.info(
-                    f"[IDLE] Synergy bonus applied! {synergy_bonuses['synergy_name']}: "
-                    f"{synergy_bonuses['xp_multiplier']}x XP, {synergy_bonuses['reward_multiplier']}x Reward"
-                )
+                if self._logger:
+                    self._logger.info(
+                        f"[IDLE] Synergy bonus applied! {synergy_bonuses['synergy_name']}: "
+                        f"{synergy_bonuses['xp_multiplier']}x XP, {synergy_bonuses['reward_multiplier']}x Reward"
+                    )
             
             # DOPAMINE INJECTION: Get feedback and apply combo multipliers
             dopamine_feedback = self._dopamine_system.register_incident_completion(
                 incident, specialist, success=True, is_sla_met=sla_met
             )
             
-            # Use dopamine system rewards (includes combo multipliers)
             reward = dopamine_feedback["final_reward"]
             xp_gain = dopamine_feedback["final_xp"]
             
-            # Apply SLA bonus/penalty to base
+            # Apply SLA bonus/penalty
             if sla_met:
-                reward = int(reward * 1.2)  # 20% bonus for SLA compliance
+                reward = int(reward * 1.2)
             else:
-                reward = int(reward * 0.5)  # 50% penalty for SLA violation
+                reward = int(reward * 0.5)
                 
             # Check for risk contract completion
-            if hasattr(incident, 'risk_contract'):
+            if incident.id in self.active_risk_contracts:
                 risk_reward = self._dopamine_system.calculate_risk_reward(incident, success, sla_met)
-                reward = risk_reward  # Override with risk reward
+                reward = risk_reward
                 dopamine_feedback["risk_contract_completed"] = True
                 dopamine_feedback["risk_reward"] = risk_reward
+                del self.active_risk_contracts[incident.id]
 
             # Award rewards
             self.current_money += reward
@@ -657,13 +607,15 @@ class GameState:
                 self._process_specialist_level_up(specialist)
                 dopamine_feedback["level_up"] = True
 
-            # Update client reputation
+            # Update client reputation (or satisfaction)
             client = self.get_client_by_id(incident.client_id)
             if client:
-                if sla_met:
-                    client.adjust_reputation(2)  # Small reputation boost
-                else:
-                    client.adjust_reputation(-5)  # Reputation penalty
+                # Assuming Client model has adjust_reputation or adjust_satisfaction
+                adjustment = 2 if sla_met else -5
+                if hasattr(client, 'adjust_reputation'):
+                     client.adjust_reputation(adjustment)
+                elif hasattr(client, 'adjust_satisfaction'):
+                     client.adjust_satisfaction(adjustment) 
 
             self.metrics.total_incidents_handled += 1
             self.metrics.total_xp_awarded += xp_gain
@@ -677,7 +629,7 @@ class GameState:
                 "specialist_id": specialist.id
             })
 
-            # Publish event for dopamine plugin
+            # Publish event for external systems
             event_bus = get_event_bus()
             event_bus.publish("incident_completed", {
                 "incident": incident,
@@ -694,67 +646,56 @@ class GameState:
                 "combo_broken": dopamine_feedback.get("combo_broken", False)
             })
 
-            self._logger.info(f"[GAME_STATE] Incident {incident.id} resolved by {specialist.id}: reward=${reward}, XP={xp_gain}, SLA={'met' if sla_met else 'missed'}, combo={dopamine_feedback.get('combo_count', 0)}")
+            if self._logger:
+                self._logger.info(f"[GAME_STATE] Incident {incident.id} resolved by {specialist.id}: reward=${reward}, XP={xp_gain}, SLA={'met' if sla_met else 'missed'}, combo={dopamine_feedback.get('combo_count', 0)}")
             
-            # Generate equipment drop
-            self._generate_equipment_drop(incident, specialist)
+            self._generate_equipment_drop_internal(incident, specialist)
 
         else:
-            # Failed resolution - break combo
-            self._dopamine_system.combo_state.break_combo()
-            self.dopamine_feedback_queue.append({
-                "type": "combo_broken",
-                "timestamp": time.time(),
-                "incident_id": incident.id
-            })
+            # Failed resolution (or lack of required systems)
+            if self._dopamine_system:
+                self._dopamine_system.combo_state.break_combo()
+                self.dopamine_feedback_queue.append({
+                    "type": "combo_broken",
+                    "timestamp": time.time(),
+                    "incident_id": incident.id
+                })
             self._fail_incident(incident)
 
     def _fail_incident(self, incident: Incident):
-        """Handle incident failure.
-
-        Args:
-            incident: The failed incident
-        """
+        """Handle incident failure."""
         incident.status = "failed"
 
-        # Apply penalties
-        penalty = incident.base_reward * 0.3  # 30% of base reward as penalty
+        penalty = incident.base_reward * 0.3
         self.current_money = max(0, self.current_money - penalty)
 
-        # Update client reputation
         client = self.get_client_by_id(incident.client_id)
         if client:
-            client.adjust_reputation(-10)  # Significant reputation penalty
+            if hasattr(client, 'adjust_reputation'):
+                client.adjust_reputation(-10)
+            elif hasattr(client, 'adjust_satisfaction'):
+                client.adjust_satisfaction(-10) 
 
         self.metrics.total_incidents_failed += 1
 
-        self._logger.warning(f"[GAME_STATE] Incident {incident.id} failed: penalty=${penalty}")
+        if self._logger:
+            self._logger.warning(f"[GAME_STATE] Incident {incident.id} failed: penalty=${penalty}")
 
-    def _generate_equipment_drop(self, incident: Incident, specialist: Specialist):
-        """Generate equipment drop after successful incident resolution.
+    def _generate_equipment_drop_internal(self, incident: Incident, specialist: Specialist):
+        """Internal handler for equipment drop after successful incident resolution."""
+        if not self._equipment_system:
+            return
 
-        Args:
-            incident: The resolved incident
-            specialist: The specialist who resolved it
-        """
         try:
-            if not self._equipment_system:
-                return
-
-            # Generate equipment drop based on incident difficulty
             equipment = self._equipment_system.generate_equipment_drop(
                 incident.difficulty,
-                rarity_boost=0.0  # Could add prestige/specialist level bonuses here
+                rarity_boost=0.0
             )
 
             if equipment:
-                # Add to specialist's inventory
                 success = self._equipment_system.add_to_inventory(specialist, equipment)
                 if success:
-                    # Add to game state equipment instances
                     self.equipment_instances[equipment.id] = equipment
-
-                    # Add visual feedback for equipment drop
                     self.dopamine_feedback_queue.append({
                         "type": "equipment_drop",
                         "timestamp": time.time(),
@@ -763,102 +704,63 @@ class GameState:
                         "rarity": equipment.rarity
                     })
 
-                    self._logger.info(
-                        f"[GAME_STATE] Equipment drop: {equipment.name} ({equipment.rarity}) "
-                        f"awarded to {specialist.name}"
-                    )
+                    if self._logger:
+                        self._logger.info(
+                            f"[GAME_STATE] Equipment drop: {equipment.name} ({equipment.rarity}) "
+                            f"awarded to {specialist.name}"
+                        )
         except Exception as e:
-            self._logger.warning(f"[GAME_STATE] Failed to generate equipment drop: {e}")
+            if self._logger:
+                self._logger.warning(f"[GAME_STATE] Failed to generate equipment drop: {e}")
 
     def _update_metrics(self):
         """Update real-time game metrics."""
-        # Calculate specialist utilization
         total_specialists = len(self.specialists)
         busy_specialists = sum(1 for s in self.specialists if not s.is_available())
 
         if total_specialists > 0:
             self.metrics.specialist_utilization_rate = (busy_specialists / total_specialists) * 100.0
 
-        # Calculate SLA compliance rate
         total_incidents = self.metrics.total_incidents_handled + self.metrics.total_incidents_failed
         if total_incidents > 0:
             self.metrics.sla_compliance_rate = (self.metrics.total_incidents_handled / total_incidents) * 100.0
-    
-    def _process_specialist_level_up(self, specialist):
-        """Process level-up rewards for a specialist.
         
-        Args:
-            specialist: The specialist who leveled up
-        """
+    def _process_specialist_level_up(self, specialist):
+        """Process level-up rewards for a specialist."""
+        if not self._json_loader or not self._logger:
+            return
+
         try:
+            # Lazy import core systems only needed for this flow
             from src.core.progression_system import ProgressionSystem
             from src.core.ability_system import AbilitySystem
-            from src.utils.json_loader import JSONLoader
             
-            # Load game config
-            json_loader = JSONLoader()
-            game_config = json_loader.load_data("game_config.json")
+            # Use self._json_loader which is guaranteed to be initialized here
+            game_config = self._json_loader.load_data("game_config.json")
             progression_system = ProgressionSystem(game_config)
             
-            # Process level up
             rewards = progression_system.process_level_up(specialist)
             
-            # Load abilities config and unlock new abilities
-            abilities_config = json_loader.load_data("abilities.json")
+            abilities_config = self._json_loader.load_data("abilities.json")
             ability_system = AbilitySystem(abilities_config)
             unlocked_abilities = ability_system.unlock_abilities_for_level(specialist, specialist.level)
             
             if unlocked_abilities:
                 rewards["unlocked_abilities"] = unlocked_abilities
             
-            self._logger.info(
-                f"[GAME_STATE] Specialist {specialist.id} leveled up to {specialist.level}: "
-                f"stats={rewards['stat_increases']}, abilities={unlocked_abilities}"
-            )
-        except Exception as e:
-            self._logger.warning(f"[GAME_STATE] Failed to process level up: {e}")
-    
-    def _generate_equipment_drop(self, incident, specialist):
-        """Generate equipment drop from incident resolution.
-        
-        Args:
-            incident: The resolved incident
-            specialist: The specialist who resolved it
-        """
-        try:
-            from src.core.equipment_system import EquipmentSystem
-            from src.utils.json_loader import JSONLoader
-            
-            # Load equipment config
-            json_loader = JSONLoader()
-            equipment_config = json_loader.load_data("equipment.json")
-            equipment_system = EquipmentSystem(equipment_config)
-            
-            # Generate drop
-            dropped_equipment = equipment_system.generate_equipment_drop(incident.difficulty)
-            
-            if dropped_equipment:
-                # Add to specialist's inventory
-                equipment_system.add_to_inventory(specialist, dropped_equipment)
+            if self._logger:
                 self._logger.info(
-                    f"[GAME_STATE] Equipment drop: {dropped_equipment.name} "
-                    f"({dropped_equipment.rarity}) for {specialist.id}"
+                    f"[GAME_STATE] Specialist {specialist.id} leveled up to {specialist.level}: "
+                    f"stats={rewards['stat_increases']}, abilities={unlocked_abilities}"
                 )
         except Exception as e:
-            self._logger.warning(f"[GAME_STATE] Failed to generate equipment drop: {e}")
+            if self._logger:
+                self._logger.warning(f"[GAME_STATE] Failed to process level up: {e}")
 
     # Public interface methods
 
     def assign_incident_to_specialist(self, incident_id: str, specialist_id: str) -> bool:
-        """Manually assign an incident to a specialist.
-
-        Args:
-            incident_id: ID of the incident to assign
-            specialist_id: ID of the specialist to assign to
-
-        Returns:
-            True if assignment successful, False otherwise
-        """
+        """Manually assign an incident to a specialist."""
         incident = self.get_incident_by_id(incident_id)
         specialist = self.get_specialist_by_id(specialist_id)
 
@@ -868,23 +770,23 @@ class GameState:
         if incident.status != "pending" or not specialist.is_available():
             return False
 
-        # Check specialty compatibility
+        # --- REFACTOR FIX: Track assignment metrics immediately ---
         specialty_match = specialist.matches_specialty(incident.specialty_required)
-        if not specialty_match:
-            return False
 
-        # Track assignment analytics
         self.metrics.total_assignments_attempted += 1
         if specialty_match:
             self.metrics.specialty_match_assignments += 1
         else:
             self.metrics.specialty_mismatch_assignments += 1
+            # Assignment fails if specialty doesn't match
+            if self._logger:
+                self._logger.warning(f"[GAME_STATE] Assignment failed: {specialist_id} specialty mismatch for {incident_id}")
+            return False
 
-        # Perform assignment
+        # Perform assignment (Only proceeds if specialty_match is True)
         success = specialist.assign_to_incident(incident_id)
         if success:
             self.metrics.total_assignments_successful += 1
-            # Update success rate
             if self.metrics.total_assignments_attempted > 0:
                 self.metrics.assignment_success_rate = (
                     self.metrics.total_assignments_successful / self.metrics.total_assignments_attempted * 100
@@ -894,10 +796,6 @@ class GameState:
             incident.assigned_specialist_id = specialist_id
             incident.assignment_time = self.current_time
 
-            # DOPAMINE INJECTION: Assignment feedback will be handled by dopamine plugin via events
-            # The dopamine plugin listens for incident_assigned events and updates the system
-            # Feedback will be added to queue via event listeners
-
             # Publish event for dopamine plugin
             event_bus = get_event_bus()
             event_bus.publish("incident_assigned", {
@@ -905,22 +803,15 @@ class GameState:
                 "specialist": specialist,
                 "assignment_time": self.current_time
             })
-            self._logger.debug(f"[GAME_STATE] Published incident_assigned event for {incident_id}")
-
-            self._logger.info(f"[GAME_STATE] Manual assignment: incident {incident_id} to specialist {specialist_id}")
+            if self._logger:
+                self._logger.debug(f"[GAME_STATE] Published incident_assigned event for {incident_id}")
+                self._logger.info(f"[GAME_STATE] Manual assignment: incident {incident_id} to specialist {specialist_id}")
 
         return success
 
     def hire_specialist(self, specialist_data: Dict) -> bool:
-        """Hire a new specialist.
-
-        Args:
-            specialist_data: Specialist configuration data
-
-        Returns:
-            True if hiring successful, False otherwise
-        """
-        hire_cost = 2000  # Base hiring cost
+        """Hire a new specialist."""
+        hire_cost = 2000
 
         if self.current_money < hire_cost:
             return False
@@ -930,28 +821,22 @@ class GameState:
             self.specialists.append(specialist)
             self.current_money -= hire_cost
 
-            self._logger.info(f"[GAME_STATE] Specialist {specialist.id} hired for ${hire_cost}")
+            if self._logger:
+                self._logger.info(f"[GAME_STATE] Specialist {specialist.id} hired for ${hire_cost}")
 
             return True
         except Exception as e:
-            self._logger.warning(f"[GAME_STATE] Specialist hire failed: {str(e)}")
+            if self._logger:
+                self._logger.warning(f"[GAME_STATE] Specialist hire failed: {str(e)}")
             return False
 
     def upgrade_specialist(self, specialist_id: str, upgrade_type: str) -> bool:
-        """Upgrade a specialist's abilities.
-
-        Args:
-            specialist_id: ID of the specialist to upgrade
-            upgrade_type: Type of upgrade (speed, accuracy, experience_bonus)
-
-        Returns:
-            True if upgrade successful, False otherwise
-        """
+        """Upgrade a specialist's abilities."""
         specialist = self.get_specialist_by_id(specialist_id)
         if not specialist:
             return False
 
-        upgrade_cost = 1000 * (specialist.level // 5 + 1)  # Scaling cost
+        upgrade_cost = 1000 * (specialist.level // 5 + 1)
 
         if self.current_money < upgrade_cost:
             return False
@@ -968,86 +853,34 @@ class GameState:
 
         self.current_money -= upgrade_cost
 
-        self._logger.info(f"[GAME_STATE] Specialist {specialist_id} upgraded ({upgrade_type}) for ${upgrade_cost}")
+        if self._logger:
+            self._logger.info(f"[GAME_STATE] Specialist {specialist_id} upgraded ({upgrade_type}) for ${upgrade_cost}")
 
         return True
 
-    # Getter methods
-
+    # Getter methods (omitted for brevity, as they were correct)
     def get_specialist_by_id(self, specialist_id: str) -> Optional[Specialist]:
-        """Get specialist by ID.
-
-        Args:
-            specialist_id: The specialist ID to find
-
-        Returns:
-            Specialist instance or None if not found
-        """
         return next((s for s in self.specialists if s.id == specialist_id), None)
 
     def get_incident_by_id(self, incident_id: str) -> Optional[Incident]:
-        """Get incident by ID.
-
-        Args:
-            incident_id: The incident ID to find
-
-        Returns:
-            Incident instance or None if not found
-        """
         return next((i for i in self.incidents if i.id == incident_id), None)
 
     def get_client_by_id(self, client_id: str) -> Optional[Client]:
-        """Get client by ID.
-
-        Args:
-            client_id: The client ID to find
-
-        Returns:
-            Client instance or None if not found
-        """
-        return next((c for c in self.clients if c.id == client_id), None)
+        return next((c for c in self.clients if c.client_id == client_id), None)
 
     def get_automation_script_by_id(self, script_id: str) -> Optional[AutomationScript]:
-        """Get automation script by ID.
-
-        Args:
-            script_id: The automation script ID to find
-
-        Returns:
-            AutomationScript instance or None if not found
-        """
         return next((a for a in self.automation_scripts if a.id == script_id), None)
 
     def get_available_specialists(self) -> List[Specialist]:
-        """Get all available specialists.
-
-        Returns:
-            List of available specialists
-        """
         return [s for s in self.specialists if s.is_available()]
 
     def get_pending_incidents(self) -> List[Incident]:
-        """Get all pending incidents.
-
-        Returns:
-            List of pending incidents
-        """
         return [i for i in self.incidents if i.status == "pending"]
 
     def get_game_time_elapsed(self) -> float:
-        """Get total game time elapsed in seconds.
-
-        Returns:
-            Time elapsed since game start
-        """
         return self.current_time - self.game_start_time
 
     def get_game_summary(self) -> Dict[str, Any]:
-        """Get comprehensive game state summary.
-
-        Returns:
-            Dictionary containing game summary data
-        """
         summary = {
             "game_time": self.get_game_time_elapsed(),
             "current_money": self.current_money,
@@ -1061,26 +894,16 @@ class GameState:
             "game_speed": self.game_speed_multiplier
         }
         
-        # Add offline progress report if available
         if hasattr(self, '_last_offline_report'):
             summary["offline_progress"] = self._last_offline_report
         
         return summary
 
     def get_offline_progress_report(self) -> Optional[Dict[str, Any]]:
-        """Get the last offline progress report.
-        
-        Returns:
-            Offline progress report or None if no offline progress
-        """
         return getattr(self, '_last_offline_report', None)
 
     def to_dict(self) -> Dict[str, Any]:
-        """Convert game state to dictionary for serialization.
-
-        Returns:
-            Dictionary representation of the game state
-        """
+        """Convert game state to dictionary for serialization."""
         return {
             "specialists": [s.to_dict() for s in self.specialists],
             "incidents": [i.to_dict() for i in self.incidents],
@@ -1112,23 +935,19 @@ class GameState:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'GameState':
-        """Create GameState from dictionary.
-
-        Args:
-            data: Dictionary containing game state data
-
-        Returns:
-            New GameState instance
-        """
-        # Create instance without calling __post_init__
+        """Create GameState from dictionary (for loaded games)."""
         instance = cls.__new__(cls)
+
+        # Initialize minimal essentials first
+        instance._json_loader = JSONLoader()
+        instance._logger = GameLogger("game_state")
 
         # Load entities
         instance.specialists = [Specialist.from_dict(s) for s in data.get("specialists", [])]
         instance.incidents = [Incident.from_dict(i) for i in data.get("incidents", [])]
         instance.clients = [Client.from_dict(c) for c in data.get("clients", [])]
         
-        # Load tycoon system entities (imported inline to avoid circular dependencies)
+        # Load tycoon system entities
         instance.contracts = []
         if "contracts" in data:
             try:
@@ -1145,12 +964,11 @@ class GameState:
             except ImportError:
                 pass
         
+        # Load simple state data
         instance.recruitment_pool = data.get("recruitment_pool", []).copy()
         instance.recruitment_refresh_time = data.get("recruitment_refresh_time", 0.0)
         instance.active_events = data.get("active_events", []).copy()
         instance.event_cooldowns = data.get("event_cooldowns", {}).copy()
-
-        # Load game state
         instance.game_start_time = data.get("game_start_time", time.time())
         instance.current_time = data.get("current_time", time.time())
         instance.game_speed_multiplier = data.get("game_speed_multiplier", 1.0)
@@ -1171,59 +989,23 @@ class GameState:
         instance.incident_generation_enabled = data.get("incident_generation_enabled", True)
         instance.metrics = GameMetrics.from_dict(data.get("metrics", {}))
 
-        # Initialize internal state
-        instance._json_loader = JSONLoader()
-        instance._logger = GameLogger("game_state")
+        # Initialize internal state (defaults)
         instance._incident_generator = IncidentGenerator(instance._logger)
         instance._automation_processor = AutomationProcessor(instance._logger)
         instance._last_incident_generation = time.time()
         instance._incident_generation_accumulator = 0.0
         instance._offline_progress_calculated = False
         
-        # Initialize passive income system
-        try:
-            game_config = instance._json_loader.load_data("game_config.json")
-            instance._passive_income_system = PassiveIncomeSystem(game_config, instance._logger)
-        except Exception:
-            instance._passive_income_system = PassiveIncomeSystem({}, instance._logger)
+        # Initialize ALL CORE SYSTEMS using the consolidated helper
+        instance._initialize_core_systems()
         
-        # Initialize offline progress system
-        try:
-            game_config = instance._json_loader.load_data("game_config.json")
-            instance._offline_progress_system = OfflineProgressSystem(game_config, instance._logger)
-        except Exception:
-            instance._offline_progress_system = OfflineProgressSystem({}, instance._logger)
-
-        # Load automation scripts
+        # Load automation scripts (done again after system init to use the loader)
         try:
             automation_data = instance._json_loader.load_data("automation_scripts.json")
             if "automation_scripts" in automation_data:
                 instance.automation_scripts = [AutomationScript.from_dict(a) for a in automation_data["automation_scripts"]]
         except Exception:
             instance.automation_scripts = []
-        
-        # Initialize systems that are normally created in __post_init__
-        # These MUST be initialized for loaded games to work properly
-        from src.core.dopamine_system import DopamineSystem
-        from src.core.idle_core import IdleCore
-        from src.core.equipment_system import EquipmentSystem
-        
-        instance._dopamine_system = DopamineSystem()
-        instance._burnout_system = BurnoutSystem()
-        
-        try:
-            game_config = instance._json_loader.load_data("game_config.json")
-            instance._relationships_system = RelationshipsSystem(game_config)
-        except Exception:
-            instance._relationships_system = RelationshipsSystem({})
-        
-        instance._idle_core = IdleCore()
-        
-        try:
-            equipment_config = instance._json_loader.load_data("equipment.json")
-            instance._equipment_system = EquipmentSystem(equipment_config)
-        except Exception:
-            instance._equipment_system = EquipmentSystem({})
 
         return instance
 
@@ -1234,11 +1016,7 @@ class GameState:
 
     @property
     def config(self) -> Dict[str, Any]:
-        """Get game configuration (lazy-loaded).
-        
-        Returns:
-            Dictionary containing game configuration from game_config.json
-        """
+        """Get game configuration (lazy-loaded)."""
         if not hasattr(self, '_cached_config'):
             if self._json_loader:
                 self._cached_config = self._json_loader.load_data("game_config.json")
@@ -1249,36 +1027,18 @@ class GameState:
     # === PHASE 1: SOC STARTUP CORE METHODS ===
     
     def get_active_clients(self) -> List[Client]:
-        """Get all currently active clients.
-        
-        Returns:
-            List of active Client instances
-        """
+        """Get all currently active clients."""
         return [c for c in self.clients if c.is_active]
     
     def get_sla_tracker_for_client_this_month(self, client_id: str) -> Optional[SLATracker]:
-        """Get SLA tracker for client in current month.
-        
-        Args:
-            client_id: The client ID
-            
-        Returns:
-            SLATracker instance or None if not found
-        """
+        """Get SLA tracker for client in current month."""
         for tracker in self.sla_trackers:
             if tracker.client_id == client_id and tracker.month == self.current_month:
                 return tracker
         return None
     
     def create_sla_tracker_for_client(self, client_id: str) -> SLATracker:
-        """Create new SLA tracker for client in current month.
-        
-        Args:
-            client_id: The client ID
-            
-        Returns:
-            New SLATracker instance
-        """
+        """Create new SLA tracker for client in current month."""
         tracker_id = f"sla_{client_id}_{self.current_month}"
         tracker = SLATracker(
             tracker_id=tracker_id,
@@ -1291,5 +1051,5 @@ class GameState:
     def __repr__(self) -> str:
         """String representation of game state."""
         return (f"GameState(specialists={len(self.specialists)}, "
-                f"incidents={len(self.incidents)}, clients={len(self.clients)}, "
-                f"money=${self.current_money:.0f}, time={self.get_game_time_elapsed():.0f}s)")
+                        f"incidents={len(self.incidents)}, clients={len(self.clients)}, "
+                        f"money=${self.current_money:.0f}, time={self.get_game_time_elapsed():.0f}s)")

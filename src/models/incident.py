@@ -35,7 +35,7 @@ class Incident:
     client_id: str
     description: Optional[str] = ""
     status: str = "pending"
-    assigned_specialist_id: Optional[str] = None
+    assigned_specialist_id: Optional[str] = ""
     spawn_time: float = field(default_factory=time.time)
     assignment_time: Optional[float] = None
     completion_time: Optional[float] = None

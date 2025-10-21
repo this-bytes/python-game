@@ -1,17 +1,21 @@
 ---
-applies_to:
-  - "**/*"
+applyTo: "**"
 ---
 
 # Workflows - Instructions
 
-**This file contains step-by-step guides for common development tasks.**
+**This file contains step-by-step guides for common development tasks during Phase 2.**
 
 Reference this when:
-- Adding new game features
-- Implementing new systems
-- Following established workflows
-- Understanding task sequences
+- Implementing Phase 2 core systems
+- Following current task sequence
+- Understanding current workflow priorities
+
+**Current Phase**: Phase 2: Core Tycoon Mechanics (Tasks 9-11)
+- ✅ Tasks 5-8: COMPLETE (Budget & SLA Systems, 90 tests passing)
+- ⏳ Tasks 9-11: IN-PROGRESS (SLA Plugin, Game Loop, Integration)
+
+For Phase 3+ workflows and feature examples, see [plan/IMPLEMENTATION_ROADMAP.md](../../plan/IMPLEMENTATION_ROADMAP.md).
 
 ---
 
@@ -22,10 +26,661 @@ Reference this when:
 3. Understand: **If it's game logic, it goes in `/src/models/` or `/src/core/`, NEVER in UI**
 4. Remember: **All game parameters must be in JSON config, not hardcoded**
 5. Type hints and tests: **Non-negotiable before committing**
+6. Reference the authoritative vision: [plan/SOC_STARTUP_VISION.md](../../plan/SOC_STARTUP_VISION.md)
 
 ---
 
-## TASK 1: ADD A NEW SPECIALIST TYPE
+## PHASE 2: CORE TYCOON MECHANICS
+
+**Phase 2 Focus**: Budget System, SLA System, Game Loop Integration
+
+**Current Status**:
+- ✅ Task 5: Budget System Unit Tests (25/25 passing, 100%)
+- ✅ Task 6: SLA Tracker Model Expansion (3 methods added, tested)
+- ✅ Task 7: SLA Tracker Unit Tests (28/28 passing, 100%)
+- ✅ Task 8: SLA System Core Functions (37/37 passing, 100%)
+- ⏳ Task 9: Create SLA Plugin (1-2 hours)
+- ⏳ Task 10: Rewrite Game Loop (2-3 hours)
+- ⏳ Task 11: Phase 2 Integration Testing (1-2 hours)
+
+---
+
+## TASK 9: CREATE SLA PLUGIN
+
+### Overview
+Convert the existing SLA system into a plugin that integrates with the game loop through the event bus.
+
+### What You're Building
+- Plugin wrapper for SLA system
+- Event subscriptions (incident_created, incident_assigned, incident_completed)
+- SLA timer updates in game loop
+- SLA violation detection and reporting
+
+### Files to Modify
+- Create: `/src/core/plugins/sla_plugin.py`
+- Update: `/src/main.py` (register plugin)
+- Update: `/tests/test_sla_plugin.py` (comprehensive tests)
+
+### Step-by-Step Implementation
+
+**Step 1: Understand Current SLA System**
+
+The SLA system from Tasks 5-8 includes:
+- `SLATracker`: Core SLA tracking model
+- `SLACalculator`: Calculation methods
+- `SLAMonitor`: State management
+- All tested with 28+ unit tests
+
+Review: `/src/core/sla_system.py`
+
+**Step 2: Create SLA Plugin Class**
+
+```python
+from src.core.game_system import GameSystem
+from src.core.event_bus import get_event_bus, Event
+from src.core.sla_system import SLATracker, SLACalculator, SLAMonitor
+import logging
+
+class SLAPlugin(GameSystem):
+    """Plugin that manages SLA tracking and violation detection."""
+    
+    def __init__(self):
+        super().__init__()
+        self._sla_monitor = SLAMonitor()
+        self._event_bus = get_event_bus()
+        self._subscription_ids = []
+        self._logger = logging.getLogger(__name__)
+    
+    def get_name(self) -> str:
+        """Get plugin name."""
+        return "SLAPlugin"
+    
+    def get_feature_id(self) -> str:
+        """Get feature flag ID."""
+        return "sla_system"
+    
+    def initialize(self, game_state) -> None:
+        """Initialize SLA plugin."""
+        # Subscribe to events
+        self._subscription_ids = [
+            self._event_bus.subscribe("incident_created", self._on_incident_created),
+            self._event_bus.subscribe("incident_assigned", self._on_incident_assigned),
+            self._event_bus.subscribe("incident_completed", self._on_incident_completed),
+        ]
+        self._logger.info("SLA Plugin initialized")
+    
+    def update(self, game_state, delta_time: float) -> None:
+        """Update SLA timers and check for violations."""
+        current_time = getattr(game_state, 'game_time', 0.0)
+        
+        # Check each active SLA for violations
+        for sla_tracker in self._sla_monitor.get_active_trackers():
+            time_remaining = sla_tracker.get_time_remaining(current_time)
+            
+            if time_remaining <= 0:
+                # SLA violated
+                self._event_bus.publish("sla_violated", {
+                    "sla_id": sla_tracker.id,
+                    "incident_id": sla_tracker.incident_id,
+                    "client_id": sla_tracker.client_id
+                })
+                sla_tracker.mark_violated()
+                self._logger.warning(f"SLA {sla_tracker.id} violated for incident {sla_tracker.incident_id}")
+    
+    def shutdown(self, game_state) -> None:
+        """Shutdown SLA plugin."""
+        for subscription_id in self._subscription_ids:
+            self._event_bus.unsubscribe(subscription_id)
+        self._subscription_ids.clear()
+    
+    def save_state(self, game_state) -> dict:
+        """Save SLA plugin state."""
+        return {
+            "sla_trackers": [t.to_dict() for t in self._sla_monitor.get_all_trackers()]
+        }
+    
+    def load_state(self, game_state, state_data: dict) -> None:
+        """Load SLA plugin state."""
+        trackers = state_data.get("sla_trackers", [])
+        for tracker_data in trackers:
+            tracker = SLATracker.from_dict(tracker_data)
+            self._sla_monitor.add_tracker(tracker)
+    
+    # Event handlers
+    def _on_incident_created(self, event: Event) -> None:
+        """Handle incident created event."""
+        incident = event.data.get("incident")
+        client = event.data.get("client")
+        
+        # Create SLA tracker
+        tracker = SLATracker(
+            id=f"sla_{incident.id}",
+            incident_id=incident.id,
+            client_id=client.id,
+            sla_response_seconds=client.sla_response_time,
+            sla_resolution_seconds=client.sla_resolution_time,
+            created_time=getattr(game_state, 'game_time', 0.0)
+        )
+        self._sla_monitor.add_tracker(tracker)
+        self._logger.info(f"Created SLA tracker for incident {incident.id}")
+    
+    def _on_incident_assigned(self, event: Event) -> None:
+        """Handle incident assigned event."""
+        incident_id = event.data.get("incident_id")
+        sla_tracker = self._sla_monitor.get_tracker_for_incident(incident_id)
+        
+        if sla_tracker:
+            sla_tracker.mark_assigned(getattr(game_state, 'game_time', 0.0))
+            self._logger.info(f"SLA response timer started for incident {incident_id}")
+    
+    def _on_incident_completed(self, event: Event) -> None:
+        """Handle incident completed event."""
+        incident_id = event.data.get("incident_id")
+        sla_tracker = self._sla_monitor.get_tracker_for_incident(incident_id)
+        
+        if sla_tracker:
+            sla_tracker.mark_completed(getattr(game_state, 'game_time', 0.0))
+            self._logger.info(f"SLA tracked as completed for incident {incident_id}")
+```
+
+**Step 3: Register Plugin in main.py**
+
+In `/src/main.py`:
+
+```python
+from src.core.plugins.sla_plugin import SLAPlugin
+
+# In Game.initialize():
+self.system_manager = SystemManager()
+self.system_manager.register_system(SLAPlugin())
+# ... other plugins
+```
+
+**Step 4: Write Comprehensive Tests**
+
+Create `/tests/test_sla_plugin.py`:
+
+```python
+import pytest
+from src.core.plugins.sla_plugin import SLAPlugin
+from src.core.event_bus import get_event_bus
+from src.models.incident import Incident
+from src.models.client import Client
+
+class TestSLAPlugin:
+    """Test suite for SLA plugin."""
+    
+    @pytest.fixture
+    def plugin(self):
+        """Create plugin instance."""
+        return SLAPlugin()
+    
+    @pytest.fixture
+    def event_bus(self):
+        """Get event bus."""
+        return get_event_bus()
+    
+    def test_plugin_initialization(self, plugin):
+        """Test plugin initializes correctly."""
+        plugin.initialize(None)
+        assert plugin.get_name() == "SLAPlugin"
+        assert plugin.get_feature_id() == "sla_system"
+    
+    def test_sla_tracker_created_on_incident(self, plugin, event_bus):
+        """Test SLA tracker created when incident spawned."""
+        plugin.initialize(None)
+        
+        # Publish incident created event
+        event_bus.publish("incident_created", {
+            "incident": Incident(...),
+            "client": Client(...)
+        })
+        
+        # Verify tracker created
+        trackers = plugin._sla_monitor.get_all_trackers()
+        assert len(trackers) == 1
+    
+    def test_sla_violation_detected(self, plugin, event_bus):
+        """Test SLA violation is detected and reported."""
+        plugin.initialize(None)
+        
+        # Create tracker with expired timer
+        tracker = SLATracker(
+            id="sla_001",
+            incident_id="inc_001",
+            client_id="client_001",
+            sla_resolution_seconds=300,
+            created_time=0.0
+        )
+        plugin._sla_monitor.add_tracker(tracker)
+        
+        # Update with time > SLA
+        plugin.update(None, delta_time=400)
+        
+        # Verify violation marked
+        assert tracker.is_violated
+```
+
+### Testing Requirements
+
+- [ ] Plugin initializes without errors
+- [ ] Subscribes to correct events
+- [ ] SLA trackers created for new incidents
+- [ ] Violations detected and reported
+- [ ] State saves and loads correctly
+- [ ] Event unsubscribe works on shutdown
+- [ ] >80% test coverage
+
+### Acceptance Criteria
+
+- ✅ Plugin created in `/src/core/plugins/sla_plugin.py`
+- ✅ Registered in `/src/main.py`
+- ✅ All tests passing (>25 tests)
+- ✅ Type hints complete
+- ✅ Docstrings present (Google-style)
+- ✅ No hardcoded values
+- ✅ Logs SLA violations with context
+
+---
+
+## TASK 10: REWRITE GAME LOOP
+
+### Overview
+Integrate all Phase 2 systems into a unified game loop that represents one "day" in the game.
+
+### What You're Building
+- Main game update loop
+- Day/turn cycle with phases
+- Event-driven phase transitions
+- Budget calculation at end of day
+- Client satisfaction updates
+
+### The Game Loop (6-Step Day Cycle)
+
+```
+1. THREATS SPAWN FOR EACH CLIENT
+2. PLAYER ASSIGNS SPECIALISTS TO INCIDENTS
+3. RESOLUTION HAPPENS
+4. CONSEQUENCES & FEEDBACK
+5. END OF DAY: BUDGET UPDATE
+6. REPEAT
+```
+
+### Files to Modify
+- Update: `/src/core/game_loop.py` (or create if doesn't exist)
+- Update: `/src/main.py` (integrate into main update)
+- Create: `/tests/test_game_loop_integration.py`
+
+### Step-by-Step Implementation
+
+**Step 1: Design Day Cycle**
+
+A day has these phases:
+1. **Morning** (0-25% of day): Incidents spawn
+2. **Day** (25-75%): Player assigns specialists
+3. **Evening** (75-95%): Resolutions complete
+4. **Night** (95-100%): Budget calculations
+5. Loop back to Morning
+
+**Step 2: Create Game Loop Manager**
+
+```python
+from enum import Enum
+from src.core.event_bus import get_event_bus
+
+class DayPhase(Enum):
+    MORNING = 1    # Incidents spawn
+    DAY = 2        # Player assigns
+    EVENING = 3    # Resolutions happen
+    NIGHT = 4      # Budget updates
+
+class GameLoop:
+    """Main game loop managing day cycle."""
+    
+    def __init__(self, game_config):
+        self._game_config = game_config
+        self._event_bus = get_event_bus()
+        self._current_phase = DayPhase.MORNING
+        self._day_counter = 0
+        self._time_in_phase = 0.0
+        self._phase_duration = game_config.game_settings.get("day_duration_seconds", 600)  # 10 min per day
+    
+    def update(self, game_state, delta_time: float) -> None:
+        """Update game loop."""
+        self._time_in_phase += delta_time
+        
+        # Check if phase should transition
+        if self._time_in_phase >= self._phase_duration / 4:
+            self._transition_phase(game_state)
+    
+    def _transition_phase(self, game_state) -> None:
+        """Transition to next phase."""
+        current = self._current_phase
+        
+        if current == DayPhase.MORNING:
+            self._current_phase = DayPhase.DAY
+            self._event_bus.publish("phase_changed", {"phase": "day", "day": self._day_counter})
+        
+        elif current == DayPhase.DAY:
+            self._current_phase = DayPhase.EVENING
+            self._event_bus.publish("phase_changed", {"phase": "evening", "day": self._day_counter})
+        
+        elif current == DayPhase.EVENING:
+            self._current_phase = DayPhase.NIGHT
+            self._event_bus.publish("phase_changed", {"phase": "night", "day": self._day_counter})
+        
+        elif current == DayPhase.NIGHT:
+            # End of day - calculate budget, update satisfaction, etc.
+            self._end_of_day(game_state)
+            self._current_phase = DayPhase.MORNING
+            self._day_counter += 1
+            self._event_bus.publish("day_ended", {"day": self._day_counter})
+        
+        self._time_in_phase = 0.0
+    
+    def _end_of_day(self, game_state) -> None:
+        """Execute end-of-day calculations."""
+        # Calculate revenue from clients
+        total_revenue = sum(client.monthly_contract_value for client in game_state.clients 
+                          if client.satisfaction > 0)
+        
+        # Calculate expenses
+        total_salary_cost = sum(specialist.salary for specialist in game_state.specialists)
+        
+        # Update budget
+        profit = total_revenue - total_salary_cost
+        game_state.money += profit
+        
+        # Update client satisfaction based on SLA performance
+        for client in game_state.clients:
+            sla_compliance = self._calculate_client_sla_compliance(game_state, client)
+            client.satisfaction = min(1.0, client.satisfaction + (sla_compliance * 0.1))
+            
+            # Check contract renewal
+            if client.satisfaction < 0.3:
+                self._event_bus.publish("client_lost", {"client_id": client.id})
+                game_state.clients.remove(client)
+        
+        self._event_bus.publish("end_of_day_calculated", {
+            "revenue": total_revenue,
+            "expenses": total_salary_cost,
+            "profit": profit
+        })
+    
+    def _calculate_client_sla_compliance(self, game_state, client) -> float:
+        """Calculate SLA compliance rate for client."""
+        # Get all incidents for this client today
+        incidents = [i for i in game_state.incidents if i.client_id == client.id]
+        
+        if not incidents:
+            return 1.0  # No incidents = perfect compliance
+        
+        met_count = sum(1 for i in incidents if i.sla_met)
+        return met_count / len(incidents)
+```
+
+**Step 3: Integrate into Main Game Loop**
+
+In `/src/main.py`:
+
+```python
+def update(self, delta_time: float) -> None:
+    """Update game state."""
+    # Update game time
+    self.game_state.game_time += delta_time
+    
+    # Update all plugins
+    self.system_manager.update_all(self.game_state, delta_time)
+    
+    # Update main game loop (phases)
+    self.game_loop.update(self.game_state, delta_time)
+```
+
+**Step 4: Write Integration Tests**
+
+Create `/tests/test_game_loop_integration.py`:
+
+```python
+def test_day_cycle_completes():
+    """Test complete day cycle transitions."""
+    game_state = create_test_game_state()
+    game_loop = GameLoop(create_test_config())
+    
+    # Start morning
+    assert game_loop._current_phase == DayPhase.MORNING
+    
+    # Simulate day progression
+    for _ in range(4):  # 4 phase transitions
+        game_loop.update(game_state, 150)  # 150s per phase
+    
+    # Should be back to morning next day
+    assert game_loop._current_phase == DayPhase.MORNING
+    assert game_loop._day_counter == 1
+
+def test_end_of_day_budget_calculated():
+    """Test budget is calculated at end of day."""
+    game_state = create_test_game_state(money=10000)
+    client = create_test_client(monthly_contract_value=2000)
+    specialist = create_test_specialist(salary=500)
+    
+    game_state.clients = [client]
+    game_state.specialists = [specialist]
+    
+    game_loop = GameLoop(create_test_config())
+    
+    # Progress to night phase
+    for _ in range(3):
+        game_loop.update(game_state, 150)
+    
+    # Check budget updated
+    # Revenue = 2000, Salary = 500, Profit = 1500
+    assert game_state.money == 11500
+```
+
+### Testing Requirements
+
+- [ ] Day cycle transitions correctly
+- [ ] Budget calculated at end of day
+- [ ] Client satisfaction updated
+- [ ] Losing clients with low satisfaction works
+- [ ] Events fired at phase transitions
+- [ ] Game time advances properly
+- [ ] >25 integration tests
+
+### Acceptance Criteria
+
+- ✅ Game loop created/updated in `/src/core/game_loop.py`
+- ✅ 6-step day cycle implemented
+- ✅ Budget calculations working
+- ✅ Client satisfaction tracking
+- ✅ Phase transitions firing events
+- ✅ Integration tests comprehensive
+- ✅ Type hints complete
+- ✅ Docstrings present
+
+---
+
+## TASK 11: PHASE 2 INTEGRATION TESTING
+
+### Overview
+Comprehensive testing that verifies all Phase 2 systems (Budget, SLA, Game Loop) work together.
+
+### What You're Testing
+
+1. **Budget System** + **Game Loop**: Revenue/expense calculations
+2. **SLA System** + **Game Loop**: SLA violations affect client satisfaction
+3. **Specialist Assignment** + **Budget**: Salary costs reflect hiring/firing
+4. **Full Day Cycle**: All systems interact correctly
+
+### Test File
+
+Create `/tests/test_phase_2_integration.py`:
+
+```python
+class TestPhase2Integration:
+    """Integration tests for Phase 2 systems."""
+    
+    def test_full_day_cycle_budget_sla(self):
+        """Test complete day: incidents → assignment → SLA → budget."""
+        # Setup
+        game_state = create_test_game_state(money=10000, day=0)
+        client = create_test_client(satisfaction=1.0)
+        specialist = create_test_specialist(salary=500)
+        incident = create_test_incident(
+            client_id=client.id,
+            sla_seconds=600,
+            base_reward=1000
+        )
+        
+        game_state.clients = [client]
+        game_state.specialists = [specialist]
+        
+        # Day: Assign specialist to incident
+        specialist.assign_to_incident(incident)
+        
+        # Day: Complete incident (met SLA)
+        incident.mark_completed(time_taken=300, success=True)
+        
+        # Progress to end of day
+        game_loop = GameLoop(create_test_config())
+        for _ in range(4):
+            game_loop.update(game_state, 150)
+        
+        # Verify:
+        # - Revenue received
+        assert game_state.money == (10000 + 1000 - 500)  # Initial + reward - salary
+        # - Client satisfaction maintained
+        assert client.satisfaction > 0.9
+        # - Day advanced
+        assert game_loop._day_counter == 1
+    
+    def test_sla_violation_reduces_client_satisfaction(self):
+        """Test SLA violation reduces satisfaction and may lose client."""
+        game_state = create_test_game_state(money=10000)
+        client = create_test_client(satisfaction=0.5)
+        incident = create_test_incident(sla_seconds=600)
+        
+        game_state.clients = [client]
+        game_state.incidents = [incident]
+        
+        # Incident exceeds SLA (time_taken > sla_seconds)
+        incident.mark_completed(time_taken=1000, success=False, sla_met=False)
+        
+        # Progress day
+        game_loop = GameLoop(create_test_config())
+        for _ in range(4):
+            game_loop.update(game_state, 150)
+        
+        # Verify satisfaction decreased
+        assert client.satisfaction < 0.5
+    
+    def test_multiple_incidents_same_day(self):
+        """Test handling multiple incidents in same day."""
+        game_state = create_test_game_state(money=10000)
+        client = create_test_client()
+        spec1 = create_test_specialist(specialty="Network Security")
+        spec2 = create_test_specialist(specialty="Cryptography")
+        
+        incident1 = create_test_incident(specialty_required="Network Security")
+        incident2 = create_test_incident(specialty_required="Cryptography")
+        
+        game_state.clients = [client]
+        game_state.specialists = [spec1, spec2]
+        game_state.incidents = [incident1, incident2]
+        
+        # Assign both
+        spec1.assign_to_incident(incident1)
+        spec2.assign_to_incident(incident2)
+        
+        # Complete both
+        incident1.mark_completed(time_taken=300, success=True)
+        incident2.mark_completed(time_taken=300, success=True)
+        
+        # Progress day
+        game_loop = GameLoop(create_test_config())
+        for _ in range(4):
+            game_loop.update(game_state, 150)
+        
+        # Verify both rewarded
+        assert spec1.xp > 0
+        assert spec2.xp > 0
+```
+
+### Testing Checklist
+
+- [ ] Full day cycle works end-to-end
+- [ ] Budget calculations correct
+- [ ] SLA violations tracked
+- [ ] Client satisfaction updates
+- [ ] Multiple incidents handled
+- [ ] Plugin integration works
+- [ ] Events fire correctly
+- [ ] >20 integration tests
+- [ ] All tests passing
+- [ ] >80% code coverage
+
+### Acceptance Criteria
+
+- ✅ Integration tests cover all Phase 2 systems
+- ✅ Full day cycle tested end-to-end
+- ✅ Budget + SLA interaction tested
+- ✅ Client satisfaction mechanics verified
+- ✅ All tests passing
+- ✅ Type hints complete
+- ✅ Docstrings present
+- ✅ Ready for Phase 3
+
+---
+
+## DEBUGGING CHECKLIST
+
+When something isn't working:
+
+- [ ] Check logs: `tail -50 logs/game.log`
+- [ ] Verify JSON: `python -m json.tool data/game_config.json`
+- [ ] Test function directly: `pytest tests/test_*.py -v`
+- [ ] Check backend state: `curl http://localhost:5000/game/state | jq`
+- [ ] Review recent changes: `git diff`
+- [ ] Verify type hints: `mypy src/`
+- [ ] Run full test suite: `pytest tests/`
+
+---
+
+## COMMIT CHECKLIST
+
+Before committing ANY changes:
+
+1. [ ] Read [core-standards.instructions.md](core-standards.instructions.md) 15-point gate
+2. [ ] All functions have type hints
+3. [ ] All public functions have docstrings
+4. [ ] All public functions have tests (>80% coverage)
+5. [ ] No hardcoded values (use JSON config)
+6. [ ] No duplicate code (DRY principle)
+7. [ ] Errors are explicit and logged
+8. [ ] Tests pass: `pytest tests/`
+9. [ ] No commented-out code or debug prints
+10. [ ] Code is self-documenting and clear
+11. [ ] Git diff shows intent clearly
+12. [ ] Commit message explains WHAT and WHY
+13. [ ] JSON changes are valid: `python -m json.tool`
+14. [ ] No anti-patterns from [code-style.instructions.md](code-style.instructions.md)
+15. [ ] Changes follow [code-style.instructions.md](code-style.instructions.md) conventions
+
+**If ANY item fails, keep working. Don't commit.**
+
+---
+
+## See Also
+
+- **[plan/SOC_STARTUP_VISION.md](../../plan/SOC_STARTUP_VISION.md)** - Authoritative game vision
+- **[plan/IMPLEMENTATION_ROADMAP.md](../../plan/IMPLEMENTATION_ROADMAP.md)** - Full project roadmap
+- **[copilot-instructions.md](../copilot-instructions.md)** - Main instructions and overview
+- **[core-standards.instructions.md](core-standards.instructions.md)** - Absolute standards
+- **[code-style.instructions.md](code-style.instructions.md)** - Code style and anti-patterns
+- **[architecture.instructions.md](architecture.instructions.md)** - Project structure
+- **[testing.instructions.md](testing.instructions.md)** - Testing requirements
+- **[plugin-system.instructions.md](plugin-system.instructions.md)** - Plugin architecture
+- **[data-driven.instructions.md](data-driven.instructions.md)** - JSON configuration
 
 ### Scenario
 Your game needs a new specialist type, e.g., "Incident Responder" with different stats.

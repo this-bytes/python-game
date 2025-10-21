@@ -1,6 +1,23 @@
-# Cybersecurity Firm Idle/Tycoon/RPG Game - Copilot Instructions
+# SOC Startup Management Tycoon - Copilot Instructions
 
 **🚫 ZERO-TOLERANCE FOR MEDIOCRITY - READ [core-standards.instructions.md](instructions/core-standards.instructions.md) FIRST**
+
+## ⚠️ AUTHORITATIVE PROJECT VISION
+
+**Important**: This file provides guidance on CODE QUALITY and ARCHITECTURE patterns. However, the authoritative game design is documented in the `plan/` folder.
+
+When instructions below conflict with `plan/` documents, **the plan documents take precedence**.
+
+**Current authoritative vision documents**:
+- **[plan/SOC_STARTUP_VISION.md](../../plan/SOC_STARTUP_VISION.md)** - Current game design (CANONICAL)
+- **[plan/DETAILED_SPECIFICATION.md](../../plan/DETAILED_SPECIFICATION.md)** - Exact mechanics and formulas
+- **[plan/IMPLEMENTATION_ROADMAP.md](../../plan/IMPLEMENTATION_ROADMAP.md)** - Phase sequencing and timeline
+
+**Current Development Phase**: Phase 2: Core Tycoon Mechanics
+- ✅ Tasks 5-8: COMPLETE (Budget System, SLA System, 90 tests passing)
+- ⏳ Tasks 9-11: IN-PROGRESS (SLA Plugin, Game Loop, Integration Testing)
+
+---
 
 This is your **main entry point** for working with this codebase. For detailed guidance on specific topics, see the specialized instruction files below.
 
@@ -13,6 +30,8 @@ This is your **main entry point** for working with this codebase. For detailed g
 - Creativity is encouraged, but never at the expense of clarity, quality, standards or explicit instructions.
 
 **This is the standard. This is non-negotiable.**
+
+**UNDER NO CIRCUMSTANCES** should you ever create summary documents in this codebase. Documents should be complete and comprehensive. If you find yourself wanting to create a summary, you are missing critical context. Go find it in the specialized instruction files below. Summaries are only to be provide into the chat context when absolutely necessary for clarity.
 
 ---
 
@@ -32,53 +51,89 @@ This is your **main entry point** for working with this codebase. For detailed g
 
 ## 🎮 Game Vision (MANDATORY READING)
 
-### What This Game IS:
-**"Active Strategy Tycoon with Idle Elements"**
+**See [plan/SOC_STARTUP_VISION.md](../../plan/SOC_STARTUP_VISION.md) for complete vision. This section summarizes the essentials.**
 
-**Core Identity:**
-- **Active Decision-Making**: Player makes strategic choices about incident assignment (WHO handles WHAT)
-- **Strategic Team Management**: Compose teams, manage burnout, optimize automation rules
-- **Progressive Automation**: Early game = manual triage, Late game = systems work for you
-- **Prestige Replayability**: Reset for permanent bonuses, multiple runs with different strategies
+### Game Title & Concept
+**"SOC Startup Management Game"**
 
-**The 30-Second Core Loop:**
+Manage a boutique Security Operations Center startup. Hire specialists, acquire clients from different industries (each with different threat landscapes), handle their security incidents under SLA pressure, balance hiring costs vs. revenue, and try to grow without going broke. Miss SLAs → clients leave → you downsize → game over or reset with new strategy.
+
+### The 6-Step Core Game Loop
+
 ```
-Incident Spawns → Player Decides → Specialist Works → Incident Resolves → Rewards Earned → REPEAT
+1. THREATS SPAWN FOR EACH CLIENT
+   (Different industries = different threat types)
+
+2. PLAYER ASSIGNS SPECIALISTS TO INCIDENTS  
+   (Who handles what? Based on specialties & SLA pressure)
+
+3. RESOLUTION HAPPENS
+   (Based on specialist skill + SLA timer)
+
+4. CONSEQUENCES & FEEDBACK
+   - SLA Met? Client satisfaction ↑ (keeps paying)
+   - SLA Missed? Client satisfaction ↓ (may cancel)
+
+5. END OF DAY: BUDGET UPDATE
+   - Revenue from clients who stayed
+   - Salaries paid to specialists
+   - Profit/loss calculated
+   - Can hire/fire based on budget?
+
+6. REPEAT
 ```
 
-### What This Game IS NOT:
-- ❌ **NOT an offline idle game** - No "click once, play for 8 hours offline"
-- ❌ **NOT a facility management sim** - No break rooms, training centers, office decorations
-- ❌ **NOT a market-driven economy** - No random global events (tech booms, recessions)
-- ❌ **NOT a dating sim** - Relationships are mechanical (synergy bonuses), not narrative
+### The 3 Pillars
 
-### The 7 Core Systems (Non-Negotiable)
+Every feature must support at least ONE:
 
-Every feature must serve one or more of these systems:
+1. **Client Management** - Different clients = different demands
+   - Client properties: Industry, SLA strictness, revenue, monthly incidents
+   - SLA pressure creates decision urgency
+   - Client satisfaction drives revenue
 
-1. **Incident Generation** - Continuous spawning based on client contracts
 2. **Specialist Assignment** - Decision-based player choices (THE core mechanic)
-3. **Specialist Progression** - Leveling, XP, stats, abilities
-4. **Team Dynamics** - Friendships/rivalries create synergy bonuses
-5. **Economy** - Money management, retainer contracts, investments
-6. **Automation** - Late-game scripts reduce tedium without removing strategy
-7. **Prestige** - Reset for permanent bonuses and replayability
+   - Who handles WHAT incident (matching specialty)?
+   - Burnout consequences for overwork
+   - Specialists level up and improve
+   - Team synergies matter
 
-**If a feature doesn't clearly fit into one of these 7 systems, it shouldn't exist.**
+3. **Budget Reality** - Tycoon mechanics (the heartbeat)
+   - Revenue from clients (scales with satisfaction)
+   - Salary costs (scales with specialist count + level)
+   - Profit/loss determines hiring/firing capacity
+   - Going broke = game over (or reset for prestige)
 
-### Systems We Keep (Supporting the Core 7)
+**If a feature doesn't clearly support one of these 3 pillars, question whether it belongs.**
+
+### Key Systems Required
+
+These systems are MANDATORY (non-negotiable core):
+- **Client System** - Multiple clients with different threat landscapes
+- **SLA System** - Timers that create pressure, affect satisfaction
+- **Budget System** - Revenue/salary tracking, hiring/firing consequences  
+- **Incident Generation** - Continuous spawning based on clients
+- **Specialist Assignment** - Player decisions on WHO handles WHAT
+- **Specialist Progression** - Leveling, XP, stats, abilities
+- **Team Dynamics** - Specialties, synergies, relationships
+
+### Optional Enhancement Systems (if time permits)
+
+These enhance gameplay but aren't required for Phase 2:
 - ✅ Burnout mechanics (consequence system)
 - ✅ Equipment drops (progression depth)
 - ✅ Achievement system (goals and rewards)
-- ✅ SLA timers (creates tension and pressure)
 - ✅ Dopamine system (visual feedback for engagement)
-- ✅ Passive income (late-game retainers + investments)
-- ✅ Contract system (retainer generation, negotiation disabled)
+- ✅ Automation (late-game scripts reduce tedium)
+- ✅ Prestige (reset for permanent bonuses)
 
-### Systems We Removed (Not in Vision)
-- ❌ Offline progress system
-- ❌ Facility upgrade system (break rooms, training centers)
-- ❌ Market events (tech booms, recessions)
+### Explicitly NOT in Scope
+
+These have been removed from the vision:
+- ❌ Offline progress system (No "click once, play for 8 hours offline")
+- ❌ Facility management (No break rooms, training centers, office decorations)
+- ❌ Market events (No random tech booms, recessions)
+- ❌ Dating sim mechanics (Relationships are mechanical, not narrative)
 
 
 ---

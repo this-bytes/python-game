@@ -1,9 +1,5 @@
 ---
-applies_to:
-  - "src/**/*"
-  - "backend/**/*"
-  - "tests/**/*"
-  - "data/**/*"
+applyTo: "**"
 ---
 
 # Architecture - Instructions

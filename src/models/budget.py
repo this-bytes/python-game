@@ -18,10 +18,14 @@ class Budget:
     
     revenue_history: List[float] = field(default_factory=list)
     expense_history: List[float] = field(default_factory=list)
+    profit_history: List[float] = field(default_factory=list)
     
     specialist_salary_per_month: float = 3000.0
-    infrastructure_cost_per_month: float = 2000.0
-    overhead_per_month: float = 1000.0
+    infrastructure_cost_per_client: float = 500.0
+    software_license_base: float = 1000.0
+    software_license_per_specialist: float = 200.0
+    infrastructure_base: float = 2000.0
+    fixed_overhead: float = 1500.0
     
     def get_monthly_profit(self) -> float:
         """Return monthly profit: revenue - expenses.
@@ -70,9 +74,13 @@ class Budget:
             "monthly_expenses": self.monthly_expenses,
             "revenue_history": self.revenue_history,
             "expense_history": self.expense_history,
+            "profit_history": self.profit_history,
             "specialist_salary_per_month": self.specialist_salary_per_month,
-            "infrastructure_cost_per_month": self.infrastructure_cost_per_month,
-            "overhead_per_month": self.overhead_per_month,
+            "infrastructure_cost_per_client": self.infrastructure_cost_per_client,
+            "software_license_base": self.software_license_base,
+            "software_license_per_specialist": self.software_license_per_specialist,
+            "infrastructure_base": self.infrastructure_base,
+            "fixed_overhead": self.fixed_overhead,
         }
     
     @staticmethod
@@ -84,7 +92,11 @@ class Budget:
             monthly_expenses=data.get("monthly_expenses", 0.0),
             revenue_history=data.get("revenue_history", []),
             expense_history=data.get("expense_history", []),
+            profit_history=data.get("profit_history", []),
             specialist_salary_per_month=data.get("specialist_salary_per_month", 3000.0),
-            infrastructure_cost_per_month=data.get("infrastructure_cost_per_month", 2000.0),
-            overhead_per_month=data.get("overhead_per_month", 1000.0),
+            infrastructure_cost_per_client=data.get("infrastructure_cost_per_client", 500.0),
+            software_license_base=data.get("software_license_base", 1000.0),
+            software_license_per_specialist=data.get("software_license_per_specialist", 200.0),
+            infrastructure_base=data.get("infrastructure_base", 2000.0),
+            fixed_overhead=data.get("fixed_overhead", 1500.0),
         )

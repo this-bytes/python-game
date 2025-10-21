@@ -1,7 +1,5 @@
 ---
-applies_to:
-  - "tests/**/*.py"
-  - "src/**/*.py"
+applyTo: "tests/**/*.py"
 ---
 
 # Testing Standards - Instructions

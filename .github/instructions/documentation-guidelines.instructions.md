@@ -1,8 +1,5 @@
 ---
-applies_to:
-  - "docs/**/*"
-  - "**/*.md"
-  - ".github/**/*.md"
+applyto: "**"
 ---
 
 # Documentation Guidelines - Instructions

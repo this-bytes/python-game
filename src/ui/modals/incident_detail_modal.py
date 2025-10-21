@@ -2,7 +2,7 @@
 
 import pygame
 from typing import Optional
-from utils.logger import Logger
+from src.utils.logger import GameLogger
 
 from src.models.incident import Incident
 from src.ui.components.panel import ModernPanel
