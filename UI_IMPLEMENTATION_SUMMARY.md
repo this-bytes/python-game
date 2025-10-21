@@ -256,3 +256,49 @@ These can be added in future iterations as the system is designed to be extensib
 ✅ 60 FPS rendering capability
 ✅ All existing functionality preserved
 ✅ No breaking changes to game logic
+
+## 🐞 Rendering bug: Specialist/Incident cards hidden by scroll background (documented fix)
+
+### Symptom
+- In some UI screenshots the `SpecialistRosterPanel` and `IncidentQueuePanel` appeared visually empty (no specialist/incident cards visible) despite `GameState` containing specialists and incidents.
+
+### Root cause
+- The `ScrollContainer.render()` implementation drew the scroll background and scrollbar in a single call. Several panels (roster/incident) previously called `scroll_container.render(screen)` both before and after drawing their content which could cause the scroll background or scrollbar overlay to be drawn on top of the panel content (cards) depending on the exact ordering and clipping. In short: incorrect z-order (overdraw) between scroll background, content, and scrollbar.
+
+### Fix implemented
+1. `src/ui/components/scroll_container.py`
+    - Split `render()` into three logically composable parts:
+       - `render_background(screen)` — paints only the scroll area background.
+       - `render_scrollbar(screen)` — paints only the scrollbar and handle overlay.
+       - `render(screen)` — kept for backward compatibility; calls both `render_background` and `render_scrollbar`.
+
+2. `src/ui/panels/specialist_roster_panel.py` and `src/ui/panels/incident_queue_panel.py`
+    - Updated `render_content` to call `scroll_container.render_background(screen)` first, then draw the panel's cards/content while using `screen.set_clip(content_rect)` to enforce clipping, and finally call `scroll_container.render_scrollbar(screen)` to draw the scrollbar overlay on top.
+    - Fixed indentation and font initialization ordering to ensure fonts are created before any render calls.
+
+### Why this is safe
+- The change is UI-only and preserves the `ScrollContainer.render(screen)` API for backward compatibility. Panels that need finer granularity can now control z-order deterministically.
+
+### Verification
+- Programmatic verification:
+   - Tested that `GameState` contains 5 specialists and initial incidents on new game startup. Logged generation and assignment events.
+   - Ran full test suite: 872 tests passed (regression-free).
+
+- Visual verification:
+   - Ran the game briefly and captured screenshots to `screenshots/`.
+   - Generated panel crops for quick inspection: `screenshots/spec_panel_crop.png` and `screenshots/inc_panel_crop.png` (these show the specialist roster and incident queue content regions).
+
+### Where to find evidence
+- Screenshots directory: `screenshots/`
+   - `screenshot_20251021_142758_0001.png` — full window capture after the fix
+   - `spec_panel_crop.png` — cropped Specialist Roster area
+   - `inc_panel_crop.png` — cropped Incident Queue area
+
+**Developer note:** The rendering order contract is enforced by an instructions file and a unit test:
+- `.github/instructions/ui-rendering.instructions.md`
+- `tests/test_ui_render_order.py`
+
+### Notes & follow-ups
+- If theme color mismatches cause legibility issues in other themes, panels now have a single place to implement safe fallbacks (the font/text color lookups done at panel initialization). If we see low contrast in specific themes, update `data/themes.json` or add a panel-level fallback mapping.
+- This was intentionally implemented non-intrusively (no API break). If other panels need z-order control later, they should also adopt `render_background`/draw content/`render_scrollbar` ordering.
+

@@ -8,6 +8,7 @@ from src.ui.components.scroll_container import ScrollContainer
 from src.models.game_state import GameState
 from src.models.specialist import Specialist
 from src.ui.drag_drop_manager import get_drag_drop_manager
+from src.ui import event_types
 
 
 class SpecialistRosterPanel(ModernPanel):
@@ -59,8 +60,9 @@ class SpecialistRosterPanel(ModernPanel):
         # Text color from theme
         self.text_color = (220, 220, 220)  # Default fallback
         try:
-            self.text_color = self.theme_manager.get_color("text_primary", (220, 220, 220))
-        except:
+            # Use canonical 'text' color key from themes.json
+            self.text_color = self.theme_manager.get_color("text", (220, 220, 220))
+        except Exception:
             pass  # Use fallback if theme not available
 
     def render_content(self, screen: pygame.Surface, content_rect: pygame.Rect) -> None:
@@ -81,11 +83,13 @@ class SpecialistRosterPanel(ModernPanel):
         self.scroll_container.set_content_height(len(specialists) * (self.card_height + self.card_margin))
         self.scroll_container.position = (content_rect.x, content_rect.y)
         self.scroll_container.size = (content_rect.width, content_rect.height)
+        # Render scroll container background first (so cards are drawn on top)
+        self.scroll_container.render_background(screen)
 
         # Create clipping region for scrolling
         screen.set_clip(content_rect)
 
-        # Render specialists
+        # Render specialists on top of the scroll background
         y_offset = content_rect.y - self.scroll_container.get_scroll_offset()
 
         for specialist in specialists:
@@ -107,9 +111,8 @@ class SpecialistRosterPanel(ModernPanel):
         # Reset clipping
         screen.set_clip(None)
 
-        # Render scroll container
-        self.scroll_container.render(screen)
-
+        # Finally render scrollbar overlay
+        self.scroll_container.render_scrollbar(screen)
         # Render team synergy info if multiple specialists selected
         if len(self.selected_team) > 1 and hasattr(self.game_state, '_relationships_system'):
             self._render_team_synergy_info(screen, content_rect)
@@ -315,20 +318,20 @@ class SpecialistRosterPanel(ModernPanel):
                     )
 
                     if card_rect.collidepoint(event.pos):
-                        # Ctrl+click for multi-selection
-                        if pygame.key.get_mods() & pygame.KMOD_CTRL:
-                            if specialist in self.selected_team:
-                                self.selected_team.remove(specialist)
-                            else:
-                                self.selected_team.append(specialist)
-                        else:
-                            # Single selection - clear team and select individual
-                            self.selected_team.clear()
-                            self.selected_specialist = specialist
+                        # Post an event to show the specialist detail modal
+                        pygame.event.post(pygame.event.Event(event_types.SHOW_MODAL, {
+                            "modal_id": "specialist_detail",
+                            "specialist_id": specialist.id,
+                        }))
+                        self.selected_specialist = specialist
                         return True
 
                     y_offset += self.card_height + self.card_margin
-
+                
+                # If click is in content area but not on a card, deselect
+                self.selected_specialist = None
+                return True
+        
         # Handle drag over (highlight potential drop targets)
         elif event.type == pygame.MOUSEMOTION:
             if self.drag_drop_manager.is_incident_being_dragged():

@@ -7,6 +7,7 @@ from src.ui.components.scroll_container import ScrollContainer
 from src.models.game_state import GameState
 from src.models.incident import Incident
 from src.ui.drag_drop_manager import get_drag_drop_manager
+from src.ui import event_types
 
 
 class IncidentQueuePanel(ModernPanel):
@@ -101,6 +102,9 @@ class IncidentQueuePanel(ModernPanel):
         self.scroll_container.position = (content_rect.x, content_rect.y)
         self.scroll_container.size = (content_rect.width, content_rect.height)
 
+        # Render scroll container background first (so incident cards are drawn on top)
+        self.scroll_container.render_background(screen)
+
         # Create clipping region for scrolling
         screen.set_clip(content_rect)
 
@@ -126,8 +130,8 @@ class IncidentQueuePanel(ModernPanel):
         # Reset clipping
         screen.set_clip(None)
 
-        # Render scroll container
-        self.scroll_container.render(screen)
+        # Render scrollbar overlay
+        self.scroll_container.render_scrollbar(screen)
 
         # Render dragged incident if any
         if self.drag_drop_manager.is_incident_being_dragged():
@@ -292,11 +296,18 @@ class IncidentQueuePanel(ModernPanel):
 
                     if card_rect.collidepoint(event.pos):
                         self.selected_incident = incident
-                        # Start drag operation using drag drop manager
-                        self.drag_drop_manager.start_drag(incident, event.pos, card_rect)
+                        # Post an event to show the incident detail modal
+                        pygame.event.post(pygame.event.Event(event_types.SHOW_MODAL, {
+                            "modal_id": "incident_detail",
+                            "incident_id": incident.id,
+                        }))
                         return True
 
                     y_offset += self.card_height + self.card_margin
+                
+                # If click is in content area but not on a card, deselect
+                self.selected_incident = None
+                return True
 
         # Handle drag end (mouse button up)
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:

@@ -5,10 +5,15 @@ with configurable output directories, automatic timestamping, event-based captur
 and integration with the rich parameter system for development workflows.
 """
 
+import sys
 import pygame
 import os
 from datetime import datetime
 from typing import Optional, Dict, Any, List
+
+# Add parent directory to path so src imports work
+sys.path.insert(0, '/home/localadmin/code/python-game')
+
 from src.utils.logger import GameLogger
 from src.ui.game_ui import GameUI
 from src.models.game_state import GameState
