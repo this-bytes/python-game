@@ -77,6 +77,9 @@ Thumbs.db
 *.tmp
 *.bak
 
+# Screenshots
+/screenshots/
+
 # Test scripts (temporary)
 test_menu_visual.py
 test_game_integration.py
