@@ -61,7 +61,7 @@ class BackendApp:
         # Register routes
         self._register_routes()
         
-        self.logger.logger.info("[BACKEND] Backend API initialized with WebSocket support")
+        self.logger.info("[BACKEND] Backend API initialized with WebSocket support")
     
     def _register_routes(self):
         """Register all API routes."""
@@ -263,7 +263,7 @@ class BackendApp:
             url_prefix=BackendConfig.API_PREFIX
         )
         
-        self.logger.logger.info("[BACKEND] All routes registered")
+        self.logger.info("[BACKEND] All routes registered")
     
     def set_game_state(self, game_state, instance_id: Optional[str] = None, client_name: Optional[str] = None):
         """Update or register a game state instance.
@@ -286,7 +286,7 @@ class BackendApp:
         if instance_id and instance_manager.get_instance(instance_id):
             # Update existing instance
             instance_manager.update_game_state(game_state, instance_id)
-            self.logger.logger.info(f"[BACKEND] Game state updated for instance: {instance_id}")
+            self.logger.info(f"[BACKEND] Game state updated for instance: {instance_id}")
         else:
             # Create new instance
             instance_id = instance_manager.create_instance(
@@ -294,7 +294,7 @@ class BackendApp:
                 game_state=game_state,
                 client_name=client_name
             )
-            self.logger.logger.info(f"[BACKEND] New game instance registered: {instance_id}")
+            self.logger.info(f"[BACKEND] New game instance registered: {instance_id}")
         
         # Broadcast to connected clients
         ws_service.broadcast('game_instance_registered', {
@@ -317,8 +317,8 @@ class BackendApp:
         host = host or BackendConfig.HOST
         port = port or BackendConfig.PORT
         debug = debug if debug is not None else BackendConfig.DEBUG
-        
-        self.logger.logger.info(f"[BACKEND] Starting server on {host}:{port} (debug={debug})")
+
+        self.logger.info(f"[BACKEND] Starting server on {host}:{port} (debug={debug})")
         self.socketio.run(self.app, host=host, port=port, debug=debug, use_reloader=False)
 
 

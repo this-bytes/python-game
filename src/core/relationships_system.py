@@ -114,7 +114,7 @@ class RelationshipsSystem:
         """
         if specialist_id not in self.specialists_relationships:
             self.specialists_relationships[specialist_id] = SpecialistRelationships(specialist_id)
-            self.logger.logger.debug(f"Registered specialist {specialist_id} in relationships")
+            self.logger.debug(f"Registered specialist {specialist_id} in relationships")
 
     def record_assignment(
         self,
@@ -160,7 +160,7 @@ class RelationshipsSystem:
                     rel.intensity += self.config.get("intensity_increase_per_incident", 5.0)
                     rel.relationship_type = RelationshipType.FRIENDLY
 
-            self.logger.logger.debug(
+            self.logger.debug(
                 f"Recorded assignment: {specialist_id} + {teammate_id}, "
                 f"intensity={rel.intensity:.1f}"
             )
@@ -190,7 +190,7 @@ class RelationshipsSystem:
         )
 
         self.specialists_relationships[specialist_a_id].add_relationship(specialist_b_id, rel)
-        self.logger.logger.info(f"Created rivalry: {specialist_a_id} ↔ {specialist_b_id}")
+        self.logger.info(f"Created rivalry: {specialist_a_id} ↔ {specialist_b_id}")
 
     def create_friendship(
         self,
@@ -217,7 +217,7 @@ class RelationshipsSystem:
         )
 
         self.specialists_relationships[specialist_a_id].add_relationship(specialist_b_id, rel)
-        self.logger.logger.info(f"Created friendship: {specialist_a_id} ↔ {specialist_b_id}")
+        self.logger.info(f"Created friendship: {specialist_a_id} ↔ {specialist_b_id}")
 
     def get_team_synergy_multiplier(self, team_specialist_ids: list[str]) -> float:
         """Calculate overall synergy multiplier for a team.
@@ -334,4 +334,4 @@ class RelationshipsSystem:
 
             self.specialists_relationships[spec_a].add_relationship(spec_b, rel)
 
-        self.logger.logger.info(f"Loaded {len(data.get('relationships', []))} relationships")
+        self.logger.info(f"Loaded {len(data.get('relationships', []))} relationships")

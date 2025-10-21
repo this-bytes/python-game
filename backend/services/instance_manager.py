@@ -58,8 +58,8 @@ class GameInstance:
             Summary dictionary with key metrics
         """
         if not self.game_state:
-            return None
-        
+            return {}
+
         return {
             'money': self.game_state.current_money,
             'specialists': len(self.game_state.specialists),
@@ -100,7 +100,7 @@ class InstanceManager:
         if self._default_instance_id is None:
             self._default_instance_id = instance_id
         
-        self.logger.logger.info(
+        self.logger.info(
             f"[INSTANCE_MANAGER] Created instance: {instance_id} ({client_name})"
         )
         
@@ -154,7 +154,7 @@ class InstanceManager:
         if instance:
             instance.game_state = game_state
             instance.update_activity()
-            self.logger.logger.info(
+            self.logger.info(
                 f"[INSTANCE_MANAGER] Updated state for instance: {instance.instance_id}"
             )
             return True
@@ -176,7 +176,7 @@ class InstanceManager:
             if self._default_instance_id == instance_id:
                 self._default_instance_id = next(iter(self.instances.keys()), None)
             
-            self.logger.logger.info(
+            self.logger.info(
                 f"[INSTANCE_MANAGER] Removed instance: {instance_id}"
             )
             return True
@@ -201,7 +201,7 @@ class InstanceManager:
         """
         if instance_id in self.instances:
             self._default_instance_id = instance_id
-            self.logger.logger.info(
+            self.logger.info(
                 f"[INSTANCE_MANAGER] Set default instance: {instance_id}"
             )
             return True
@@ -233,7 +233,7 @@ class InstanceManager:
             self.remove_instance(instance_id)
         
         if to_remove:
-            self.logger.logger.info(
+            self.logger.info(
                 f"[INSTANCE_MANAGER] Cleaned up {len(to_remove)} inactive instances"
             )
 

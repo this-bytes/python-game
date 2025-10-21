@@ -25,7 +25,7 @@ Example:
     feedback.level_up(x, y)
 """
 
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Any
 import math
 from enum import Enum
 
@@ -81,9 +81,9 @@ class FeedbackManager:
         self.particles = get_particle_system()
         self.animations = get_animation_system()
         self.logger = GameLogger("FeedbackManager")
-        
+
         self._initialized = True
-        self.logger.logger.info("FeedbackManager initialized")
+        self.logger.info("FeedbackManager initialized")
     
     # ==================== HIGH-LEVEL FEEDBACK METHODS ====================
     
@@ -97,7 +97,7 @@ class FeedbackManager:
             y: Y position for particles
             magnitude: Intensity multiplier (0.5-2.0, default 1.0)
         """
-        self.logger.logger.debug(f"Success feedback at ({x}, {y}) magnitude={magnitude}")
+        self.logger.debug(f"Success feedback at ({x}, {y}) magnitude={magnitude}")
         
         # Sound: Light positive chime (if available)
         # self.audio.play_sound("success", volume_multiplier=magnitude)
@@ -119,7 +119,7 @@ class FeedbackManager:
             y: Y position for particles
             magnitude: Intensity multiplier (0.5-2.0, default 1.0)
         """
-        self.logger.logger.debug(f"Failure feedback at ({x}, {y}) magnitude={magnitude}")
+        self.logger.debug(f"Failure feedback at ({x}, {y}) magnitude={magnitude}")
         
         # Sound: Negative buzz (if available)
         # self.audio.play_sound("failure", volume_multiplier=magnitude)
@@ -130,7 +130,7 @@ class FeedbackManager:
         
         # Animation: Screen shake (would need screen reference)
     
-    def level_up(self, x: float, y: float, target: Optional[object] = None) -> None:
+    def level_up(self, x: float, y: float, target: Optional[Any] = None) -> None:
         """Level-up feedback: fanfare + explosion + elastic scale.
         
         Use for: specialist level-up, prestige level increase.
@@ -140,7 +140,7 @@ class FeedbackManager:
             y: Y position for particles
             target: Optional target object to animate (scale pulse)
         """
-        self.logger.logger.info(f"Level-up feedback at ({x}, {y})")
+        self.logger.info(f"Level-up feedback at ({x}, {y})")
         
         # Sound: Triumphant fanfare (if available)
         # self.audio.play_sound("level_up_fanfare")
@@ -176,7 +176,7 @@ class FeedbackManager:
             achievement_name: Name of achievement (for logging)
             target: Optional UI element to animate (fade-in)
         """
-        self.logger.logger.info(f"Achievement unlocked: {achievement_name} at ({x}, {y})")
+        self.logger.info(f"Achievement unlocked: {achievement_name} at ({x}, {y})")
         
         # Sound: Bell chime (if available)
         # self.audio.play_sound("achievement_chime")
@@ -210,7 +210,7 @@ class FeedbackManager:
             y: Y position for particles
             max_combo: Maximum combo for intensity scaling (default 10)
         """
-        self.logger.logger.debug(f"Combo x{combo_count} at ({x}, {y})")
+        self.logger.debug(f"Combo x{combo_count} at ({x}, {y})")
         
         # Scale intensity with combo count (up to max_combo)
         # Protect against division by zero
@@ -232,7 +232,7 @@ class FeedbackManager:
             # Low combo: Use sparkle particles
             self.particles.trail(x, y, ParticlePreset.SPARKLE.value, particle_count)
     
-    def button_click(self, button: object) -> None:
+    def button_click(self, button: Any) -> None:
         """Button click feedback: click sound + scale bounce.
         
         Use for: all UI button interactions.
@@ -282,12 +282,12 @@ class FeedbackManager:
         magnitude = 1.5 if critical else 1.0
         
         if success:
-            self.logger.logger.info(f"Incident complete (success) at ({x}, {y})")
+            self.logger.info(f"Incident complete (success) at ({x}, {y})")
             # Success: green sparkles + positive sound
             self.particles.explosion(x, y, ParticlePreset.SPARKLE.value, int(25 * magnitude))
             # self.audio.play_sound("incident_success", volume_multiplier=magnitude)
         else:
-            self.logger.logger.warning(f"Incident complete (failure) at ({x}, {y})")
+            self.logger.warning(f"Incident complete (failure) at ({x}, {y})")
             # Failure: smoke + negative sound
             self.particles.explosion(x, y, ParticlePreset.SMOKE.value, int(20 * magnitude))
             # self.audio.play_sound("incident_failure", volume_multiplier=magnitude)
@@ -302,7 +302,7 @@ class FeedbackManager:
             y: Y position for particles
             specialist_name: Name of hired specialist (for logging)
         """
-        self.logger.logger.info(f"Specialist hired: {specialist_name} at ({x}, {y})")
+        self.logger.info(f"Specialist hired: {specialist_name} at ({x}, {y})")
         
         # Sound: Positive chime (if available)
         # self.audio.play_sound("specialist_hired")
@@ -320,7 +320,7 @@ class FeedbackManager:
             y: Y position for particles
             damage: Damage amount (for intensity scaling)
         """
-        self.logger.logger.info(f"Critical hit at ({x}, {y}) damage={damage}")
+        self.logger.info(f"Critical hit at ({x}, {y}) damage={damage}")
         
         # Sound: Heavy impact (if available)
         # self.audio.play_sound("critical_hit")
@@ -339,7 +339,7 @@ class FeedbackManager:
             y: Y position for particles
             message: Warning message (for logging)
         """
-        self.logger.logger.warning(f"Warning at ({x}, {y}): {message}")
+        self.logger.warning(f"Warning at ({x}, {y}): {message}")
         
         # Sound: Alert tone (if available)
         # self.audio.play_sound("warning_alert")
@@ -351,7 +351,7 @@ class FeedbackManager:
     
     def screen_shake(
         self,
-        screen: object,
+        screen: Any,
         intensity: float = 10.0,
         duration: float = 0.3
     ) -> None:
@@ -439,7 +439,7 @@ class FeedbackManager:
         """
         self.particles.clear()
         self.animations.stop_all()
-        self.logger.logger.info("Cleared all active feedback")
+        self.logger.info("Cleared all active feedback")
     
     def get_stats(self) -> dict:
         """Get statistics from all juice systems.

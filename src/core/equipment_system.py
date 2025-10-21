@@ -36,7 +36,8 @@ class EquipmentSystem:
             "legendary": 0.03  # 3%
         }
         
-        self._logger.logger.info(
+        logger_target = getattr(self._logger, "logger", self._logger)
+        logger_target.info(
             f"[EQUIPMENT_SYSTEM] Initialized with {len(self.equipment_catalog)} equipment items"
         )
     
@@ -95,7 +96,8 @@ class EquipmentSystem:
         # Random selection from matching equipment
         dropped_equipment = random.choice(matching_equipment)
         
-        self._logger.logger.info(
+        logger_target = getattr(self._logger, "logger", self._logger)
+        logger_target.info(
             f"[EQUIPMENT_SYSTEM] Equipment drop: {dropped_equipment.name} ({dropped_equipment.rarity})"
         )
         
@@ -115,7 +117,8 @@ class EquipmentSystem:
         
         # Check if equipment is in inventory
         if equipment.id not in specialist.inventory:
-            self._logger.logger.warning(
+            logger_target = getattr(self._logger, "logger", self._logger)
+            logger_target.warning(
                 f"[EQUIPMENT_SYSTEM] Equipment {equipment.id} not in inventory"
             )
             return False
@@ -123,14 +126,16 @@ class EquipmentSystem:
         # Unequip existing item in slot if present
         if slot in specialist.equipped_items:
             old_equipment_id = specialist.equipped_items[slot]
-            self._logger.logger.info(
+            logger_target = getattr(self._logger, "logger", self._logger)
+            logger_target.info(
                 f"[EQUIPMENT_SYSTEM] Unequipping {old_equipment_id} from {slot}"
             )
         
         # Equip new item
         specialist.equipped_items[slot] = equipment.id
         
-        self._logger.logger.info(
+        logger_target = getattr(self._logger, "logger", self._logger)
+        logger_target.info(
             f"[EQUIPMENT_SYSTEM] Specialist {specialist.id} equipped {equipment.name}"
         )
         
@@ -154,7 +159,8 @@ class EquipmentSystem:
         
         equipment = self.equipment_catalog.get(equipment_id)
         
-        self._logger.logger.info(
+        logger_target = getattr(self._logger, "logger", self._logger)
+        logger_target.info(
             f"[EQUIPMENT_SYSTEM] Specialist {specialist.id} unequipped from {slot}"
         )
         
@@ -223,7 +229,8 @@ class EquipmentSystem:
         
         specialist.inventory.append(equipment.id)
         
-        self._logger.logger.info(
+        logger_target = getattr(self._logger, "logger", self._logger)
+        logger_target.info(
             f"[EQUIPMENT_SYSTEM] Added {equipment.name} to {specialist.id}'s inventory"
         )
         
@@ -245,14 +252,16 @@ class EquipmentSystem:
         # Can't remove if equipped
         for slot, equipped_id in specialist.equipped_items.items():
             if equipped_id == equipment_id:
-                self._logger.logger.warning(
+                logger_target = getattr(self._logger, "logger", self._logger)
+                logger_target.warning(
                     f"[EQUIPMENT_SYSTEM] Cannot remove equipped item {equipment_id}"
                 )
                 return False
         
         specialist.inventory.remove(equipment_id)
         
-        self._logger.logger.info(
+        logger_target = getattr(self._logger, "logger", self._logger)
+        logger_target.info(
             f"[EQUIPMENT_SYSTEM] Removed {equipment_id} from {specialist.id}'s inventory"
         )
         
@@ -354,12 +363,14 @@ class EquipmentSystem:
                 break
         
         if not target_equipment:
-            self._logger.logger.warning(
+            logger_target = getattr(self._logger, "logger", self._logger)
+            logger_target.warning(
                 f"[EQUIPMENT_SYSTEM] No upgrade target found for {first_eq.equipment_type} {target_rarity}"
             )
             return None
         
-        self._logger.logger.info(
+        logger_target = getattr(self._logger, "logger", self._logger)
+        logger_target.info(
             f"[EQUIPMENT_SYSTEM] Upgraded {len(equipment_list)}x {first_eq.rarity} {first_eq.equipment_type} "
             f"to {target_equipment.name}"
         )

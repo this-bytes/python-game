@@ -278,19 +278,19 @@ class AutomationProcessor:
 
             # Log the automation execution
             if effect_result["success"]:
-                self._logger.logger.info(
+                self._logger.info(
                     f"[AUTOMATION] Script '{script.name}' executed by specialist {specialist.id}: "
                     f"{effect_type} (magnitude: {effective_magnitude:.2f})"
                 )
             else:
-                self._logger.logger.warning(
+                self._logger.warning(
                     f"[AUTOMATION] Script '{script.name}' execution failed: {effect_result['details'].get('error', 'Unknown error')}"
                 )
 
             return result
 
         except Exception as e:
-            self._logger.logger.error(f"[AUTOMATION] Error executing script '{script.id}': {e}")
+            self._logger.error(f"[AUTOMATION] Error executing script '{script.id}': {e}")
             self._stats["execution_failures"] += 1
             return None
 
@@ -311,7 +311,7 @@ class AutomationProcessor:
         for chained_script_id in parent_script.chained_scripts:
             chained_script = game_state.get_automation_script_by_id(chained_script_id)
             if not chained_script:
-                self._logger.logger.warning(
+                self._logger.warning(
                     f"[AUTOMATION] Chained script '{chained_script_id}' not found"
                 )
                 continue
@@ -375,7 +375,7 @@ class AutomationProcessor:
         
         game_state.current_money -= cost
         
-        self._logger.logger.info(
+        self._logger.info(
             f"[AUTOMATION] Script '{script.name}' upgraded to level {script.upgrade_level} for ${cost}"
         )
         

@@ -81,7 +81,7 @@ class NetworkClient:
         # Setup WebSocket event handlers
         self._setup_websocket_handlers()
         
-        self.logger.logger.info(f"[NET_CLIENT] Initialized with backend: {backend_url}")
+        self.logger.info(f"[NET_CLIENT] Initialized with backend: {backend_url}")
     
     def _setup_websocket_handlers(self):
         """Setup WebSocket event handlers."""
@@ -89,7 +89,7 @@ class NetworkClient:
         @self.sio.on('connect')
         def on_connect():
             self.connection_state = ConnectionState.CONNECTED
-            self.logger.logger.info("[NET_CLIENT] WebSocket connected")
+            self.logger.info("[NET_CLIENT] WebSocket connected")
             
             # Subscribe to all event channels
             self._subscribe_to_channels([
@@ -99,12 +99,12 @@ class NetworkClient:
         @self.sio.on('disconnect')
         def on_disconnect():
             self.connection_state = ConnectionState.DISCONNECTED
-            self.logger.logger.warning("[NET_CLIENT] WebSocket disconnected")
+            self.logger.warning("[NET_CLIENT] WebSocket disconnected")
         
         @self.sio.on('connection')
         def on_connection_event(data):
             """Handle connection event from server."""
-            self.logger.logger.info("[NET_CLIENT] Connection confirmed by server")
+            self.logger.info("[NET_CLIENT] Connection confirmed by server")
             self.protocol_version = data.get('protocol_version', '1.0.0')
             server_time = data.get('server_time', time.time())
             self.server_time_offset = server_time - time.time()
@@ -120,7 +120,7 @@ class NetworkClient:
                 try:
                     callback(self.cached_state)
                 except Exception as e:
-                    self.logger.logger.error(f"[NET_CLIENT] State callback error: {e}")
+                    self.logger.error(f"[NET_CLIENT] State callback error: {e}")
         
         @self.sio.on('incident_generated')
         def on_incident_generated(data):
@@ -150,7 +150,7 @@ class NetworkClient:
         @self.sio.on('error')
         def on_error(data):
             """Handle error event from server."""
-            self.logger.logger.error(f"[NET_CLIENT] Server error: {data.get('message')}")
+            self.logger.error(f"[NET_CLIENT] Server error: {data.get('message')}")
             self._trigger_event_handlers('error', data)
     
     def connect(self) -> bool:
@@ -165,7 +165,7 @@ class NetworkClient:
             # Test HTTP connectivity first
             response = self.session.get(f"{self.backend_url}/health", timeout=5)
             if response.status_code != 200:
-                self.logger.logger.error(f"[NET_CLIENT] Backend health check failed: {response.status_code}")
+                self.logger.error(f"[NET_CLIENT] Backend health check failed: {response.status_code}")
                 self.connection_state = ConnectionState.ERROR
                 return False
             
@@ -177,16 +177,16 @@ class NetworkClient:
             start_time = time.time()
             while self.connection_state != ConnectionState.CONNECTED:
                 if time.time() - start_time > timeout:
-                    self.logger.logger.error("[NET_CLIENT] WebSocket connection timeout")
+                    self.logger.error("[NET_CLIENT] WebSocket connection timeout")
                     self.connection_state = ConnectionState.ERROR
                     return False
                 time.sleep(0.1)
             
-            self.logger.logger.info("[NET_CLIENT] ✅ Connected to backend successfully")
+            self.logger.info("[NET_CLIENT] ✅ Connected to backend successfully")
             return True
             
         except Exception as e:
-            self.logger.logger.error(f"[NET_CLIENT] Connection failed: {e}")
+            self.logger.error(f"[NET_CLIENT] Connection failed: {e}")
             self.connection_state = ConnectionState.ERROR
             return False
     
@@ -195,7 +195,7 @@ class NetworkClient:
         if self.sio.connected:
             self.sio.disconnect()
         self.connection_state = ConnectionState.DISCONNECTED
-        self.logger.logger.info("[NET_CLIENT] Disconnected from backend")
+        self.logger.info("[NET_CLIENT] Disconnected from backend")
     
     def _subscribe_to_channels(self, channels: List[str]):
         """Subscribe to WebSocket event channels.
@@ -205,9 +205,9 @@ class NetworkClient:
         """
         try:
             self.sio.emit('subscribe', {'channels': channels})
-            self.logger.logger.debug(f"[NET_CLIENT] Subscribed to channels: {channels}")
+            self.logger.debug(f"[NET_CLIENT] Subscribed to channels: {channels}")
         except Exception as e:
-            self.logger.logger.warning(f"[NET_CLIENT] Failed to subscribe to channels: {e}")
+            self.logger.warning(f"[NET_CLIENT] Failed to subscribe to channels: {e}")
     
     def submit_action(self, action_type: str, data: Dict[str, Any]) -> ActionResult:
         """Submit player action to backend.
@@ -239,20 +239,20 @@ class NetworkClient:
             response_data = response.json()
             
             if response_data.get('success'):
-                self.logger.logger.info(f"[NET_CLIENT] Action succeeded: {action_type}")
+                self.logger.info(f"[NET_CLIENT] Action succeeded: {action_type}")
                 return ActionResult(
                     success=True,
                     result=response_data.get('result')
                 )
             else:
-                self.logger.logger.warning(f"[NET_CLIENT] Action failed: {action_type}")
+                self.logger.warning(f"[NET_CLIENT] Action failed: {action_type}")
                 return ActionResult(
                     success=False,
                     error=response_data.get('error')
                 )
                 
         except Exception as e:
-            self.logger.logger.error(f"[NET_CLIENT] Action submission error: {e}")
+            self.logger.error(f"[NET_CLIENT] Action submission error: {e}")
             return ActionResult(
                 success=False,
                 error={
@@ -287,7 +287,7 @@ class NetworkClient:
             return None
             
         except Exception as e:
-            self.logger.logger.error(f"[NET_CLIENT] Failed to get game state: {e}")
+            self.logger.error(f"[NET_CLIENT] Failed to get game state: {e}")
             return None
     
     def save_game(self, slot: int = 0) -> bool:
@@ -310,7 +310,7 @@ class NetworkClient:
             return data.get('success', False)
             
         except Exception as e:
-            self.logger.logger.error(f"[NET_CLIENT] Save failed: {e}")
+            self.logger.error(f"[NET_CLIENT] Save failed: {e}")
             return False
     
     def load_game(self, slot: int = 0) -> bool:
@@ -333,7 +333,7 @@ class NetworkClient:
             return data.get('success', False)
             
         except Exception as e:
-            self.logger.logger.error(f"[NET_CLIENT] Load failed: {e}")
+            self.logger.error(f"[NET_CLIENT] Load failed: {e}")
             return False
     
     def on_event(self, event_type: str, callback: Callable):
@@ -367,7 +367,7 @@ class NetworkClient:
                 try:
                     handler(data)
                 except Exception as e:
-                    self.logger.logger.error(f"[NET_CLIENT] Event handler error: {e}")
+                    self.logger.error(f"[NET_CLIENT] Event handler error: {e}")
     
     def is_connected(self) -> bool:
         """Check if connected to backend.

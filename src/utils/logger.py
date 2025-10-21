@@ -536,3 +536,13 @@ class GameLogger:
             incident=incident_id,
             specialist=specialist_id
         )
+
+    def __getattr__(self, name: str):
+        """Delegate attribute access to the underlying stdlib logger.
+
+        This allows callers to use either the convenience wrapper methods
+        (e.g., game_logger.info(...)) or to access standard Logger
+        attributes/methods when necessary (e.g., game_logger.setLevel).
+        """
+        # Fallback to underlying logger for any unknown attribute
+        return getattr(self.logger, name)

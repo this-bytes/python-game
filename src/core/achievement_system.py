@@ -26,7 +26,7 @@ class AchievementSystem:
                 achievement = Achievement.from_dict(achievement_data)
                 self.achievements[achievement.id] = achievement
         
-        self._logger.logger.info(
+        self._logger.info(
             f"[ACHIEVEMENT_SYSTEM] Initialized with {len(self.achievements)} achievements"
         )
     
@@ -54,7 +54,7 @@ class AchievementSystem:
                 # Award rewards
                 self.award_achievement(achievement, game_state)
                 
-                self._logger.logger.info(
+                self._logger.info(
                     f"[ACHIEVEMENT_SYSTEM] Achievement unlocked: {achievement.name}"
                 )
         
@@ -155,7 +155,7 @@ class AchievementSystem:
             if game_state.specialists:
                 game_state.specialists[0].inventory.append(achievement.reward_equipment)
         
-        self._logger.logger.info(
+        self._logger.info(
             f"[ACHIEVEMENT_SYSTEM] Awarded: ${achievement.reward_money}, "
             f"{achievement.reward_xp} XP, equipment: {achievement.reward_equipment}"
         )

@@ -48,8 +48,13 @@ class MainMenu:
         self.screen = pygame.display.set_mode((width, height))
         pygame.display.set_caption("Cybersecurity Firm - Main Menu")
         
-        # Clear any events generated during initialization
-        pygame.event.get()
+        # Clear any events generated during initialization (only if pygame initialized)
+        if pygame.get_init():
+            try:
+                pygame.event.get()
+            except Exception:
+                # In test environments pygame may be mocked; ignore errors
+                pass
         
         # Theme and styling
         self.theme_manager = ThemeManager()
@@ -72,7 +77,7 @@ class MainMenu:
         # Animation state
         self.pulse_offset = 0.0
         
-        self.logger.logger.info("[MAIN_MENU] Main menu initialized")
+        self.logger.info("[MAIN_MENU] Main menu initialized")
     
     def _create_buttons(self) -> None:
         """Create menu buttons."""
@@ -171,24 +176,24 @@ class MainMenu:
             # Handle button clicks only on mouse up events
             if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
                 if self.new_game_button.handle_event(event):
-                    self.logger.logger.info("[MAIN_MENU] New game selected")
+                    self.logger.info("[MAIN_MENU] New game selected")
                     return MenuAction.NEW_GAME
                 
                 if self.continue_button.handle_event(event):
                     if self.continue_available:
-                        self.logger.logger.info("[MAIN_MENU] Continue selected")
+                        self.logger.info("[MAIN_MENU] Continue selected")
                         return MenuAction.CONTINUE
                 
                 if self.tutorial_button.handle_event(event):
-                    self.logger.logger.info("[MAIN_MENU] Tutorial selected")
+                    self.logger.info("[MAIN_MENU] Tutorial selected")
                     return MenuAction.TUTORIAL
                 
                 if self.settings_button.handle_event(event):
-                    self.logger.logger.info("[MAIN_MENU] Settings selected")
+                    self.logger.info("[MAIN_MENU] Settings selected")
                     return MenuAction.SETTINGS
                 
                 if self.exit_button.handle_event(event):
-                    self.logger.logger.info("[MAIN_MENU] Exit selected")
+                    self.logger.info("[MAIN_MENU] Exit selected")
                     return MenuAction.EXIT
             else:
                 # Still handle mouse motion for hover effects
@@ -260,10 +265,10 @@ class MainMenu:
         This is a placeholder that will be expanded in the future with
         actual settings options like audio, graphics, controls, etc.
         """
-        self.logger.logger.info("[MAIN_MENU] Settings menu - not yet implemented")
+        self.logger.info("[MAIN_MENU] Settings menu - not yet implemented")
         # For now, just log that settings was accessed
         # Future: Create a SettingsMenu class similar to MainMenu
     
     def shutdown(self) -> None:
         """Clean up menu resources."""
-        self.logger.logger.info("[MAIN_MENU] Main menu shutdown")
+        self.logger.info("[MAIN_MENU] Main menu shutdown")

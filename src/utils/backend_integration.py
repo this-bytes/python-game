@@ -41,7 +41,7 @@ class BackendIntegration:
         # Callbacks for state changes
         self.state_change_callbacks: list[Callable] = []
 
-        self.logger.logger.info(f"[BACKEND_INTEGRATION] Initialized with {self.base_url}")
+        self.logger.info(f"[BACKEND_INTEGRATION] Initialized with {self.base_url}")
 
     def connect(self, game_state: GameState) -> bool:
         """Connect to backend and provide game state reference.
@@ -66,9 +66,9 @@ class BackendIntegration:
                 
                 if register_response.status_code == 200:
                     self.connected = True
-                    self.logger.logger.info("[BACKEND_INTEGRATION] Connected to backend server")
-                    self.logger.logger.info("[BACKEND_INTEGRATION] ✅ Game registered with backend control panel")
-                    self.logger.logger.info(f"[BACKEND_INTEGRATION] 🌐 Control panel: {self.base_url}/control-panel")
+                    self.logger.info("[BACKEND_INTEGRATION] Connected to backend server")
+                    self.logger.info("[BACKEND_INTEGRATION] ✅ Game registered with backend control panel")
+                    self.logger.info(f"[BACKEND_INTEGRATION] 🌐 Control panel: {self.base_url}/control-panel")
 
                     # Start synchronization thread
                     self.running = True
@@ -77,14 +77,14 @@ class BackendIntegration:
 
                     return True
                 else:
-                    self.logger.logger.warning(f"[BACKEND_INTEGRATION] Game registration failed: {register_response.status_code}")
+                    self.logger.warning(f"[BACKEND_INTEGRATION] Game registration failed: {register_response.status_code}")
                     return False
             else:
-                self.logger.logger.warning(f"[BACKEND_INTEGRATION] Backend health check failed: {response.status_code}")
+                self.logger.warning(f"[BACKEND_INTEGRATION] Backend health check failed: {response.status_code}")
                 return False
 
         except requests.RequestException as e:
-            self.logger.logger.warning(f"[BACKEND_INTEGRATION] Failed to connect to backend: {e}")
+            self.logger.warning(f"[BACKEND_INTEGRATION] Failed to connect to backend: {e}")
             return False
 
     def disconnect(self) -> None:
@@ -95,7 +95,7 @@ class BackendIntegration:
 
         self.connected = False
         self.game_state = None
-        self.logger.logger.info("[BACKEND_INTEGRATION] Disconnected from backend")
+        self.logger.info("[BACKEND_INTEGRATION] Disconnected from backend")
 
     def _sync_loop(self) -> None:
         """Main synchronization loop."""
@@ -111,7 +111,7 @@ class BackendIntegration:
                 time.sleep(0.1)  # Small sleep to prevent busy waiting
 
             except Exception as e:
-                self.logger.logger.error(f"[BACKEND_INTEGRATION] Sync error: {e}")
+                self.logger.error(f"[BACKEND_INTEGRATION] Sync error: {e}")
                 time.sleep(1.0)  # Back off on errors
 
     def _sync_state(self) -> None:
@@ -128,13 +128,13 @@ class BackendIntegration:
                 # Check for backend modifications
                 if self._has_backend_changes(backend_state):
                     self._apply_backend_changes(backend_state)
-                    self.logger.logger.debug("[BACKEND_INTEGRATION] Applied backend state changes")
+                    self.logger.debug("[BACKEND_INTEGRATION] Applied backend state changes")
 
         except requests.RequestException:
             # Backend might be temporarily unavailable
             pass
         except Exception as e:
-            self.logger.logger.error(f"[BACKEND_INTEGRATION] State sync error: {e}")
+            self.logger.error(f"[BACKEND_INTEGRATION] State sync error: {e}")
 
     def _has_backend_changes(self, backend_state: Dict[str, Any]) -> bool:
         """Check if backend has changes that need to be applied to game.
@@ -179,17 +179,17 @@ class BackendIntegration:
             old_money = self.game_state.current_money
             self.game_state.current_money = data['current_money']
             if old_money != self.game_state.current_money:
-                self.logger.logger.info(
-                    f"[BACKEND_INTEGRATION] Money updated: "
-                    f"${old_money:.2f} → ${self.game_state.current_money:.2f}"
-                )
+                    self.logger.info(
+                        f"[BACKEND_INTEGRATION] Money updated: "
+                        f"${old_money:.2f} → ${self.game_state.current_money:.2f}"
+                    )
 
         # Notify callbacks
         for callback in self.state_change_callbacks:
             try:
                 callback("backend_sync", data)
             except Exception as e:
-                self.logger.logger.error(f"[BACKEND_INTEGRATION] Callback error: {e}")
+                self.logger.error(f"[BACKEND_INTEGRATION] Callback error: {e}")
 
     def add_state_change_callback(self, callback: Callable) -> None:
         """Add callback for state change notifications.
@@ -307,7 +307,7 @@ class BackendIntegration:
         except requests.RequestException:
             pass
         except Exception as e:
-            self.logger.logger.error(f"[BACKEND_INTEGRATION] Command check error: {e}")
+              self.logger.error(f"[BACKEND_INTEGRATION] Command check error: {e}")
     
     def _execute_backend_command(self, command: Dict[str, Any]) -> None:
         """Execute a command from the backend.
@@ -325,14 +325,22 @@ class BackendIntegration:
             if cmd_type == 'set_money':
                 amount = params.get('amount', 0)
                 self.game_state.current_money = float(amount)
-                self.logger.logger.info(f"[BACKEND_INTEGRATION] Money set to ${amount}")
+                self.logger.info(f"[BACKEND_INTEGRATION] Money set to ${amount}")
                 
             elif cmd_type == 'spawn_incident':
                 # Spawn incident if incident generator exists
                 if hasattr(self.game_state, 'incident_generator'):
-                    incident = self.game_state.incident_generator.generate_incident()
-                    self.game_state.incidents.append(incident)
-                    self.logger.logger.info(f"[BACKEND_INTEGRATION] Spawned incident: {incident.incident_type}")
+                    # Use the first client as default target if available
+                    client = None
+                    if hasattr(self.game_state, 'clients') and self.game_state.clients:
+                        client = self.game_state.clients[0]
+
+                    if client:
+                        incident = self.game_state.incident_generator.generate_incident(client)
+                        self.game_state.incidents.append(incident)
+                        self.logger.info(f"[BACKEND_INTEGRATION] Spawned incident: {incident.incident_type}")
+                    else:
+                        self.logger.warning("[BACKEND_INTEGRATION] No clients available to spawn incident for")
                     
             elif cmd_type == 'complete_all_incidents':
                 count = 0
@@ -340,21 +348,21 @@ class BackendIntegration:
                     if incident.status == 'active' or incident.status == 'pending':
                         incident.status = 'completed'
                         count += 1
-                self.logger.logger.info(f"[BACKEND_INTEGRATION] Completed {count} incidents")
+                self.logger.info(f"[BACKEND_INTEGRATION] Completed {count} incidents")
                 
             elif cmd_type == 'level_up_specialists':
                 levels = params.get('levels', 1)
                 for specialist in self.game_state.specialists:
                     specialist.level += levels
-                self.logger.logger.info(f"[BACKEND_INTEGRATION] Leveled up {len(self.game_state.specialists)} specialists by {levels}")
+                self.logger.info(f"[BACKEND_INTEGRATION] Leveled up {len(self.game_state.specialists)} specialists by {levels}")
                 
             elif cmd_type == 'reload_config':
                 # Reload configuration files
                 self.game_state._load_initial_data()
-                self.logger.logger.info("[BACKEND_INTEGRATION] Configuration reloaded")
+                self.logger.info("[BACKEND_INTEGRATION] Configuration reloaded")
                 
         except Exception as e:
-            self.logger.logger.error(f"[BACKEND_INTEGRATION] Failed to execute command {cmd_type}: {e}")
+            self.logger.error(f"[BACKEND_INTEGRATION] Failed to execute command {cmd_type}: {e}")
     
     def _push_state_to_backend(self) -> None:
         """Push current game state to backend for display."""
@@ -379,7 +387,7 @@ class BackendIntegration:
         except requests.RequestException:
             pass
         except Exception as e:
-            self.logger.logger.error(f"[BACKEND_INTEGRATION] State push error: {e}")
+              self.logger.error(f"[BACKEND_INTEGRATION] State push error: {e}")
 
 
 # Global backend integration instance

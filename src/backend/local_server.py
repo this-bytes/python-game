@@ -21,6 +21,13 @@ from src.models.game_state import GameState
 
 class LocalServerLauncher:
     """Manages embedded local backend server in separate thread."""
+    # Explicit attribute annotations for static analysis and clarity
+    backend_app: Optional[BackendApp]
+    server_thread: Optional[threading.Thread]
+    game_state: Optional[GameState]
+    logger: GameLogger
+    running: bool
+    started: threading.Event
     
     def __init__(self, port: int = 5001, game_state: Optional[GameState] = None):
         """Initialize local server launcher.
@@ -45,7 +52,7 @@ class LocalServerLauncher:
             True if server started successfully, False otherwise
         """
         try:
-            self.logger.logger.info(f"[LOCAL_SERVER] Starting embedded backend server on port {self.port}...")
+            self.logger.info(f"[LOCAL_SERVER] Starting embedded backend server on port {self.port}...")
             
             # Create backend app with game state
             self.backend_app = BackendApp(game_state=self.game_state)
@@ -62,17 +69,17 @@ class LocalServerLauncher:
             
             # Wait for server to start (with timeout)
             if not self.started.wait(timeout=5.0):
-                self.logger.logger.error("[LOCAL_SERVER] Server failed to start within timeout")
+                self.logger.error("[LOCAL_SERVER] Server failed to start within timeout")
                 return False
-            
-            self.logger.logger.info("[LOCAL_SERVER] ✅ Embedded backend server started successfully")
-            self.logger.logger.info(f"[LOCAL_SERVER] 🌐 Admin panel: http://localhost:{self.port}/control-panel")
-            self.logger.logger.info(f"[LOCAL_SERVER] 📡 API base: http://localhost:{self.port}/api")
+
+            self.logger.info("[LOCAL_SERVER] ✅ Embedded backend server started successfully")
+            self.logger.info(f"[LOCAL_SERVER] 🌐 Admin panel: http://localhost:{self.port}/control-panel")
+            self.logger.info(f"[LOCAL_SERVER] 📡 API base: http://localhost:{self.port}/api")
             
             return True
             
         except Exception as e:
-            self.logger.logger.error(f"[LOCAL_SERVER] Failed to start server: {e}")
+            self.logger.error(f"[LOCAL_SERVER] Failed to start server: {e}")
             return False
     
     def _run_server(self):
@@ -83,12 +90,17 @@ class LocalServerLauncher:
             log = logging.getLogger('werkzeug')
             log.setLevel(logging.ERROR)
             
-            self.logger.logger.info(f"[LOCAL_SERVER] Server thread running on port {self.port}")
+            self.logger.info(f"[LOCAL_SERVER] Server thread running on port {self.port}")
             
             # Signal that server is starting
             self.started.set()
-            
-            # Run SocketIO server
+
+            # Run SocketIO server (ensure backend_app exists)
+            if not self.backend_app:
+                self.logger.error("[LOCAL_SERVER] No backend_app available to run")
+                self.running = False
+                return
+
             self.backend_app.socketio.run(
                 self.backend_app.app,
                 host='0.0.0.0',
@@ -99,21 +111,20 @@ class LocalServerLauncher:
             )
             
         except Exception as e:
-            self.logger.logger.error(f"[LOCAL_SERVER] Server thread error: {e}")
+            self.logger.error(f"[LOCAL_SERVER] Server thread error: {e}")
             self.running = False
     
     def stop(self):
         """Stop local backend server."""
         if not self.running:
             return
-        
-        self.logger.logger.info("[LOCAL_SERVER] Stopping embedded backend server...")
+        self.logger.info("[LOCAL_SERVER] Stopping embedded backend server...")
         self.running = False
-        
+
         # Note: Flask/SocketIO doesn't have a clean shutdown method from another thread
         # The daemon thread will be terminated when the main process exits
-        
-        self.logger.logger.info("[LOCAL_SERVER] Server stopped")
+
+        self.logger.info("[LOCAL_SERVER] Server stopped")
     
     def update_game_state(self, game_state: GameState):
         """Update game state reference in backend.
@@ -123,7 +134,7 @@ class LocalServerLauncher:
         """
         if self.backend_app:
             self.backend_app.game_state = game_state
-            self.logger.logger.debug("[LOCAL_SERVER] Game state reference updated")
+            self.logger.debug("[LOCAL_SERVER] Game state reference updated")
     
     def is_running(self) -> bool:
         """Check if server is running.
@@ -131,7 +142,13 @@ class LocalServerLauncher:
         Returns:
             True if server thread is active
         """
-        return self.running and self.server_thread and self.server_thread.is_alive()
+        if not self.running:
+            return False
+
+        if not self.server_thread:
+            return False
+
+        return bool(self.server_thread.is_alive())
     
     def get_url(self) -> str:
         """Get server base URL.

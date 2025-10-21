@@ -34,7 +34,7 @@ class ProgressionSystem:
         # Load skill points per level
         self.skill_points_per_level = config.get("skill_points_per_level", 1)
         
-        self._logger.logger.info(
+        self._logger.info(
             f"[PROGRESSION] Initialized: base_xp={self.base_xp}, "
             f"exponent={self.exponent}, level_cap={self.level_cap}"
         )
@@ -115,7 +115,7 @@ class ProgressionSystem:
         # Unlock abilities for this level (will be populated by ability system if available)
         unlocked_abilities = []
         
-        self._logger.logger.info(
+        self._logger.info(
             f"[PROGRESSION] Specialist {specialist.id} leveled up to {new_level}: "
             f"stats={stat_increases}, skill_points=+{self.skill_points_per_level}"
         )

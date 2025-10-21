@@ -347,7 +347,7 @@ class AnimationSystem:
         self._active_sequences: List[AnimationSequence] = []
         self._active_groups: List[AnimationGroup] = []
         
-        self.logger.logger.info("AnimationSystem initialized")
+        self.logger.info("AnimationSystem initialized")
     
     def animate(
         self,

@@ -48,7 +48,7 @@ class ScreenshotUtility:
         self.param_system = get_parameter_system()
         self.param_system.set_logger(logger)
 
-        self.logger.logger.info(f"[SCREENSHOT] Screenshot utility initialized. Output dir: {self.output_dir}")
+        self.logger.info(f"[SCREENSHOT] Screenshot utility initialized. Output dir: {self.output_dir}")
 
     def update(self, delta_time: float) -> None:
         """Update screenshot utility (called every frame).
@@ -92,11 +92,11 @@ class ScreenshotUtility:
             pygame.image.save(screenshot_surface, filepath)
             self.screenshot_count += 1
 
-            self.logger.logger.info(f"[SCREENSHOT] Captured screenshot: {filepath}")
+            self.logger.info(f"[SCREENSHOT] Captured screenshot: {filepath}")
             return filepath
 
         except Exception as e:
-            self.logger.logger.error(f"[SCREENSHOT] Failed to capture screenshot: {e}")
+            self.logger.error(f"[SCREENSHOT] Failed to capture screenshot: {e}")
             return ""
 
     def capture_event_screenshot(self, event_name: str, metadata: Optional[Dict[str, Any]] = None) -> str:
@@ -143,11 +143,11 @@ class ScreenshotUtility:
             # Save screenshot
             pygame.image.save(screenshot_surface, filepath)
 
-            self.logger.logger.info(f"[SCREENSHOT] Captured event screenshot: {filepath}")
+            self.logger.info(f"[SCREENSHOT] Captured event screenshot: {filepath}")
             return filepath
 
         except Exception as e:
-            self.logger.logger.error(f"[SCREENSHOT] Failed to capture event screenshot: {e}")
+            self.logger.error(f"[SCREENSHOT] Failed to capture event screenshot: {e}")
             return ""
 
     def capture_ui_state_screenshot(self, ui_state: str) -> str:
@@ -256,10 +256,10 @@ class ScreenshotUtility:
                         deleted_count += 1
 
             if deleted_count > 0:
-                self.logger.logger.info(f"[SCREENSHOT] Cleaned up {deleted_count} old screenshots")
+                self.logger.info(f"[SCREENSHOT] Cleaned up {deleted_count} old screenshots")
 
         except Exception as e:
-            self.logger.logger.error(f"[SCREENSHOT] Failed to cleanup screenshots: {e}")
+            self.logger.error(f"[SCREENSHOT] Failed to cleanup screenshots: {e}")
 
         return deleted_count
 
@@ -275,10 +275,10 @@ class ScreenshotUtility:
         try:
             os.makedirs(output_dir, exist_ok=True)
             self.output_dir = output_dir
-            self.logger.logger.info(f"[SCREENSHOT] Output directory set to: {output_dir}")
+            self.logger.info(f"[SCREENSHOT] Output directory set to: {output_dir}")
             return True
         except Exception as e:
-            self.logger.logger.error(f"[SCREENSHOT] Failed to set output directory: {e}")
+            self.logger.error(f"[SCREENSHOT] Failed to set output directory: {e}")
             return False
 
 

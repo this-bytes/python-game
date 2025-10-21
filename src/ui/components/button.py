@@ -5,6 +5,7 @@ from typing import Tuple, Callable, Optional, Any
 from enum import Enum
 
 from src.ui.theme_manager import ThemeManager
+from src.ui.ui_enhancer import UIEnhancer
 
 
 class ButtonState(Enum):

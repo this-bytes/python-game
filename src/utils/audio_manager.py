@@ -61,9 +61,9 @@ class AudioManager:
         if not pygame.mixer.get_init():
             try:
                 pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
-                self.logger.logger.info("Pygame mixer initialized")
+                self.logger.info("Pygame mixer initialized")
             except pygame.error as e:
-                self.logger.logger.error(f"Failed to initialize pygame mixer: {e}")
+                self.logger.error(f"Failed to initialize pygame mixer: {e}")
                 self._audio_enabled = False
                 AudioManager._initialized = True
                 return
@@ -94,7 +94,7 @@ class AudioManager:
         pygame.mixer.set_num_channels(self._max_simultaneous_sounds)
         
         AudioManager._initialized = True
-        self.logger.logger.info("AudioManager initialized")
+        self.logger.info("AudioManager initialized")
 
     def is_enabled(self) -> bool:
         """Check if audio is enabled."""
@@ -123,12 +123,12 @@ class AudioManager:
         
         # Check if already loaded
         if sound_id in self._sounds:
-            self.logger.logger.debug(f"Sound {sound_id} already loaded")
+            self.logger.debug(f"Sound {sound_id} already loaded")
             return True
         
         # Check if file exists
         if not os.path.exists(path):
-            self.logger.logger.warning(f"Sound file not found: {path}")
+            self.logger.warning(f"Sound file not found: {path}")
             return False
         
         try:
@@ -139,10 +139,10 @@ class AudioManager:
                 volume=volume,
                 sound=sound
             )
-            self.logger.logger.info(f"Loaded sound: {sound_id} from {path}")
+            self.logger.info(f"Loaded sound: {sound_id} from {path}")
             return True
         except pygame.error as e:
-            self.logger.logger.error(f"Failed to load sound {sound_id}: {e}")
+            self.logger.error(f"Failed to load sound {sound_id}: {e}")
             return False
 
     def play_sound(
@@ -165,7 +165,7 @@ class AudioManager:
             return None
         
         if sound_id not in self._sounds:
-            self.logger.logger.warning(f"Sound not loaded: {sound_id}")
+            self.logger.warning(f"Sound not loaded: {sound_id}")
             return None
         
         config = self._sounds[sound_id]
@@ -186,7 +186,7 @@ class AudioManager:
             channel = config.sound.play(loops=loops)
             return channel
         except pygame.error as e:
-            self.logger.logger.error(f"Failed to play sound {sound_id}: {e}")
+            self.logger.error(f"Failed to play sound {sound_id}: {e}")
             return None
 
     def play_sound_3d(
@@ -246,7 +246,7 @@ class AudioManager:
             volume: Volume level (0.0 to 1.0)
         """
         self._master_volume = max(0.0, min(1.0, volume))
-        self.logger.logger.info(f"Master volume set to {self._master_volume:.2f}")
+        self.logger.info(f"Master volume set to {self._master_volume:.2f}")
 
     def set_category_volume(self, category: SoundCategory, volume: float) -> None:
         """Set volume for a specific category.
@@ -256,7 +256,7 @@ class AudioManager:
             volume: Volume level (0.0 to 1.0)
         """
         self._category_volumes[category] = max(0.0, min(1.0, volume))
-        self.logger.logger.info(f"{category.value} volume set to {volume:.2f}")
+        self.logger.info(f"{category.value} volume set to {volume:.2f}")
 
     def get_master_volume(self) -> float:
         """Get current master volume."""
@@ -288,7 +288,7 @@ class AudioManager:
             return False
         
         if not os.path.exists(music_path):
-            self.logger.logger.warning(f"Music file not found: {music_path}")
+            self.logger.warning(f"Music file not found: {music_path}")
             return False
         
         try:
@@ -308,10 +308,10 @@ class AudioManager:
                 pygame.mixer.music.play(loops=loops)
             
             self._current_music = music_path
-            self.logger.logger.info(f"Started music: {music_path}")
+            self.logger.info(f"Started music: {music_path}")
             return True
         except pygame.error as e:
-            self.logger.logger.error(f"Failed to play music: {e}")
+            self.logger.error(f"Failed to play music: {e}")
             return False
 
     def stop_music(self, fade_out: float = 0.0) -> None:
@@ -402,7 +402,7 @@ class AudioManager:
             if self.load_sound(sound_id, path, category, volume):
                 loaded_count += 1
         
-        self.logger.logger.info(f"Preloaded {loaded_count}/{len(sound_configs)} sounds")
+        self.logger.info(f"Preloaded {loaded_count}/{len(sound_configs)} sounds")
         return loaded_count
 
     def unload_sound(self, sound_id: str) -> None:
@@ -413,12 +413,12 @@ class AudioManager:
         """
         if sound_id in self._sounds:
             del self._sounds[sound_id]
-            self.logger.logger.debug(f"Unloaded sound: {sound_id}")
+            self.logger.debug(f"Unloaded sound: {sound_id}")
 
     def unload_all_sounds(self) -> None:
         """Unload all sounds from memory."""
         self._sounds.clear()
-        self.logger.logger.info("Unloaded all sounds")
+        self.logger.info("Unloaded all sounds")
 
 
 # Singleton accessor

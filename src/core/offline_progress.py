@@ -57,11 +57,11 @@ class OfflineProgressSystem:
         capped_time = min(time_elapsed, self._max_offline_hours * 3600)
         
         if capped_time != time_elapsed:
-            self._logger.logger.info(
+            self._logger.info(
                 f"[OFFLINE] Time capped: {time_elapsed/3600:.1f}h → {capped_time/3600:.1f}h"
             )
         
-        self._logger.logger.info(
+        self._logger.info(
             f"[OFFLINE] Calculating offline progress for {capped_time/3600:.1f} hours"
         )
         
@@ -86,7 +86,7 @@ class OfflineProgressSystem:
         self._stats["total_offline_time"] += time_elapsed
         self._stats["total_offline_sessions"] += 1
         
-        self._logger.logger.info(
+        self._logger.info(
             f"[OFFLINE] Progress complete: ${total_income:.2f}, {incidents_handled} incidents handled, "
             f"{incidents_failed} failed, {total_xp} total XP"
         )
@@ -143,7 +143,7 @@ class OfflineProgressSystem:
                     "difficulty": self._select_random_difficulty()
                 })
         
-        self._logger.logger.debug(
+        self._logger.debug(
             f"[OFFLINE] Simulated {len(incident_events)} incidents"
         )
         
@@ -183,7 +183,7 @@ class OfflineProgressSystem:
                 penalty = 100 * self._offline_sla_penalty_multiplier
                 total_money_lost += penalty
             
-            self._logger.logger.warning(
+            self._logger.warning(
                 f"[OFFLINE] No automation available - {incidents_failed} incidents failed"
             )
         else:
@@ -216,7 +216,7 @@ class OfflineProgressSystem:
         
         net_money = total_money_gained - total_money_lost
         
-        self._logger.logger.info(
+        self._logger.info(
             f"[OFFLINE] Automation: {incidents_handled} handled, {incidents_failed} failed, "
             f"${net_money:.2f} net, {total_xp_gained} XP"
         )

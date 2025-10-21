@@ -15,7 +15,6 @@ Following the architecture pri        self.panel_dict = {
 """
 
 import pygame
-import time
 from typing import List, Optional, Any, Tuple
 from dataclasses import dataclass
 
@@ -37,6 +36,7 @@ from src.ui.panels.economy_panel import EconomyPanel
 from src.ui.components.button import Button, ButtonStyle
 from src.ui.dopamine_overlay import DopamineFeedbackOverlay
 from src.ui.synergy_overlay import SynergySuggestionOverlay, AutoPlayIndicator
+from src.ui.player_engagement import EngagementManager
 from src.ui.components.navigation_menu import NavigationMenu, MenuItem, MenuPosition
 from src.ui.components.hud_overlay import HUDOverlay
 from src.ui.components.quick_reference import QuickReference
@@ -46,6 +46,8 @@ from src.ui.panel_inspector import PanelInspector
 from src.ui.layout_validator import validate_layout
 from src.ui.debug_overlay import LayoutDebugOverlay, DebugOverlayMode
 from src.ui.drag_drop_manager import get_drag_drop_manager
+from src.ui.modal_manager import ModalManager
+from src.ui import event_types
 
 
 @dataclass
@@ -84,6 +86,7 @@ class GameUI:
         self.notification_manager = NotificationManager(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
         self.hotkey_manager = HotkeyManager()
         self.drag_drop_manager = get_drag_drop_manager()
+        self.modal_manager = ModalManager(self.screen)
         
         # Initialize layout system
         self._initialize_layout_system()
@@ -182,6 +185,12 @@ class GameUI:
             screen_height=self.WINDOW_HEIGHT,
             position="top"
         )
+
+        # Player engagement manager (urgency, feedback, progression)
+        try:
+            self.engagement = EngagementManager((self.WINDOW_WIDTH, self.WINDOW_HEIGHT), self.game_state)
+        except Exception:
+            self.engagement = None
         
         # Initialize quick reference card
         self.quick_reference = QuickReference(
@@ -220,7 +229,7 @@ class GameUI:
         self.drag_offset = (0, 0)
         self.drag_highlight_specialist = None
 
-        self.logger.logger.info("[GAME_UI] Game UI initialized with drag-and-drop support")
+        self.logger.info("[GAME_UI] Game UI initialized with drag-and-drop support")
     
     def _initialize_layout_system(self) -> None:
         """Initialize the layout management system."""
@@ -380,7 +389,7 @@ class GameUI:
             view_config: Configuration of new view
         """
         self.notification_manager.show_info("View", f"Switched to {view_config.title}")
-        self.logger.logger.info(f"[GAME_UI] Switched to view: {view_config.title}")
+        self.logger.info(f"[GAME_UI] Switched to view: {view_config.title}")
 
     def _register_hotkey_callbacks(self) -> None:
         """Register hotkey callbacks."""
@@ -416,8 +425,38 @@ class GameUI:
             )
         except Exception:
             pass
+        # F10 takes screenshot
+        try:
+            self.hotkey_manager.register_callback(
+                HotkeyAction.TAKE_SCREENSHOT,
+                lambda: self._take_screenshot()
+            )
+        except Exception:
+            pass
+
+    def set_screenshot_utility(self, screenshot_utility) -> None:
+        """Set the screenshot utility for hotkey callbacks.
+        
+        Args:
+            screenshot_utility: The screenshot utility instance
+        """
+        self.screenshot_utility = screenshot_utility
+
+    def _take_screenshot(self) -> None:
+        """Take a screenshot of the current game state."""
+        if hasattr(self, 'screenshot_utility') and self.screenshot_utility:
+            try:
+                self.screenshot_utility.capture_screenshot()
+                self.notification_manager.show_info("Screenshot", "Screenshot saved!")
+            except Exception as e:
+                self.logger.error(f"Failed to take screenshot: {e}")
+                self.notification_manager.show_error("Screenshot", "Failed to save screenshot")
+        else:
+            self.logger.warning("Screenshot utility not available")
+            self.notification_manager.show_error("Screenshot", "Screenshot utility not initialized")
 
     def _toggle_panel_inspector(self) -> None:
+        """Toggle the panel inspector."""
         inspector = getattr(self, 'panel_inspector', None)
         if not inspector:
             return
@@ -484,11 +523,21 @@ class GameUI:
                     "Assignment",
                     f"{specialist.name} assigned to {incident.incident_type}"
                 )
+            if getattr(self, 'engagement', None):
+                try:
+                    self.engagement.notify_assignment(specialist.id, incident.id, True)
+                except Exception:
+                    pass
             else:
                 self.notification_manager.show_error(
                     "Assignment Failed",
                     "Could not assign specialist to incident"
                 )
+            if getattr(self, 'engagement', None):
+                try:
+                    self.engagement.notify_assignment(specialist.id, incident.id, False)
+                except Exception:
+                    pass
 
     def handle_input(self, events: List[pygame.event.Event]) -> List[GameAction]:
         """Process input events and return game actions.
@@ -502,6 +551,10 @@ class GameUI:
         actions = []
 
         for event in events:
+            # Give the modal manager first dibs on events
+            if self.modal_manager.handle_event(event):
+                continue
+
             # Handle window resize events
             if event.type == pygame.VIDEORESIZE:
                 self.handle_resize((event.w, event.h))
@@ -575,11 +628,21 @@ class GameUI:
                                 "Assignment Complete", 
                                 f"{selected_specialist.name} assigned to {selected_incident.incident_type}"
                             )
+                            if getattr(self, 'engagement', None):
+                                try:
+                                    self.engagement.notify_assignment(selected_specialist.id, selected_incident.id, True)
+                                except Exception:
+                                    pass
                         else:
                             self.notification_manager.show_error(
                                 "Assignment Failed", 
                                 "Specialist unavailable or specialty mismatch"
                             )
+                            if getattr(self, 'engagement', None):
+                                try:
+                                    self.engagement.notify_assignment(selected_specialist.id, selected_incident.id, False)
+                                except Exception:
+                                    pass
                     elif not selected_incident:
                         self.notification_manager.show_warning("Assignment", "Select an incident first")
                     elif not selected_specialist:
@@ -650,11 +713,21 @@ class GameUI:
                         "Assignment Complete",
                         f"Incident assigned via drag-and-drop"
                     )
+                if getattr(self, 'engagement', None):
+                    try:
+                        self.engagement.notify_assignment(self.drag_highlight_specialist, self.dragged_incident.id, True)
+                    except Exception:
+                        pass
                 else:
                     self.notification_manager.show_error(
                         "Assignment Failed",
                         "Specialist unavailable or specialty mismatch"
                     )
+                if getattr(self, 'engagement', None):
+                    try:
+                        self.engagement.notify_assignment(self.drag_highlight_specialist, self.dragged_incident.id, False)
+                    except Exception:
+                        pass
             
             # Clear drag state
             self.dragged_incident = None
@@ -682,6 +755,9 @@ class GameUI:
         # Update quick reference
         self.quick_reference.update(delta_time)
         
+        # Update modal manager
+        self.modal_manager.update(delta_time)
+        
         # Update notification manager
         self.notification_manager.update(delta_time)
         
@@ -691,6 +767,13 @@ class GameUI:
             self.game_state._dopamine_system
         )
         self.dopamine_overlay.update(delta_time)
+
+        # Update engagement manager
+        if getattr(self, 'engagement', None):
+            try:
+                self.engagement.update(delta_time)
+            except Exception:
+                pass
         
         # Update synergy overlay with strategic suggestions (IDLE GAME DEPTH)
         if hasattr(self.game_state, '_idle_core') and self.game_state._idle_core:
@@ -756,10 +839,6 @@ class GameUI:
         current_view = self.view_manager.current_view
         if current_view == GameView.OPERATIONS:
             self._render_controls()
-            render_start = time.time()
-            # Get background color from theme
-            bg_color = self.theme_manager.get_color("background", (15, 15, 25))
-            self.screen.fill(bg_color)
             self.autoplay_indicator.render(
                 self.screen,
                 self.game_state._idle_core,
@@ -778,6 +857,13 @@ class GameUI:
         # Render dopamine overlay (combo counter, celebrations, risk contracts)
         self.dopamine_overlay.render(self.screen, self.game_state._dopamine_system)
 
+        # Render engagement overlays on top of HUD but below modals/notifications
+        if getattr(self, 'engagement', None):
+            try:
+                self.engagement.render(self.screen)
+            except Exception:
+                pass
+
         # Render drag and drop visual feedback (only in operations view)
         if current_view == GameView.OPERATIONS:
             self._render_drag_drop()
@@ -787,6 +873,9 @@ class GameUI:
         
         # Render quick reference card (if visible)
         self.quick_reference.render(self.screen)
+
+        # Render modals on top of everything else
+        self.modal_manager.draw()
 
         # Render notifications (always on top)
         self.notification_manager.render(self.screen)
@@ -951,4 +1040,4 @@ class GameUI:
 
     def shutdown(self) -> None:
         """Clean shutdown of UI systems."""
-        self.logger.logger.info("[GAME_UI] Shutting down game UI")
+        self.logger.info("[GAME_UI] Shutting down game UI")

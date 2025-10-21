@@ -27,7 +27,7 @@ class AbilitySystem:
                 ability = SpecialistAbility.from_dict(ability_data)
                 self.abilities[ability.id] = ability
         
-        self._logger.logger.info(
+        self._logger.info(
             f"[ABILITY_SYSTEM] Initialized with {len(self.abilities)} abilities"
         )
     
@@ -85,7 +85,7 @@ class AbilitySystem:
         # Set cooldown
         specialist.ability_cooldowns[ability_id] = ability.cooldown_seconds
         
-        self._logger.logger.info(
+        self._logger.info(
             f"[ABILITY_SYSTEM] Specialist {specialist.id} activated {ability.name}"
         )
         
@@ -283,7 +283,7 @@ class AbilitySystem:
                         specialist.abilities.append(ability_id)
                         unlocked.append(ability_id)
                         
-                        self._logger.logger.info(
+                        self._logger.info(
                             f"[ABILITY_SYSTEM] Specialist {specialist.id} unlocked {ability.name}"
                         )
         

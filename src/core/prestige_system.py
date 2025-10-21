@@ -76,7 +76,7 @@ class PrestigeSystem:
         # Minimum 1 point for performing prestige
         points = max(1, points)
         
-        self._logger.logger.debug(
+        self._logger.debug(
             f"[PRESTIGE] Calculated prestige points: {points} "
             f"(XP: {xp_points}, Money: {money_points}, Levels: {level_points}, Incidents: {incident_points})"
         )
@@ -122,7 +122,7 @@ class PrestigeSystem:
         self._stats["total_prestiges"] += 1
         self._stats["total_prestige_points_earned"] += points_earned
         
-        self._logger.logger.info(
+        self._logger.info(
             f"[PRESTIGE] Prestige performed! Earned {points_earned} points, "
             f"total: {new_state.prestige_points} points, prestige #{new_state.total_prestiges}"
         )
@@ -183,7 +183,7 @@ class PrestigeSystem:
         # Update statistics
         self._stats["total_prestige_points_spent"] += cost
         
-        self._logger.logger.info(
+        self._logger.info(
             f"[PRESTIGE] Purchased {upgrade.name} level {current_level + 1} for {cost} points"
         )
         
@@ -238,7 +238,7 @@ class PrestigeSystem:
             # This would need to be handled during game initialization
             pass
         
-        self._logger.logger.debug(f"[PRESTIGE] Applied bonuses: {bonuses}")
+        self._logger.debug(f"[PRESTIGE] Applied bonuses: {bonuses}")
         
         return bonuses
 

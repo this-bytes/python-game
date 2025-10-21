@@ -131,7 +131,7 @@ class ProgressiveDifficultyPanel(ModernPanel):
             self._normal_font = pygame.font.SysFont('Arial', 14)
             self._small_font = pygame.font.SysFont('Arial', 12)
         except Exception as e:
-            self._logger.logger.warning(f"Failed to initialize fonts: {e}")
+            self._logger.warning(f"Failed to initialize fonts: {e}")
 
     def _update_display_data(self) -> None:
         """Update the display data from the plugin."""
@@ -139,7 +139,7 @@ class ProgressiveDifficultyPanel(ModernPanel):
             try:
                 self._display_data = DifficultyDisplayData.from_plugin(self._plugin)
             except Exception as e:
-                self._logger.logger.error(f"Failed to update difficulty display data: {e}")
+                self._logger.error(f"Failed to update difficulty display data: {e}")
                 self._display_data = None
         else:
             self._display_data = None

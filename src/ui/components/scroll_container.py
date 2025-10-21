@@ -28,11 +28,24 @@ class ScrollContainer:
         self.scroll_start_y = 0
 
     def render(self, screen: pygame.Surface) -> None:
-        """Render scroll container."""
-        rect = pygame.Rect(self.position[0], self.position[1], self.size[0], self.size[1])
+        """Render scroll container (background + scrollbar)."""
+        # For backward compatibility, call both parts
+        self.render_background(screen)
+        self.render_scrollbar(screen)
 
+    def render_background(self, screen: pygame.Surface) -> None:
+        """Render only the scroll container background (no scrollbar).
+
+        Panels may draw the background first, then render their content on top,
+        and finally call render_scrollbar to draw the scrollbar overlay.
+        """
+        rect = pygame.Rect(self.position[0], self.position[1], self.size[0], self.size[1])
         # Draw background
         pygame.draw.rect(screen, self.bg_color, rect)
+
+    def render_scrollbar(self, screen: pygame.Surface) -> None:
+        """Render only the scrollbar (handle)."""
+        rect = pygame.Rect(self.position[0], self.position[1], self.size[0], self.size[1])
 
         # Draw scroll bar if content is larger than container
         if self.content_height > self.size[1]:
@@ -46,7 +59,9 @@ class ScrollContainer:
 
             # Calculate scroll handle
             handle_height = max(20, int((self.size[1] / self.content_height) * self.size[1]))
-            handle_y = rect.y + int((self.scroll_offset / (self.content_height - self.size[1])) * (self.size[1] - handle_height))
+            # Avoid division by zero
+            max_offset = max(1, (self.content_height - self.size[1]))
+            handle_y = rect.y + int((self.scroll_offset / max_offset) * (self.size[1] - handle_height))
             handle_rect = pygame.Rect(
                 scroll_bar_rect.x + 2,
                 handle_y,

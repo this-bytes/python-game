@@ -183,7 +183,7 @@ class ProgressiveDifficultyPlugin(GameSystem):
         Args:
             game_state: Current game state
         """
-        self._logger.logger.info("[PROGRESSIVE_DIFFICULTY] Initializing progressive difficulty system")
+        self._logger.info("[PROGRESSIVE_DIFFICULTY] Initializing progressive difficulty system")
 
         # Subscribe to relevant events
         self._subscription_ids = [
@@ -199,7 +199,7 @@ class ProgressiveDifficultyPlugin(GameSystem):
         # Initialize metrics from game state
         self._update_metrics(game_state)
 
-        self._logger.logger.info(f"[PROGRESSIVE_DIFFICULTY] Initialized with difficulty level {self._current_difficulty_level}")
+        self._logger.info(f"[PROGRESSIVE_DIFFICULTY] Initialized with difficulty level {self._current_difficulty_level}")
 
     def update(self, game_state: GameState, delta_time: float) -> None:
         """Update progressive difficulty logic.
@@ -225,7 +225,7 @@ class ProgressiveDifficultyPlugin(GameSystem):
         Args:
             game_state: Current game state
         """
-        self._logger.logger.info("[PROGRESSIVE_DIFFICULTY] Shutting down progressive difficulty system")
+        self._logger.info("[PROGRESSIVE_DIFFICULTY] Shutting down progressive difficulty system")
 
         # Unsubscribe from events
         for subscription_id in self._subscription_ids:
@@ -264,7 +264,7 @@ class ProgressiveDifficultyPlugin(GameSystem):
         self._recent_incidents = state_data.get("recent_incidents", [])
         self._last_metrics_update = state_data.get("last_metrics_update", time.time())
 
-        self._logger.logger.info(f"[PROGRESSIVE_DIFFICULTY] Loaded state with difficulty level {self._current_difficulty_level}")
+        self._logger.info(f"[PROGRESSIVE_DIFFICULTY] Loaded state with difficulty level {self._current_difficulty_level}")
 
     def get_current_difficulty_level(self) -> int:
         """Get the current difficulty level.
@@ -312,10 +312,10 @@ class ProgressiveDifficultyPlugin(GameSystem):
 
             self._config = DifficultyScalingConfig.from_dict(difficulty_config)
 
-            self._logger.logger.info("[PROGRESSIVE_DIFFICULTY] Loaded configuration from game_config.json")
+            self._logger.info("[PROGRESSIVE_DIFFICULTY] Loaded configuration from game_config.json")
 
         except Exception as e:
-            self._logger.logger.warning(f"[PROGRESSIVE_DIFFICULTY] Failed to load config, using defaults: {e}")
+            self._logger.warning(f"[PROGRESSIVE_DIFFICULTY] Failed to load config, using defaults: {e}")
             # Keep default config
 
     def _update_metrics(self, game_state: GameState) -> None:
@@ -385,7 +385,7 @@ class ProgressiveDifficultyPlugin(GameSystem):
 
         # Update difficulty level if changed
         if new_difficulty_level != self._current_difficulty_level:
-            self._logger.logger.info(
+            self._logger.info(
                 f"[PROGRESSIVE_DIFFICULTY] Difficulty level changed: {self._current_difficulty_level} → {new_difficulty_level} "
                 f"(performance: {performance_score:.1f}, progression: {progression_score:.1f})"
             )
@@ -605,7 +605,7 @@ class ProgressiveDifficultyPlugin(GameSystem):
         self._difficulty_multiplier = self._config.base_difficulty_multiplier
         self._recent_incidents.clear()
 
-        self._logger.logger.info("[PROGRESSIVE_DIFFICULTY] Difficulty reset to base level")
+        self._logger.info("[PROGRESSIVE_DIFFICULTY] Difficulty reset to base level")
 
         # Emit difficulty reset event
         self._event_bus.publish("difficulty_reset", {

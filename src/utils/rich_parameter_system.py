@@ -296,11 +296,11 @@ class RichParameterSystem:
                         self.set_parameter(param_name, param_value, save=False)
 
                 if self.logger:
-                    self.logger.logger.info(f"[PARAMS] Loaded {len(saved_data)} saved parameters")
+                    self.logger.info(f"[PARAMS] Loaded {len(saved_data)} saved parameters")
 
             except Exception as e:
                 if self.logger:
-                    self.logger.logger.warning(f"[PARAMS] Failed to load parameters: {e}")
+                    self.logger.warning(f"[PARAMS] Failed to load parameters: {e}")
 
     def _save_parameters(self):
         """Save current parameter values to file."""
@@ -313,11 +313,11 @@ class RichParameterSystem:
                 json.dump(save_data, f, indent=2)
 
             if self.logger:
-                self.logger.logger.debug(f"[PARAMS] Saved {len(save_data)} parameters")
+                self.logger.debug(f"[PARAMS] Saved {len(save_data)} parameters")
 
         except Exception as e:
             if self.logger:
-                self.logger.logger.error(f"[PARAMS] Failed to save parameters: {e}")
+                self.logger.error(f"[PARAMS] Failed to save parameters: {e}")
 
     def set_logger(self, logger):
         """Set the logger instance.
@@ -354,7 +354,7 @@ class RichParameterSystem:
         """
         if name not in self.parameters:
             if self.logger:
-                self.logger.logger.warning(f"[PARAMS] Parameter '{name}' not found")
+                self.logger.warning(f"[PARAMS] Parameter '{name}' not found")
             return False
 
         param_state = self.parameters[name]
@@ -363,7 +363,7 @@ class RichParameterSystem:
         # Validate value
         if not self._validate_parameter_value(param_def, value):
             if self.logger:
-                self.logger.logger.warning(f"[PARAMS] Invalid value '{value}' for parameter '{name}'")
+                self.logger.warning(f"[PARAMS] Invalid value '{value}' for parameter '{name}'")
             return False
 
         # Set value
@@ -377,14 +377,14 @@ class RichParameterSystem:
                 param_def.callback(old_value, value)
             except Exception as e:
                 if self.logger:
-                    self.logger.logger.error(f"[PARAMS] Callback error for '{name}': {e}")
+                    self.logger.error(f"[PARAMS] Callback error for '{name}': {e}")
 
         # Save if requested
         if save:
             self._save_parameters()
 
         if self.logger:
-            self.logger.logger.info(f"[PARAMS] Set {name} = {value}")
+            self.logger.info(f"[PARAMS] Set {name} = {value}")
 
         return True
 
@@ -475,7 +475,7 @@ class RichParameterSystem:
             self.reset_parameter(name)
 
         if self.logger:
-            self.logger.logger.info("[PARAMS] Reset all parameters to defaults")
+            self.logger.info("[PARAMS] Reset all parameters to defaults")
 
     def get_parameter_info(self, name: str) -> Optional[Dict[str, Any]]:
         """Get detailed information about a parameter.

@@ -28,6 +28,10 @@ class SaveManager:
     MAX_SAVE_SLOTS = 10
     AUTO_SAVE_SLOT = 0
     
+    # Class-level annotations for static analysis
+    _logger: GameLogger
+    _save_dir: str
+
     def __init__(self, save_dir: Optional[str] = None, logger: Optional[GameLogger] = None):
         """Initialize the save manager.
         
@@ -53,7 +57,7 @@ class SaveManager:
         # Ensure save directory exists
         os.makedirs(self._save_dir, exist_ok=True)
         
-        self._logger.logger.info(f"[SAVE_MANAGER] Initialized with save directory: {self._save_dir}")
+        self._logger.info(f"[SAVE_MANAGER] Initialized with save directory: {self._save_dir}")
     
     def save_game(self, game_state: 'GameState', slot: int) -> str:
         """Save game state to a specific slot.
@@ -90,14 +94,14 @@ class SaveManager:
             with open(filepath, 'w', encoding='utf-8') as f:
                 json.dump(save_data, f, indent=2, ensure_ascii=False)
             
-            self._logger.logger.info(
+            self._logger.info(
                 f"[SAVE_MANAGER] Game saved to slot {slot}: {filepath}"
             )
             
             return filepath
             
         except Exception as e:
-            self._logger.logger.error(f"[SAVE_MANAGER] Failed to save game: {e}")
+            self._logger.error(f"[SAVE_MANAGER] Failed to save game: {e}")
             raise
     
     def load_game(self, slot: int) -> 'GameState':
@@ -126,7 +130,7 @@ class SaveManager:
             saved_version = metadata.get("game_version", "unknown")
             
             if saved_version != self.GAME_VERSION:
-                self._logger.logger.warning(
+                self._logger.warning(
                     f"[SAVE_MANAGER] Loading save from different version: {saved_version} -> {self.GAME_VERSION}"
                 )
             
@@ -134,14 +138,14 @@ class SaveManager:
             from src.models.game_state import GameState
             game_state = GameState.from_dict(save_data["game_state"])
             
-            self._logger.logger.info(
+            self._logger.info(
                 f"[SAVE_MANAGER] Game loaded from slot {slot}: {filepath}"
             )
             
             return game_state
             
         except Exception as e:
-            self._logger.logger.error(f"[SAVE_MANAGER] Failed to load game: {e}")
+            self._logger.error(f"[SAVE_MANAGER] Failed to load game: {e}")
             raise
     
     def list_saves(self) -> List[Dict[str, Any]]:
@@ -168,7 +172,7 @@ class SaveManager:
                         "metadata": metadata
                     })
                 except Exception as e:
-                    self._logger.logger.error(
+                    self._logger.error(
                         f"[SAVE_MANAGER] Failed to read save slot {slot}: {e}"
                     )
                     saves.append({
@@ -203,10 +207,10 @@ class SaveManager:
         if os.path.exists(filepath):
             try:
                 os.remove(filepath)
-                self._logger.logger.info(f"[SAVE_MANAGER] Deleted save slot {slot}")
+                self._logger.info(f"[SAVE_MANAGER] Deleted save slot {slot}")
                 return True
             except Exception as e:
-                self._logger.logger.error(f"[SAVE_MANAGER] Failed to delete save: {e}")
+                self._logger.error(f"[SAVE_MANAGER] Failed to delete save: {e}")
                 raise
         else:
             return False
@@ -246,14 +250,14 @@ class SaveManager:
             with open(export_path, 'w', encoding='utf-8') as f:
                 json.dump(save_data, f, indent=2, ensure_ascii=False)
             
-            self._logger.logger.info(
+            self._logger.info(
                 f"[SAVE_MANAGER] Exported save from slot {slot} to {export_path}"
             )
             
             return export_path
             
         except Exception as e:
-            self._logger.logger.error(f"[SAVE_MANAGER] Failed to export save: {e}")
+            self._logger.error(f"[SAVE_MANAGER] Failed to export save: {e}")
             raise
     
     def import_save(self, import_path: str, slot: int) -> str:
@@ -286,14 +290,14 @@ class SaveManager:
             with open(filepath, 'w', encoding='utf-8') as f:
                 json.dump(save_data, f, indent=2, ensure_ascii=False)
             
-            self._logger.logger.info(
+            self._logger.info(
                 f"[SAVE_MANAGER] Imported save from {import_path} to slot {slot}"
             )
             
             return filepath
             
         except Exception as e:
-            self._logger.logger.error(f"[SAVE_MANAGER] Failed to import save: {e}")
+            self._logger.error(f"[SAVE_MANAGER] Failed to import save: {e}")
             raise
     
     def _get_save_filepath(self, slot: int) -> str:

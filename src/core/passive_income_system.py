@@ -80,7 +80,8 @@ class PassiveIncomeSystem:
         self._stats["total_retainer_income"] += total_income
         
         if total_income > 0:
-            self._logger.logger.debug(
+            # Use GameLogger wrapper API directly
+            self._logger.debug(
                 f"[PASSIVE_INCOME] Retainer income: ${total_income:.2f} from {len(clients)} clients"
             )
         
@@ -108,7 +109,8 @@ class PassiveIncomeSystem:
             
             investment_config = self._investment_types.get(investment_type)
             if not investment_config:
-                self._logger.logger.warning(
+                # Unknown investment types are a harmless warning
+                self._logger.warning(
                     f"[PASSIVE_INCOME] Unknown investment type: {investment_type}"
                 )
                 continue
@@ -137,7 +139,8 @@ class PassiveIncomeSystem:
                         base_return -= loss
                         self._stats["total_investment_losses"] += loss
                         
-                        self._logger.logger.info(
+                        # Log investment loss via GameLogger
+                        self._logger.info(
                             f"[PASSIVE_INCOME] Investment loss: ${loss:.2f} on {investment_type}"
                         )
             
@@ -145,7 +148,7 @@ class PassiveIncomeSystem:
         
         if total_return > 0:
             self._stats["total_investment_income"] += total_return
-            self._logger.logger.debug(
+            self._logger.debug(
                 f"[PASSIVE_INCOME] Investment returns: ${total_return:.2f}"
             )
         
@@ -211,7 +214,7 @@ class PassiveIncomeSystem:
         
         # Log significant passive income
         if abs(total_income) > 1.0:
-            self._logger.logger.info(
+            self._logger.info(
                 f"[PASSIVE_INCOME] Total passive income: ${total_income:.2f} "
                 f"(retainer: ${retainer_income:.2f}, reputation bonus: ${bonus_amount:.2f}, "
                 f"investments: ${investment_return:.2f})"
@@ -269,7 +272,7 @@ class PassiveIncomeSystem:
         
         investment_config = self._investment_types[investment_type]
         
-        self._logger.logger.info(
+        self._logger.info(
             f"[PASSIVE_INCOME] Invested ${amount:.2f} in {investment_type} "
             f"(return: {investment_config['return_rate']*100:.1f}%, "
             f"risk: {investment_config['risk']*100:.1f}%)"
@@ -326,7 +329,7 @@ class PassiveIncomeSystem:
         game_state.investments[investment_type] -= amount
         game_state.current_money += amount
         
-        self._logger.logger.info(
+        self._logger.info(
             f"[PASSIVE_INCOME] Withdrew ${amount:.2f} from {investment_type}"
         )
         

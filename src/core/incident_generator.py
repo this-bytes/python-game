@@ -41,6 +41,12 @@ class GenerationConfig:
 
 class IncidentGenerator:
     """Handles generation of security incidents based on game state and configuration."""
+    # Explicit attribute annotations for clarity and static analysis
+    _logger: GameLogger
+    _json_loader: JSONLoader
+    _templates: List[IncidentTemplate]
+    _config: Optional[GenerationConfig]
+    _last_generation_time: float
 
     def __init__(self, logger: Optional[GameLogger] = None):
         """Initialize the incident generator.
@@ -77,10 +83,12 @@ class IncidentGenerator:
                 )
                 self._templates.append(template)
 
-            self._logger.logger.info(f"[INCIDENT_GENERATOR] Loaded {len(self._templates)} incident templates")
+            logger_target = getattr(self._logger, "logger", self._logger)
+            logger_target.info(f"[INCIDENT_GENERATOR] Loaded {len(self._templates)} incident templates")
 
         except Exception as e:
-            self._logger.logger.error(f"[INCIDENT_GENERATOR] Failed to load incident templates: {e}")
+            logger_target = getattr(self._logger, "logger", self._logger)
+            logger_target.error(f"[INCIDENT_GENERATOR] Failed to load incident templates: {e}")
             raise
 
     def _load_config(self) -> None:
@@ -97,10 +105,12 @@ class IncidentGenerator:
                 max_active_incidents=game_settings.get("max_active_incidents", 50)
             )
 
-            self._logger.logger.info("[INCIDENT_GENERATOR] Loaded generation configuration")
+            logger_target = getattr(self._logger, "logger", self._logger)
+            logger_target.info("[INCIDENT_GENERATOR] Loaded generation configuration")
 
         except Exception as e:
-            self._logger.logger.error(f"[INCIDENT_GENERATOR] Failed to load generation config: {e}")
+            logger_target = getattr(self._logger, "logger", self._logger)
+            logger_target.error(f"[INCIDENT_GENERATOR] Failed to load generation config: {e}")
             raise
 
     def should_generate_incident(self, client: Client, delta_time: float, active_incident_count: int) -> bool:
@@ -179,7 +189,8 @@ class IncidentGenerator:
             client_id=client.id
         )
 
-        self._logger.logger.info(
+        logger_target = getattr(self._logger, "logger", self._logger)
+        logger_target.info(
             f"[INCIDENT_GENERATOR] Generated incident {incident.id} for client {client.id}: "
             f"{template.name} (difficulty {difficulty}, specialty {specialty})"
         )
@@ -266,4 +277,5 @@ class IncidentGenerator:
         """Reload templates and configuration from disk."""
         self._load_templates()
         self._load_config()
-        self._logger.logger.info("[INCIDENT_GENERATOR] Configuration reloaded")
+        logger_target = getattr(self._logger, "logger", self._logger)
+        logger_target.info("[INCIDENT_GENERATOR] Configuration reloaded")

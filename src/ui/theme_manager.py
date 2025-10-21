@@ -39,7 +39,33 @@ class Theme:
         Returns:
             RGB color tuple
         """
-        return self.colors.get(color_key, default)
+        # Direct key
+        if color_key in self.colors:
+            return self.colors[color_key]
+
+        # Common alias mappings (backwards compatibility)
+        alias_map = {
+            'text_primary': 'text',
+            'text_secondary': 'text_secondary',
+            'panel_background': 'panel_bg',
+            'panel_bg': 'panel_bg',
+            'background_primary': 'background',
+            'background_secondary': 'background_secondary',
+            'border_color': 'border'
+        }
+
+        mapped = alias_map.get(color_key)
+        if mapped and mapped in self.colors:
+            return self.colors[mapped]
+
+        # Try stripping common suffixes like _primary/_secondary/_muted
+        for suffix in ['_primary', '_secondary', '_muted']:
+            if color_key.endswith(suffix):
+                candidate = color_key[: -len(suffix)]
+                if candidate in self.colors:
+                    return self.colors[candidate]
+
+        return default
 
     def get_rgba_color(self, color_key: str, default: Tuple[int, int, int, int] = (255, 255, 255, 255)) -> Tuple[int, int, int, int]:
         """Get RGBA color from theme.
@@ -51,7 +77,33 @@ class Theme:
         Returns:
             RGBA color tuple
         """
-        color = self.colors.get(color_key, default)
+        # Direct key
+        if color_key in self.colors:
+            color = self.colors[color_key]
+        else:
+            # Use alias map from get_color
+            alias_map = {
+                'text_primary': 'text',
+                'panel_background': 'panel_bg',
+                'background_primary': 'background',
+                'background_secondary': 'background_secondary',
+                'border_color': 'border'
+            }
+            mapped = alias_map.get(color_key)
+            if mapped and mapped in self.colors:
+                color = self.colors[mapped]
+            else:
+                # Fallback to try removing suffixes
+                candidate = None
+                for suffix in ['_primary', '_secondary', '_muted']:
+                    if color_key.endswith(suffix):
+                        candidate = color_key[: -len(suffix)]
+                        break
+                if candidate and candidate in self.colors:
+                    color = self.colors[candidate]
+                else:
+                    color = default
+
         if len(color) == 3:
             return (color[0], color[1], color[2], 255)
         return color

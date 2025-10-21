@@ -5,6 +5,7 @@ from typing import Tuple, Optional, Any, Union
 from enum import Enum
 
 from src.ui.theme_manager import ThemeManager
+from src.ui.ui_enhancer import UIEnhancer
 
 
 class PanelState(Enum):
@@ -150,18 +151,26 @@ class ModernPanel:
             pygame.draw.line(surface, (r, g, b), (rect.x, rect.y + y), (rect.x + rect.width, rect.y + y))
 
     def _draw_shadow(self, surface: pygame.Surface, rect: pygame.Rect, shadow_color: Tuple[int, int, int, int]) -> None:
-        """Draw panel shadow with blur effect."""
-        shadow_rect = pygame.Rect(rect.x + 4, rect.y + 4, rect.width, rect.height)
-
-        # Multi-layer shadow for depth
-        for i in range(4):
+        """Draw panel shadow with blur effect using UIEnhancer."""
+        # Use UIEnhancer for professional drop shadow
+        shadow_rect = pygame.Rect(rect.x + 2, rect.y + 2, rect.width, rect.height)
+        
+        # Draw multi-layer shadow for depth effect
+        for i in range(3):
+            layer_alpha = int(shadow_color[3] * (1 - i/3))
             expanded = pygame.Rect(
-                shadow_rect.x - i, shadow_rect.y - i,
-                shadow_rect.width + i*2, shadow_rect.height + i*2
+                shadow_rect.x - i,
+                shadow_rect.y - i,
+                shadow_rect.width + i*2,
+                shadow_rect.height + i*2
             )
-            alpha = int(shadow_color[3] * (1 - i/4))
             temp_surface = pygame.Surface((expanded.width, expanded.height), pygame.SRCALPHA)
-            pygame.draw.rect(temp_surface, (*shadow_color[:3], alpha), temp_surface.get_rect(), border_radius=self.CORNER_RADIUS + i)
+            pygame.draw.rect(
+                temp_surface,
+                (*shadow_color[:3], layer_alpha),
+                temp_surface.get_rect(),
+                border_radius=self.CORNER_RADIUS + i
+            )
             surface.blit(temp_surface, expanded, special_flags=pygame.BLEND_RGBA_ADD)
 
     def render(self, screen: pygame.Surface) -> None:

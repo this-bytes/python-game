@@ -1,7 +1,7 @@
 """GameState model representing the complete state of the cybersecurity firm game.
 
 The GameState is the central hub that manages all game entities, tracks game progression,
-handles time-based mechanics, and provides the inte                    self._logger.logger.info(f"[GAME_STATE] Incident {incident.id} generated for client {incident.client_id}")for all game operations.
+handles time-based mechanics, and provides the inte                    self._logger.info(f"[GAME_STATE] Incident {incident.id} generated for client {incident.client_id}")for all game operations.
 """
 
 from dataclasses import dataclass, field
@@ -10,7 +10,7 @@ from datetime import datetime
 import time
 import random
 
-from src.models.specialist import Specialist
+from src.models.specialist import Specialist, SpecialistStats
 from src.models.incident import Incident
 from src.models.client import Client
 from src.models.automation_script import AutomationScript
@@ -106,6 +106,8 @@ class GameState:
     current_time: float = field(default_factory=time.time)
     game_speed_multiplier: float = 1.0
     is_paused: bool = False
+    # Flag indicating this GameState was created for a tutorial session
+    is_tutorial: bool = False
 
     # Financial state
     current_money: float = 5000.0  # Starting money
@@ -151,6 +153,7 @@ class GameState:
     _last_incident_generation: float = field(default_factory=time.time)
     _incident_generation_accumulator: float = 0.0
     _offline_progress_calculated: bool = False  # Track if offline progress was calculated
+    _last_offline_report: Optional[Dict[str, Any]] = None
 
     def __post_init__(self):
         """Initialize game state after creation."""
@@ -203,7 +206,7 @@ class GameState:
                 game_config = self._json_loader.load_data("game_config.json")
                 self._passive_income_system = PassiveIncomeSystem(game_config, self._logger)
             except Exception as e:
-                self._logger.logger.warning(f"[GAME_STATE] Could not load game config, using default passive income: {e}")
+                self._logger.warning(f"[GAME_STATE] Could not load game config, using default passive income: {e}")
                 self._passive_income_system = PassiveIncomeSystem({}, self._logger)
         if self._offline_progress_system is None:
             # Load game config for offline progress settings
@@ -211,7 +214,7 @@ class GameState:
                 game_config = self._json_loader.load_data("game_config.json")
                 self._offline_progress_system = OfflineProgressSystem(game_config, self._logger)
             except Exception as e:
-                self._logger.logger.warning(f"[GAME_STATE] Could not load game config, using default offline progress: {e}")
+                self._logger.warning(f"[GAME_STATE] Could not load game config, using default offline progress: {e}")
                 self._offline_progress_system = OfflineProgressSystem({}, self._logger)
 
         # Load initial data if not provided
@@ -235,7 +238,7 @@ class GameState:
         event_bus.subscribe("completion_feedback", self._on_completion_feedback)
         event_bus.subscribe("risk_contract_offered", self._on_risk_contract_offered)
         
-        self._logger.logger.info("[GAME_STATE] Event bus subscriptions established")
+        self._logger.info("[GAME_STATE] Event bus subscriptions established")
 
     def _on_combo_feedback(self, event):
         """Handle combo feedback event from dopamine plugin."""
@@ -243,7 +246,7 @@ class GameState:
             "type": "assignment",
             "feedback": event.data
         })
-        self._logger.logger.debug(f"[GAME_STATE] Processed combo feedback: {event.data}")
+        self._logger.debug(f"[GAME_STATE] Processed combo feedback: {event.data}")
 
     def _on_completion_feedback(self, event):
         """Handle completion feedback event from dopamine plugin."""
@@ -251,7 +254,7 @@ class GameState:
             "type": "completion",
             "feedback": event.data
         })
-        self._logger.logger.debug(f"[GAME_STATE] Processed completion feedback: {event.data}")
+        self._logger.debug(f"[GAME_STATE] Processed completion feedback: {event.data}")
 
     def _on_risk_contract_offered(self, event):
         """Handle risk contract offered event from dopamine plugin."""
@@ -259,7 +262,7 @@ class GameState:
             "type": "risk_contract_offer",
             "contract": event.data
         })
-        self._logger.logger.debug(f"[GAME_STATE] Processed risk contract offer: {event.data}")
+        self._logger.debug(f"[GAME_STATE] Processed risk contract offer: {event.data}")
 
     def _generate_initial_incidents(self):
         """Generate starting incidents so player has something to interact with immediately.
@@ -271,7 +274,7 @@ class GameState:
             return
         
         initial_incident_count = random.randint(3, 5)
-        self._logger.logger.info(f"[GAME_STATE] Generating {initial_incident_count} initial incidents for new game")
+        self._logger.info(f"[GAME_STATE] Generating {initial_incident_count} initial incidents for new game")
         
         for _ in range(initial_incident_count):
             # Pick a random client
@@ -280,25 +283,34 @@ class GameState:
                 incident = self._incident_generator.generate_incident(client)
                 if incident:
                     self.incidents.append(incident)
-                    self._logger.logger.info(f"[GAME_STATE] Generated initial incident: {incident.incident_type} (difficulty {incident.difficulty})")
+                    self._logger.info(f"[GAME_STATE] Generated initial incident: {incident.incident_type} (difficulty {incident.difficulty})")
             except Exception as e:
-                self._logger.logger.warning(f"[GAME_STATE] Failed to generate initial incident: {e}")
+                self._logger.warning(f"[GAME_STATE] Failed to generate initial incident: {e}")
     
     def _load_initial_data(self):
         """Load initial game data from JSON files."""
         try:
-            # Load specialists
+            # Load game config to get starting specialist count
+            game_config = self._json_loader.load_data("game_config.json")
+            starting_specialists = game_config.get("game_settings", {}).get("starting_specialists", 2)
+            
+            # Load specialists - for new games, create starting specialists
             specialists_data = self._json_loader.load_data("specialists.json")
-            if "specialists" in specialists_data:
+            if "specialists" in specialists_data and specialists_data["specialists"]:
+                # Load existing specialists (for loaded games)
                 self.specialists = [Specialist.from_dict(s) for s in specialists_data["specialists"]]
-                
-                # IDLE GAME: Generate synergies for all specialists (strategic depth)
-                if self._idle_core:
-                    self._logger.logger.info(f"[GAME_STATE] Generating synergies for {len(self.specialists)} specialists")
-                    for specialist in self.specialists:
-                        if not hasattr(specialist, 'synergies') or not specialist.synergies:
-                            specialist.synergies = self._idle_core.generate_specialist_synergies(specialist)
-                            self._logger.logger.info(f"[GAME_STATE] Generated {len(specialist.synergies)} synergies for {specialist.name}")
+                self._logger.info(f"[GAME_STATE] Loaded {len(self.specialists)} existing specialists")
+            else:
+                # Create starting specialists for new games
+                self._create_starting_specialists(starting_specialists)
+            
+            # Generate synergies for all specialists
+            if self._idle_core:
+                self._logger.info(f"[GAME_STATE] Generating synergies for {len(self.specialists)} specialists")
+                for specialist in self.specialists:
+                    if not hasattr(specialist, 'synergies') or not specialist.synergies:
+                        specialist.synergies = self._idle_core.generate_specialist_synergies(specialist)
+                        self._logger.debug(f"[GAME_STATE] Generated {len(specialist.synergies)} synergies for {specialist.name}")
 
             # Load clients
             clients_data = self._json_loader.load_data("clients.json")
@@ -317,14 +329,100 @@ class GameState:
                     from src.models.facility import Facility
                     self.facilities = [Facility.from_dict(f) for f in facilities_data["facilities"]]
             except Exception as e:
-                self._logger.logger.warning(f"[GAME_STATE] Could not load facilities: {e}")
+                self._logger.warning(f"[GAME_STATE] Could not load facilities: {e}")
                 self.facilities = []
 
-            self._logger.logger.info(f"[GAME_STATE] Initial data loaded: specialists={len(self.specialists)}, clients={len(self.clients)}, automation_scripts={len(self.automation_scripts)}, facilities={len(self.facilities)}")
+            self._logger.info(f"[GAME_STATE] Initial data loaded: specialists={len(self.specialists)}, clients={len(self.clients)}, automation_scripts={len(self.automation_scripts)}, facilities={len(self.facilities)}")
 
         except Exception as e:
-            self._logger.logger.error(f"[GAME_STATE] Failed to load initial data: {str(e)}")
+            self._logger.error(f"[GAME_STATE] Failed to load initial data: {str(e)}")
             raise
+
+    def _create_starting_specialists(self, count: int):
+        """Create starting specialists for new games.
+        
+        Args:
+            count: Number of specialists to create
+        """
+        try:
+            # Load specialist templates
+            templates_data = self._json_loader.load_data("specialist_templates.json")
+            templates = templates_data.get("specialist_archetypes", [])
+            
+            if not templates:
+                self._logger.warning("[GAME_STATE] No specialist templates found, creating basic specialists")
+                # Fallback: create basic specialists
+                for i in range(count):
+                    specialist = Specialist(
+                        id=f"spec_{i+1:03d}",
+                        name=f"Specialist {i+1}",
+                        specialty="Network Security",
+                        level=1,
+                        xp=0,
+                        stats=SpecialistStats(speed=100, accuracy=80, experience_bonus=1.0)
+                    )
+                    self.specialists.append(specialist)
+                return
+            
+            # Create specialists from templates
+            created_count = 0
+            template_index = 0
+            
+            while created_count < count and template_index < len(templates):
+                template = templates[template_index]
+                
+                specialist = Specialist(
+                    id=f"spec_{created_count+1:03d}",
+                    name=template["name"],
+                    specialty=template["specialty"],
+                    level=1,
+                    xp=0,
+                    stats=SpecialistStats(
+                        speed=template["base_stats"]["speed"],
+                        accuracy=template["base_stats"]["accuracy"],
+                        experience_bonus=template["base_stats"]["experience_bonus"]
+                    )
+                )
+                
+                self.specialists.append(specialist)
+                created_count += 1
+                template_index += 1
+            
+            # If we need more specialists, cycle through templates
+            while created_count < count:
+                template = templates[created_count % len(templates)]
+                
+                specialist = Specialist(
+                    id=f"spec_{created_count+1:03d}",
+                    name=f"{template['name']} {created_count // len(templates) + 1}",
+                    specialty=template["specialty"],
+                    level=1,
+                    xp=0,
+                    stats=SpecialistStats(
+                        speed=template["base_stats"]["speed"],
+                        accuracy=template["base_stats"]["accuracy"],
+                        experience_bonus=template["base_stats"]["experience_bonus"]
+                    )
+                )
+                
+                self.specialists.append(specialist)
+                created_count += 1
+            
+            self._logger.info(f"[GAME_STATE] Created {len(self.specialists)} starting specialists")
+
+        except Exception as e:
+            self._logger.error(f"[GAME_STATE] Failed to create starting specialists: {e}")
+            # Fallback: create minimal specialists
+            for i in range(count):
+                specialist = Specialist(
+                    id=f"spec_{i+1:03d}",
+                    name=f"Specialist {i+1}",
+                    specialty="Network Security",
+                    level=1,
+                    xp=0,
+                    stats=SpecialistStats(speed=100, accuracy=80, experience_bonus=1.0)
+                )
+                self.specialists.append(specialist)
 
     def _check_offline_progress(self):
         """Check if player was offline and calculate offline progress."""
@@ -338,7 +436,7 @@ class GameState:
         min_offline_time = 300  # 5 minutes
         
         if time_elapsed > min_offline_time:
-            self._logger.logger.info(
+            self._logger.info(
                 f"[GAME_STATE] Player was offline for {time_elapsed/3600:.1f} hours, calculating progress..."
             )
             
@@ -350,7 +448,7 @@ class GameState:
                 # Store the report for display
                 self._last_offline_report = offline_report
                 
-                self._logger.logger.info(
+                self._logger.info(
                     f"[GAME_STATE] Offline progress complete: ${offline_report['summary']['total_income']:.2f} earned"
                 )
             
@@ -383,7 +481,7 @@ class GameState:
         if self._idle_core and self._idle_core.config.enabled:
             auto_assignments = self._idle_core.auto_assign_incidents(self)
             for assignment in auto_assignments:
-                self._logger.logger.debug(
+                self._logger.debug(
                     f"[IDLE] Auto-assigned {assignment['incident_id']} to {assignment['specialist_id']}"
                     f" (synergy: {assignment['synergy_active']}, quality: {assignment['match_quality']})"
                 )
@@ -475,7 +573,7 @@ class GameState:
                                 "contract": risk_contract
                             })
                     
-                    self._logger.logger.info(f"[GAME_STATE] Incident {incident.id} generated for client {client.id}")
+                    self._logger.info(f"[GAME_STATE] Incident {incident.id} generated for client {client.id}")
 
     def _resolve_incident(self, incident: Incident, specialist: Specialist):
         """Resolve a successfully completed incident.
@@ -513,7 +611,7 @@ class GameState:
                 base_xp = int(base_xp * synergy_bonuses["xp_multiplier"])
                 base_reward = int(base_reward * synergy_bonuses["reward_multiplier"])
                 # Speed multiplier affects completion time (already handled in simulation)
-                self._logger.logger.info(
+                self._logger.info(
                     f"[IDLE] Synergy bonus applied! {synergy_bonuses['synergy_name']}: "
                     f"{synergy_bonuses['xp_multiplier']}x XP, {synergy_bonuses['reward_multiplier']}x Reward"
                 )
@@ -587,7 +685,7 @@ class GameState:
                 "combo_broken": dopamine_feedback.get("combo_broken", False)
             })
 
-            self._logger.logger.info(f"[GAME_STATE] Incident {incident.id} resolved by {specialist.id}: reward=${reward}, XP={xp_gain}, SLA={'met' if sla_met else 'missed'}, combo={dopamine_feedback.get('combo_count', 0)}")
+            self._logger.info(f"[GAME_STATE] Incident {incident.id} resolved by {specialist.id}: reward=${reward}, XP={xp_gain}, SLA={'met' if sla_met else 'missed'}, combo={dopamine_feedback.get('combo_count', 0)}")
             
             # Generate equipment drop
             self._generate_equipment_drop(incident, specialist)
@@ -621,7 +719,7 @@ class GameState:
 
         self.metrics.total_incidents_failed += 1
 
-        self._logger.logger.warning(f"[GAME_STATE] Incident {incident.id} failed: penalty=${penalty}")
+        self._logger.warning(f"[GAME_STATE] Incident {incident.id} failed: penalty=${penalty}")
 
     def _generate_equipment_drop(self, incident: Incident, specialist: Specialist):
         """Generate equipment drop after successful incident resolution.
@@ -656,12 +754,12 @@ class GameState:
                         "rarity": equipment.rarity
                     })
 
-                    self._logger.logger.info(
+                    self._logger.info(
                         f"[GAME_STATE] Equipment drop: {equipment.name} ({equipment.rarity}) "
                         f"awarded to {specialist.name}"
                     )
         except Exception as e:
-            self._logger.logger.warning(f"[GAME_STATE] Failed to generate equipment drop: {e}")
+            self._logger.warning(f"[GAME_STATE] Failed to generate equipment drop: {e}")
 
     def _update_metrics(self):
         """Update real-time game metrics."""
@@ -704,12 +802,12 @@ class GameState:
             if unlocked_abilities:
                 rewards["unlocked_abilities"] = unlocked_abilities
             
-            self._logger.logger.info(
+            self._logger.info(
                 f"[GAME_STATE] Specialist {specialist.id} leveled up to {specialist.level}: "
                 f"stats={rewards['stat_increases']}, abilities={unlocked_abilities}"
             )
         except Exception as e:
-            self._logger.logger.warning(f"[GAME_STATE] Failed to process level up: {e}")
+            self._logger.warning(f"[GAME_STATE] Failed to process level up: {e}")
     
     def _generate_equipment_drop(self, incident, specialist):
         """Generate equipment drop from incident resolution.
@@ -733,12 +831,12 @@ class GameState:
             if dropped_equipment:
                 # Add to specialist's inventory
                 equipment_system.add_to_inventory(specialist, dropped_equipment)
-                self._logger.logger.info(
+                self._logger.info(
                     f"[GAME_STATE] Equipment drop: {dropped_equipment.name} "
                     f"({dropped_equipment.rarity}) for {specialist.id}"
                 )
         except Exception as e:
-            self._logger.logger.warning(f"[GAME_STATE] Failed to generate equipment drop: {e}")
+            self._logger.warning(f"[GAME_STATE] Failed to generate equipment drop: {e}")
 
     # Public interface methods
 
@@ -798,9 +896,9 @@ class GameState:
                 "specialist": specialist,
                 "assignment_time": self.current_time
             })
-            self._logger.logger.debug(f"[GAME_STATE] Published incident_assigned event for {incident_id}")
+            self._logger.debug(f"[GAME_STATE] Published incident_assigned event for {incident_id}")
 
-            self._logger.logger.info(f"[GAME_STATE] Manual assignment: incident {incident_id} to specialist {specialist_id}")
+            self._logger.info(f"[GAME_STATE] Manual assignment: incident {incident_id} to specialist {specialist_id}")
 
         return success
 
@@ -823,11 +921,11 @@ class GameState:
             self.specialists.append(specialist)
             self.current_money -= hire_cost
 
-            self._logger.logger.info(f"[GAME_STATE] Specialist {specialist.id} hired for ${hire_cost}")
+            self._logger.info(f"[GAME_STATE] Specialist {specialist.id} hired for ${hire_cost}")
 
             return True
         except Exception as e:
-            self._logger.logger.warning(f"[GAME_STATE] Specialist hire failed: {str(e)}")
+            self._logger.warning(f"[GAME_STATE] Specialist hire failed: {str(e)}")
             return False
 
     def upgrade_specialist(self, specialist_id: str, upgrade_type: str) -> bool:
@@ -861,7 +959,7 @@ class GameState:
 
         self.current_money -= upgrade_cost
 
-        self._logger.logger.info(f"[GAME_STATE] Specialist {specialist_id} upgraded ({upgrade_type}) for ${upgrade_cost}")
+        self._logger.info(f"[GAME_STATE] Specialist {specialist_id} upgraded ({upgrade_type}) for ${upgrade_cost}")
 
         return True
 
@@ -1121,7 +1219,7 @@ class GameState:
         return instance
 
     @property
-    def incident_generator(self) -> IncidentGenerator:
+    def incident_generator(self) -> Optional[IncidentGenerator]:
         """Get the incident generator instance."""
         return self._incident_generator
 

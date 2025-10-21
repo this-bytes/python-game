@@ -6,8 +6,8 @@ ensuring proper initialization order, update coordination, and save/load.
 
 from typing import Dict, List, Optional, Set
 from src.core.game_system import GameSystem
-from src.core.feature_manager import get_feature_manager
-from src.core.event_bus import get_event_bus
+from src.core.feature_manager import get_feature_manager, FeatureManager
+from src.core.event_bus import get_event_bus, EventBus
 from src.models.game_state import GameState
 from src.utils.logger import GameLogger
 
@@ -38,6 +38,13 @@ class SystemManager:
         ```
     """
     
+    # Class-level annotations for tools/static checkers
+    _systems: Dict[str, GameSystem]
+    _system_order: List[str]
+    _feature_manager: FeatureManager
+    _event_bus: EventBus
+    _logger: GameLogger
+
     def __init__(self):
         """Initialize the system manager."""
         self._systems: Dict[str, GameSystem] = {}
@@ -57,16 +64,16 @@ class SystemManager:
         name = system.get_name()
         
         if name in self._systems:
-            self._logger.logger.warning(f"[SYSTEM_MANAGER] System '{name}' already registered, replacing")
+            self._logger.warning(f"[SYSTEM_MANAGER] System '{name}' already registered, replacing")
         
         self._systems[name] = system
         
         # Rebuild initialization order
         self._rebuild_system_order()
         
-        self._logger.logger.info(f"[SYSTEM_MANAGER] Registered system: {name}")
+        self._logger.info(f"[SYSTEM_MANAGER] Registered system: {name}")
     
-    def unregister_system(self, system_name: str, game_state: GameState = None):
+    def unregister_system(self, system_name: str, game_state: Optional[GameState] = None):
         """Unregister and shutdown a game system.
         
         Args:
@@ -85,7 +92,7 @@ class SystemManager:
         del self._systems[system_name]
         self._rebuild_system_order()
         
-        self._logger.logger.info(f"[SYSTEM_MANAGER] Unregistered system: {system_name}")
+        self._logger.info(f"[SYSTEM_MANAGER] Unregistered system: {system_name}")
     
     def initialize_all(self, game_state: GameState):
         """Initialize all registered systems in dependency order.
@@ -95,7 +102,7 @@ class SystemManager:
         Args:
             game_state: Game state to pass to systems
         """
-        self._logger.logger.info("[SYSTEM_MANAGER] Initializing all systems...")
+        self._logger.info("[SYSTEM_MANAGER] Initializing all systems...")
         
         initialized_count = 0
         skipped_count = 0
@@ -106,7 +113,7 @@ class SystemManager:
             # Check feature flag
             feature_id = system.get_feature_id()
             if feature_id and not self._feature_manager.is_enabled(feature_id):
-                self._logger.logger.info(
+                self._logger.info(
                     f"[SYSTEM_MANAGER] Skipping '{system_name}' (feature '{feature_id}' disabled)"
                 )
                 skipped_count += 1
@@ -115,7 +122,7 @@ class SystemManager:
             # Check dependencies
             deps_met = self._check_dependencies(system)
             if not deps_met:
-                self._logger.logger.warning(
+                self._logger.warning(
                     f"[SYSTEM_MANAGER] Skipping '{system_name}' (dependencies not met)"
                 )
                 skipped_count += 1
@@ -126,14 +133,14 @@ class SystemManager:
                 system.initialize(game_state)
                 system.set_initialized(True)
                 initialized_count += 1
-                self._logger.logger.info(f"[SYSTEM_MANAGER] Initialized: {system_name}")
+                self._logger.info(f"[SYSTEM_MANAGER] Initialized: {system_name}")
             except Exception as e:
-                self._logger.logger.error(
+                self._logger.error(
                     f"[SYSTEM_MANAGER] Failed to initialize '{system_name}': {e}"
                 )
                 skipped_count += 1
         
-        self._logger.logger.info(
+        self._logger.info(
             f"[SYSTEM_MANAGER] Initialization complete: "
             f"{initialized_count} initialized, {skipped_count} skipped"
         )
@@ -155,7 +162,7 @@ class SystemManager:
             try:
                 system.update(game_state, delta_time)
             except Exception as e:
-                self._logger.logger.error(
+                self._logger.error(
                     f"[SYSTEM_MANAGER] Error updating '{system_name}': {e}"
                 )
         
@@ -168,7 +175,7 @@ class SystemManager:
         Args:
             game_state: Game state for shutdown
         """
-        self._logger.logger.info("[SYSTEM_MANAGER] Shutting down all systems...")
+        self._logger.info("[SYSTEM_MANAGER] Shutting down all systems...")
         
         # Shutdown in reverse order
         for system_name in reversed(self._system_order):
@@ -177,9 +184,9 @@ class SystemManager:
             if system.is_initialized():
                 try:
                     system.shutdown(game_state)
-                    self._logger.logger.info(f"[SYSTEM_MANAGER] Shutdown: {system_name}")
+                    self._logger.info(f"[SYSTEM_MANAGER] Shutdown: {system_name}")
                 except Exception as e:
-                    self._logger.logger.error(
+                    self._logger.error(
                         f"[SYSTEM_MANAGER] Error shutting down '{system_name}': {e}"
                     )
     
@@ -203,7 +210,7 @@ class SystemManager:
                     if state_data:
                         system_states[system_name] = state_data
                 except Exception as e:
-                    self._logger.logger.error(
+                    self._logger.error(
                         f"[SYSTEM_MANAGER] Error saving '{system_name}': {e}"
                     )
         
@@ -222,9 +229,9 @@ class SystemManager:
             if system.is_initialized() and system_name in system_states:
                 try:
                     system.load_state(game_state, system_states[system_name])
-                    self._logger.logger.info(f"[SYSTEM_MANAGER] Loaded state: {system_name}")
+                    self._logger.info(f"[SYSTEM_MANAGER] Loaded state: {system_name}")
                 except Exception as e:
-                    self._logger.logger.error(
+                    self._logger.error(
                         f"[SYSTEM_MANAGER] Error loading '{system_name}': {e}"
                     )
     
@@ -291,7 +298,7 @@ class SystemManager:
         
         # Check for cycles
         if len(order) != len(self._systems):
-            self._logger.logger.error(
+            self._logger.error(
                 "[SYSTEM_MANAGER] Circular dependencies detected in systems!"
             )
             # Fall back to registration order

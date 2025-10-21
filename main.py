@@ -11,11 +11,12 @@ import os
 from datetime import datetime
 from typing import Optional
 
-# Add parent directory to path so src imports work
-sys.path.insert(0, '/home/localadmin/code/python-game')
 
-# Change to project root directory so relative paths work
-# os.chdir('/home/localadmin/code/python-game')
+
+# NOTE: Avoid inserting absolute paths into sys.path. Development should use
+# an editable install (pip install -e .) or run from the project root so
+# imports resolve correctly. Do not modify sys.path here.
+
 
 from src.models.game_state import GameState
 from src.ui.game_ui import GameUI
@@ -132,13 +133,13 @@ class Game:
         """
         with self.logger.operation("Main Menu Initialization"):
             try:
-                # Initialize Pygame if not already done
+                # Pygame initialization is handled in main() to keep startup
+                # deterministic. If for some reason it isn't initialized yet,
+                # initialize it here (defensive).
                 if not pygame.get_init():
-                    self.logger.debug("[GAME] Initializing Pygame...")
+                    self.logger.debug("[GAME] Pygame not initialized yet; initializing defensively...")
                     pygame.init()
-                    self.logger.debug("[GAME] Pygame initialized")
-                else:
-                    self.logger.debug("[GAME] Pygame already initialized")
+                    self.logger.debug("[GAME] Pygame initialized (defensive)")
                 
                 # Create main menu
                 self.logger.debug("[GAME] Creating main menu...")
@@ -177,22 +178,32 @@ class Game:
             else:
                 # Load specific slot
                 slot = self.args.save_slot
-            
-            self.logger.logger.info(f"[GAME] Loading game from slot {slot}...")
-            
+
+            self.logger.info(f"[GAME] Loading game from slot {slot}...")
+
+            # Defensive: ensure save_manager exists before calling into it
+            if not self.save_manager:
+                self.logger.warning("[GAME] Save manager not initialized; cannot load save. Starting new game instead.")
+                return self._initialize_new_game()
+
+            # Validate slot is provided (static analysis and runtime guard)
+            if slot is None:
+                self.logger.error("[GAME] No save slot specified for load; starting new game instead")
+                return self._initialize_new_game()
+
             # Load game state
-            self.game_state = self.save_manager.load_game(slot)
-            
+            self.game_state = self.save_manager.load_game(int(slot))
+
             # Initialize UI and systems with loaded state
             return self._initialize_game_systems()
-            
+
         except FileNotFoundError:
-            self.logger.logger.error("[GAME] Save file not found")
+            self.logger.error("[GAME] Save file not found")
             # Fall back to new game
-            self.logger.logger.info("[GAME] Starting new game instead...")
+            self.logger.info("[GAME] Starting new game instead...")
             return self._initialize_new_game()
         except Exception as e:
-            self.logger.logger.error(f"[GAME] Failed to load save: {e}")
+            self.logger.error(f"[GAME] Failed to load save: {e}")
             return False
     
     def _initialize_new_game(self) -> bool:
@@ -228,11 +239,11 @@ class Game:
         """
         try:
             # Load game data
-            self.logger.logger.info("[GAME] Loading game configuration for tutorial...")
+            self.logger.info("[GAME] Loading game configuration for tutorial...")
             game_data = load_game_data()
 
             # Initialize game state with tutorial-specific settings
-            self.logger.logger.info("[GAME] Initializing tutorial game state...")
+            self.logger.info("[GAME] Initializing tutorial game state...")
             self.game_state = GameState()
             
             # Mark this as a tutorial session
@@ -242,13 +253,13 @@ class Game:
             else:
                 self.game_state.is_tutorial = True
             
-            self.logger.logger.info("[GAME] Tutorial mode enabled")
+            self.logger.info("[GAME] Tutorial mode enabled")
             
             # Initialize UI and systems
             return self._initialize_game_systems()
             
         except Exception as e:
-            self.logger.logger.error(f"[GAME] Failed to initialize tutorial: {e}")
+            self.logger.error(f"[GAME] Failed to initialize tutorial: {e}")
             return False
     
     def _initialize_game_systems(self) -> bool:
@@ -278,28 +289,44 @@ class Game:
                 
                 # Register game systems as plugins
                 with self.logger.operation("Plugin Registration"):
-                    plugins = [
-                        ("IdlePlugin", IdlePlugin()),
-                        ("PrestigeSystem", PrestigeSystem()),
-                        ("AchievementSystem", AchievementSystem()),
-                        ("BurnoutPlugin", BurnoutPlugin()),
-                        ("RelationshipsPlugin", RelationshipsPlugin()),
-                        ("DopaminePlugin", DopaminePlugin()),
-                        ("EquipmentPlugin", EquipmentPlugin()),
-                        ("AbilityPlugin", AbilityPlugin()),
-                        ("PassiveIncomePlugin", PassiveIncomePlugin()),
-                        ("FacilityPlugin", FacilityPlugin()),
-                        ("ProgressiveDifficultyPlugin", ProgressiveDifficultyPlugin()),
-                        ("SkillTreePlugin", SkillTreePlugin()),
-                        ("TeamDynamicsPlugin", TeamDynamicsPlugin()),
-                        ("EconomyPlugin", EconomyPlugin()),
+                    # Instantiate plugin classes defensively: if one plugin fails
+                    # to instantiate, log the error and continue registering the
+                    # remaining plugins. This makes initialization more robust
+                    # during development when plugin code may be in flux.
+                    plugin_classes = [
+                        ("IdlePlugin", IdlePlugin),
+                        ("PrestigeSystem", PrestigeSystem),
+                        ("AchievementSystem", AchievementSystem),
+                        ("BurnoutPlugin", BurnoutPlugin),
+                        ("RelationshipsPlugin", RelationshipsPlugin),
+                        ("DopaminePlugin", DopaminePlugin),
+                        ("EquipmentPlugin", EquipmentPlugin),
+                        ("AbilityPlugin", AbilityPlugin),
+                        ("PassiveIncomePlugin", PassiveIncomePlugin),
+                        ("FacilityPlugin", FacilityPlugin),
+                        ("ProgressiveDifficultyPlugin", ProgressiveDifficultyPlugin),
+                        ("SkillTreePlugin", SkillTreePlugin),
+                        ("TeamDynamicsPlugin", TeamDynamicsPlugin),
+                        ("EconomyPlugin", EconomyPlugin),
                     ]
-                    
-                    for plugin_name, plugin_instance in plugins:
-                        self.logger.debug(f"[SYSTEM] Registering {plugin_name}...")
-                        self.system_manager.register_system(plugin_instance)
-                    
-                    self.logger.info(f"[SYSTEM] Registered {len(plugins)} game systems")
+
+                    registered = 0
+                    for plugin_name, plugin_cls in plugin_classes:
+                        try:
+                            self.logger.debug(f"[SYSTEM] Instantiating {plugin_name}...")
+                            plugin_instance = plugin_cls()
+                        except Exception as e:
+                            self.logger.error(f"[SYSTEM] Failed to instantiate {plugin_name}: {e}")
+                            continue
+
+                        try:
+                            self.logger.debug(f"[SYSTEM] Registering {plugin_name}...")
+                            self.system_manager.register_system(plugin_instance)
+                            registered += 1
+                        except Exception as e:
+                            self.logger.error(f"[SYSTEM] Failed to register {plugin_name}: {e}")
+
+                    self.logger.info(f"[SYSTEM] Registered {registered} game systems")
                 
                 # Initialize all registered systems
                 with self.logger.operation("Systems Initialization"):
@@ -331,6 +358,9 @@ class Game:
                             self.ui, self.game_state, self.logger
                         )
                         self.logger.debug("[GAME] Screenshot utility initialized")
+                        
+                        # Set screenshot utility on UI for hotkey callbacks
+                        self.ui.set_screenshot_utility(self.screenshot_utility)
 
                 # Initialize backend integration
                 with self.logger.operation("Backend Integration Initialization"):
@@ -362,10 +392,10 @@ class Game:
     def run(self) -> None:
         """Run the main game loop."""
         if not self.initialize():
-            self.logger.logger.error("[GAME] Game initialization failed. Exiting.")
+            self.logger.error("[GAME] Game initialization failed. Exiting.")
             sys.exit(1)
 
-        self.logger.logger.info("[GAME] Starting main game loop...")
+        self.logger.info("[GAME] Starting main game loop...")
 
         try:
             while self.running:
@@ -394,11 +424,12 @@ class Game:
                         self._run_game(events, delta_time)
 
         except KeyboardInterrupt:
-            self.logger.logger.info("[GAME] Game interrupted by user")
+            self.logger.info("[GAME] Game interrupted by user")
         except Exception as e:
             import traceback
-            self.logger.logger.error(f"[GAME] Unexpected error in game loop: {e}")
-            self.logger.logger.error(f"[GAME] Traceback:\n{traceback.format_exc()}")
+            self.logger.error(f"[GAME] Unexpected error in game loop: {e}", exception=e)
+            # Log full traceback via wrapper's error with exception
+            self.logger.error(f"[GAME] Traceback:\n{traceback.format_exc()}")
         finally:
             self.shutdown()
     
@@ -419,15 +450,15 @@ class Game:
             self.running = False
             return
         elif action == MenuAction.NEW_GAME:
-            self.logger.logger.info("[GAME] Starting new game from menu...")
+            self.logger.info("[GAME] Starting new game from menu...")
             if self._initialize_new_game():
                 self.in_menu = False
         elif action == MenuAction.CONTINUE:
-            self.logger.logger.info("[GAME] Continuing game from menu...")
+            self.logger.info("[GAME] Continuing game from menu...")
             if self._initialize_from_save():
                 self.in_menu = False
         elif action == MenuAction.TUTORIAL:
-            self.logger.logger.info("[GAME] Starting tutorial from menu...")
+            self.logger.info("[GAME] Starting tutorial from menu...")
             if self._initialize_tutorial():
                 self.in_menu = False
         elif action == MenuAction.SETTINGS:
@@ -446,12 +477,12 @@ class Game:
         """
         # Validate critical objects exist before using them
         if not self.game_state:
-            self.logger.logger.error("[GAME] game_state is None in _run_game!")
+            self.logger.error("[GAME] game_state is None in _run_game!")
             self.running = False
             return
         
         if not self.ui:
-            self.logger.logger.error("[GAME] ui is None in _run_game!")
+            self.logger.error("[GAME] ui is None in _run_game!")
             self.running = False
             return
         
@@ -491,28 +522,28 @@ class Game:
         """
         # This will be expanded as we implement more UI interactions
         # For now, just log the action
-        self.logger.logger.debug(f"[GAME] Processing action: {action}")
+        self.logger.debug(f"[GAME] Processing action: {action}")
 
     def shutdown(self) -> None:
         """Clean shutdown of all systems."""
-        self.logger.logger.info("[GAME] Shutting down...")
-        
+        self.logger.info("[GAME] Shutting down...")
+
         # Auto-save before shutdown (if we have a game state)
         if self.game_state and self.save_manager and not self.in_menu:
             try:
-                self.logger.logger.info("[GAME] Auto-saving game...")
+                self.logger.info("[GAME] Auto-saving game...")
                 self.save_manager.auto_save(self.game_state)
             except Exception as e:
-                self.logger.logger.error(f"[GAME] Auto-save failed: {e}")
+                self.logger.error("[GAME] Auto-save failed", exception=e)
 
         # Shutdown plugins/systems first
         if self.system_manager and self.game_state:
-            self.logger.logger.info("[GAME] Shutting down all game systems...")
+            self.logger.info("[GAME] Shutting down all game systems...")
             self.system_manager.shutdown_all(self.game_state)
 
         if self.backend_integration:
             self.backend_integration.disconnect()
-        
+
         if self.main_menu:
             self.main_menu.shutdown()
 
@@ -520,7 +551,7 @@ class Game:
             self.ui.shutdown()
 
         pygame.quit()
-        self.logger.logger.info("[GAME] Game shutdown complete")
+        self.logger.info("[GAME] Game shutdown complete")
 
 
 def main():

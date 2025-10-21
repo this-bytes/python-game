@@ -258,8 +258,8 @@ class ParticleSystem:
             ParticlePreset.TRAIL.value: self._create_trail_config,
             ParticlePreset.DUST.value: self._create_dust_config,
         }
-        
-        self.logger.logger.info(f"ParticleSystem initialized with pool size {self._pool_size}")
+
+        self.logger.info(f"ParticleSystem initialized with pool size {self._pool_size}")
     
     def _get_inactive_particle(self) -> Optional[Particle]:
         """Get an inactive particle from the pool.
@@ -273,7 +273,7 @@ class ParticleSystem:
                 return particle
         
         # Pool exhausted - grow it
-        self.logger.logger.warning(f"Particle pool exhausted, growing from {self._pool_size}")
+        self.logger.warning(f"Particle pool exhausted, growing from {self._pool_size}")
         new_particles = [Particle() for _ in range(100)]
         self._pool.extend(new_particles)
         self._pool_size += 100
@@ -301,7 +301,7 @@ class ParticleSystem:
             Number of particles actually emitted
         """
         if preset not in self._presets:
-            self.logger.logger.warning(f"Unknown particle preset: {preset}")
+            self.logger.warning(f"Unknown particle preset: {preset}")
             return 0
         
         config_func = self._presets[preset]
@@ -397,7 +397,7 @@ class ParticleSystem:
         """
         emitter = ParticleEmitter(x, y, emission_rate, preset, duration)
         self._emitters.append(emitter)
-        self.logger.logger.info(f"Created emitter at ({x}, {y}) with preset {preset}")
+        self.logger.info(f"Created emitter at ({x}, {y}) with preset {preset}")
         return emitter
     
     def remove_emitter(self, emitter: ParticleEmitter):
@@ -469,7 +469,7 @@ class ParticleSystem:
             particle.active = False
         self._active_count = 0
         self._emitters.clear()
-        self.logger.logger.info("Cleared all particles and emitters")
+        self.logger.info("Cleared all particles and emitters")
     
     def get_stats(self) -> Dict[str, int]:
         """Get particle system statistics.

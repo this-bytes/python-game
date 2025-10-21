@@ -78,7 +78,7 @@ class ExamplePlugin(GameSystem):
             EventPriority.HIGH
         )
         
-        self.logger.logger.info("[EXAMPLE] Plugin initialized")
+        self.logger.info("[EXAMPLE] Plugin initialized")
     
     def update(self, game_state: GameState, delta_time: float):
         """Update plugin every frame.
@@ -115,7 +115,7 @@ class ExamplePlugin(GameSystem):
         - Save final state
         - Cleanup resources
         """
-        self.logger.logger.info(
+        self.logger.info(
             f"[EXAMPLE] Plugin shutting down (counter: {self.example_counter})"
         )
     
@@ -145,7 +145,7 @@ class ExamplePlugin(GameSystem):
         self.example_counter = state_data.get("example_counter", 0)
         self.example_data = state_data.get("example_data", {})
         
-        self.logger.logger.info(
+        self.logger.info(
             f"[EXAMPLE] State loaded (counter: {self.example_counter})"
         )
     
@@ -158,7 +158,7 @@ class ExamplePlugin(GameSystem):
         incident_id = event.data.get("incident_id")
         reward = event.data.get("reward", 0)
         
-        self.logger.logger.debug(
+        self.logger.debug(
             f"[EXAMPLE] Incident {incident_id} resolved for ${reward}"
         )
         
@@ -176,7 +176,7 @@ class ExamplePlugin(GameSystem):
         specialist_id = event.data.get("specialist_id")
         new_level = event.data.get("new_level")
         
-        self.logger.logger.info(
+        self.logger.info(
             f"[EXAMPLE] Specialist {specialist_id} reached level {new_level}"
         )
         

@@ -1,4 +1,4 @@
-# Rich Logging System Documentation
+# Logging System Documentation
 
 ## Overview
 
