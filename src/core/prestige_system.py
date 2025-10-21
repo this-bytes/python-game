@@ -110,9 +110,10 @@ class PrestigeSystem:
         new_state.prestige_upgrades = old_prestige_upgrades
         new_state.total_prestiges = old_total_prestiges + 1
         
-        # Keep clients (but reset reputation to a base level)
+        # Keep clients (but reduce satisfaction slightly as penalty for prestige reset)
         for client in old_clients:
-            client.reputation = max(50, client.reputation // 2)  # Half reputation, min 50
+            # Reduce satisfaction by 50%, but don't go below 0.3 (30%)
+            client.satisfaction = max(0.3, client.satisfaction * 0.5)
         new_state.clients = old_clients
         
         # Apply prestige bonuses to new state

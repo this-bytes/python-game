@@ -1,0 +1,125 @@
+{
+  "industry_profiles": {
+    "banking": {
+      "name": "Banking",
+      "threat_level": "critical",
+      "avg_monthly_incidents": 12,
+      "severity_distribution": {
+        "critical": 0.15,
+        "high": 0.35,
+        "medium": 0.35,
+        "low": 0.15
+      },
+      "threat_landscape": [
+        "Fraud Detection",
+        "Account Takeover",
+        "DDoS Attacks",
+        "Data Exfiltration",
+        "Ransomware",
+        "Insider Threats"
+      ],
+      "compliance_requirements": "PCI-DSS, SOX"
+    },
+    "ecommerce": {
+      "name": "E-Commerce",
+      "threat_level": "high",
+      "avg_monthly_incidents": 8,
+      "severity_distribution": {
+        "critical": 0.10,
+        "high": 0.25,
+        "medium": 0.45,
+        "low": 0.20
+      },
+      "threat_landscape": [
+        "Payment Card Fraud",
+        "Account Compromise",
+        "Web App Attacks",
+        "Inventory Theft",
+        "DDOS",
+        "Malware"
+      ],
+      "compliance_requirements": "PCI-DSS"
+    },
+    "healthcare": {
+      "name": "Healthcare",
+      "threat_level": "critical",
+      "avg_monthly_incidents": 15,
+      "severity_distribution": {
+        "critical": 0.20,
+        "high": 0.40,
+        "medium": 0.30,
+        "low": 0.10
+      },
+      "threat_landscape": [
+        "Patient Data Breach",
+        "Ransomware",
+        "Medical Device Compromise",
+        "Phishing",
+        "Insider Theft",
+        "Regulatory Violation"
+      ],
+      "compliance_requirements": "HIPAA"
+    },
+    "government": {
+      "name": "Government",
+      "threat_level": "critical",
+      "avg_monthly_incidents": 20,
+      "severity_distribution": {
+        "critical": 0.25,
+        "high": 0.45,
+        "medium": 0.25,
+        "low": 0.05
+      },
+      "threat_landscape": [
+        "Nation-State Attacks",
+        "Classified Data Theft",
+        "Infrastructure Attack",
+        "Zero-Day Exploitation",
+        "Supply Chain Attack",
+        "Insider Compromise"
+      ],
+      "compliance_requirements": "NIST, FedRAMP"
+    },
+    "saas": {
+      "name": "SaaS",
+      "threat_level": "medium",
+      "avg_monthly_incidents": 5,
+      "severity_distribution": {
+        "critical": 0.05,
+        "high": 0.20,
+        "medium": 0.50,
+        "low": 0.25
+      },
+      "threat_landscape": [
+        "API Abuse",
+        "Account Enumeration",
+        "Data Exfiltration",
+        "Account Takeover",
+        "Denial of Service",
+        "Privilege Escalation"
+      ],
+      "compliance_requirements": "SOC2"
+    }
+    ,
+    "technology": {
+      "name": "technology",
+      "threat_level": "medium",
+      "avg_monthly_incidents": 5,
+      "severity_distribution": {
+        "critical": 0.05,
+        "high": 0.20,
+        "medium": 0.50,
+        "low": 0.25
+      },
+      "threat_landscape": [
+        "API Abuse",
+        "Account Enumeration",
+        "Data Exfiltration",
+        "Account Takeover",
+        "Denial of Service",
+        "Privilege Escalation"
+      ],
+      "compliance_requirements": "SOC2"
+    }
+  }
+}

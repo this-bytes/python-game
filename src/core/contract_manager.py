@@ -1,6 +1,17 @@
 """Contract management system for negotiating and managing service agreements.
 
-The ContractManager handles contract negotiation, renewal, termination, and
+The ContractManager handl        # Better satisfaction = better renewal terms
+        # Satisfaction scale: 0-1, so 0.8 (80%) = excellent, 0.6 (60%) = good
+        new_duration = contract.duration_days
+        new_base_rate = contract.base_rate
+
+        if client.satisfaction >= 0.8:
+            # Excellent satisfaction: 20% rate increase, longer duration
+            new_base_rate *= 1.2
+            new_duration = int(new_duration * 1.5)
+        elif client.satisfaction >= 0.6:
+            # Good satisfaction: 10% rate increase
+            new_base_rate *= 1.1 negotiation, renewal, termination, and
 calculates penalties/bonuses based on contract terms.
 """
 
@@ -56,9 +67,10 @@ class ContractManager:
         if not template:
             return None
 
-        # Check client reputation - better reputation = better terms possible
-        if client.reputation < 30:
-            # Low reputation clients unlikely to accept negotiations
+        # Check client satisfaction - better satisfaction = better terms possible
+        # Satisfaction scale: 0-1, so 0.3 (30%) = low, 0.8 (80%) = good
+        if client.satisfaction < 0.3:
+            # Low satisfaction clients unlikely to accept negotiations
             return None
 
         # Create contract from template with negotiated terms
@@ -103,15 +115,15 @@ class ContractManager:
             return contract
 
         # Better reputation = better renewal terms
-        new_duration = contract.duration_days
-        new_base_rate = contract.base_rate
+        new_duration = contract.end_month - contract.start_month + 1
+        new_base_rate = contract.monthly_value
 
-        if client.reputation >= 80:
-            # Excellent reputation: 20% rate increase, longer duration
+        if client.satisfaction >= 80:
+            # Excellent satisfaction: 20% rate increase, longer duration
             new_base_rate *= 1.2
             new_duration = int(new_duration * 1.5)
-        elif client.reputation >= 60:
-            # Good reputation: 10% rate increase
+        elif client.satisfaction >= 60:
+            # Good satisfaction: 10% rate increase
             new_base_rate *= 1.1
 
         # Renew with improved terms

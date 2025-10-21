@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "client_schema.json",
   "title": "Clients Configuration",
-  "description": "Schema for client contracts configuration file",
+  "description": "Schema for client contracts configuration file - SOC Startup Management",
   "type": "object",
   "required": ["clients"],
   "properties": {
@@ -11,14 +11,14 @@
       "description": "Array of client contract configurations",
       "items": {
         "type": "object",
-        "required": ["id", "name", "incident_rate_per_minute", "sla_multiplier", "reputation", "contract_value"],
+        "required": ["client_id", "company_name", "industry", "monthly_contract_value", "sla_response_time_seconds", "sla_resolution_time_seconds", "contract_start_month", "contract_end_month"],
         "properties": {
-          "id": {
+          "client_id": {
             "type": "string",
             "description": "Unique identifier for the client",
             "pattern": "^client_[0-9]{3}$"
           },
-          "name": {
+          "company_name": {
             "type": "string",
             "description": "Client company name",
             "minLength": 2,
@@ -28,44 +28,102 @@
             "type": "string",
             "description": "Client industry sector",
             "enum": [
-              "Technology",
-              "Finance",
-              "Healthcare",
-              "Retail",
-              "Manufacturing",
-              "Government",
-              "Education",
-              "Energy"
+              "banking",
+              "ecommerce",
+              "healthcare",
+              "government",
+              "saas",
+              "technology",
+              "manufacturing",
+              "retail",
+              "education",
+              "energy",
+              "telecom",
+              "finance"
             ]
           },
-          "incident_rate_per_minute": {
+          "monthly_contract_value": {
             "type": "number",
-            "description": "Average number of incidents generated per minute",
-            "minimum": 0.01,
-            "maximum": 10.0
-          },
-          "sla_multiplier": {
-            "type": "number",
-            "description": "Multiplier applied to base SLA times",
-            "minimum": 0.5,
-            "maximum": 3.0
-          },
-          "reputation": {
-            "type": "integer",
-            "description": "Current reputation score with client (0-100)",
-            "minimum": 0,
-            "maximum": 100
-          },
-          "contract_value": {
-            "type": "integer",
             "description": "Monthly contract value in dollars",
             "minimum": 1000,
             "maximum": 10000000
           },
-          "active": {
+          "sla_response_time_seconds": {
+            "type": "integer",
+            "description": "SLA response time requirement in seconds",
+            "minimum": 300,
+            "maximum": 86400
+          },
+          "sla_resolution_time_seconds": {
+            "type": "integer",
+            "description": "SLA resolution time requirement in seconds",
+            "minimum": 3600,
+            "maximum": 604800
+          },
+          "contract_start_month": {
+            "type": "integer",
+            "description": "Contract start month (0-12)",
+            "minimum": 0,
+            "maximum": 12
+          },
+          "contract_end_month": {
+            "type": "integer",
+            "description": "Contract end month (0-12)",
+            "minimum": 0,
+            "maximum": 12
+          },
+          "satisfaction": {
+            "type": "number",
+            "description": "Client satisfaction (0.0-1.0)",
+            "minimum": 0.0,
+            "maximum": 1.0,
+            "default": 1.0
+          },
+          "is_active": {
             "type": "boolean",
             "description": "Whether contract is currently active",
             "default": true
+          },
+          "avg_monthly_incidents": {
+            "type": "integer",
+            "description": "Average incidents per month",
+            "minimum": 1,
+            "default": 5
+          },
+          "threat_landscape": {
+            "type": "array",
+            "description": "List of threat types for this client",
+            "items": {"type": "string"},
+            "default": []
+          },
+          "incident_severity_distribution": {
+            "type": "object",
+            "description": "Severity distribution: critical, high, medium, low",
+            "properties": {
+              "critical": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+              "high": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+              "medium": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+              "low": {"type": "number", "minimum": 0.0, "maximum": 1.0}
+            },
+            "default": {}
+          },
+          "assigned_specialists": {
+            "type": "array",
+            "description": "List of assigned specialist IDs",
+            "items": {"type": "string"},
+            "default": []
+          },
+          "historical_sla_misses": {
+            "type": "integer",
+            "description": "Count of SLA violations",
+            "minimum": 0,
+            "default": 0
+          },
+          "months_active": {
+            "type": "integer",
+            "description": "Number of months client has been active",
+            "minimum": 0,
+            "default": 0
           }
         }
       }

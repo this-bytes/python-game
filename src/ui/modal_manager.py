@@ -22,14 +22,22 @@ from src.ui.modals.incident_detail_modal import IncidentDetailModal
 class ModalManager:
     """Manages a stack of UI modals."""
 
-    def __init__(self, screen: pygame.Surface):
+    def __init__(self, screen: pygame.Surface, game_state=None, on_open=None, on_close=None):
         """
         Initializes the ModalManager.
 
         Args:
             screen (pygame.Surface): The main display surface to draw modals on.
+            game_state: Optional GameState reference to forward to modal constructors.
         """
         self.screen = screen
+        self.game_state = game_state
+        # Optional callbacks invoked when a modal opens/closes. These allow
+        # the surrounding UI (GameUI) to capture and restore focus state.
+        # on_open() -> called before modal is pushed
+        # on_close() -> called after modal is popped
+        self._on_open_callback = on_open
+        self._on_close_callback = on_close
         self.modal_stack: list = []
         self._modal_factory = {
             "specialist_detail": SpecialistDetailModal,
@@ -50,15 +58,34 @@ class ModalManager:
         if event.type == SHOW_MODAL:
             modal_id = event.dict.get("modal_id")
             if modal_id in self._modal_factory:
-                # Pass the screen and the rest of the event dict to the modal
-                modal_data = event.dict
-                new_modal = self._modal_factory[modal_id](self.screen, **modal_data)
+                # Prepare modal kwargs (exclude modal_id) and forward game_state
+                modal_data = {k: v for k, v in event.dict.items() if k != "modal_id"}
+                try:
+                    # Pass screen and game_state as first two args to modal constructors
+                    new_modal = self._modal_factory[modal_id](self.screen, self.game_state, **modal_data)
+                except TypeError:
+                    # Fallback: some modals may accept (screen, **kwargs)
+                    new_modal = self._modal_factory[modal_id](self.screen, **modal_data)
+
                 self.modal_stack.append(new_modal)
+                # Notify caller that a modal opened (so it can save focus)
+                try:
+                    if callable(self._on_open_callback):
+                        self._on_open_callback()
+                except Exception:
+                    # Swallow errors from callbacks to avoid breaking modal flow
+                    pass
                 return True
 
         if event.type == HIDE_MODAL:
             if self.modal_stack:
                 self.modal_stack.pop()
+                # Notify caller that a modal closed (so it can restore focus)
+                try:
+                    if callable(self._on_close_callback):
+                        self._on_close_callback()
+                except Exception:
+                    pass
                 return True
 
         # If a modal is active, pass events to it

@@ -124,19 +124,21 @@ class IncidentGenerator:
         Returns:
             True if incident should be generated, False otherwise
         """
-        if not client.active:
+        if not client.is_active:
             return False
 
-        if active_incident_count >= self._config.max_active_incidents:
+        if self._config and active_incident_count >= self._config.max_active_incidents:
             return False
 
-        # Calculate incident probability based on client's rate
-        incidents_per_second = client.incident_rate_per_minute / 60.0
+        # Calculate incident probability based on client's industry profile
+        # New Client model uses avg_monthly_incidents instead of incident_rate_per_minute
+        incidents_per_second = client.avg_monthly_incidents / (60.0 * 60.0 * 24.0 * 30.0)  # Convert monthly to per-second
         probability = incidents_per_second * delta_time
 
-        # Apply reputation modifier (higher reputation = slightly lower incident rate)
-        reputation_modifier = max(0.5, 1.0 - (client.reputation - 50) / 100.0)
-        probability *= reputation_modifier
+        # Apply satisfaction modifier (higher satisfaction = lower incident rate, via inverse relationship)
+        # satisfaction 1.0 = 100% events (no reduction), 0.5 = 50% chance (halved incidents)
+        satisfaction_modifier = 1.0 + (1.0 - client.satisfaction)  # Range: 1.0 to 2.0
+        probability *= satisfaction_modifier
 
         # Generate random number and check against probability
         return random.random() < probability
@@ -170,8 +172,9 @@ class IncidentGenerator:
         # Generate difficulty based on weights
         difficulty = self._select_difficulty()
 
-        # Apply client SLA multiplier
-        sla_seconds = int(template.base_sla_seconds * client.sla_multiplier)
+        # Use client's SLA resolution time (new Client model uses absolute seconds, not multiplier)
+        # Template base_sla_seconds becomes the SLA for this incident
+        sla_seconds = client.sla_resolution_time_seconds
 
         # Generate unique ID
         if incident_id is None:
@@ -186,12 +189,12 @@ class IncidentGenerator:
             sla_seconds=sla_seconds,
             base_reward=template.base_reward,
             xp_reward=template.xp_reward,
-            client_id=client.id
+            client_id=client.client_id
         )
 
         logger_target = getattr(self._logger, "logger", self._logger)
         logger_target.info(
-            f"[INCIDENT_GENERATOR] Generated incident {incident.id} for client {client.id}: "
+            f"[INCIDENT_GENERATOR] Generated incident {incident.id} for client {client.client_id}: "
             f"{template.name} (difficulty {difficulty}, specialty {specialty})"
         )
 
@@ -203,7 +206,7 @@ class IncidentGenerator:
         Returns:
             Selected specialty name
         """
-        if not self._config.specialty_distribution:
+        if not self._config or not self._config.specialty_distribution:
             # Default distribution if not configured
             specialties = ["Network Security", "Malware Analysis", "Digital Forensics",
                          "Application Security", "Cloud Security", "Incident Response"]
@@ -221,7 +224,7 @@ class IncidentGenerator:
         Returns:
             Difficulty level (1-5)
         """
-        if not self._config.difficulty_weights:
+        if not self._config or not self._config.difficulty_weights:
             # Default uniform distribution if not configured
             return random.randint(1, 5)
 

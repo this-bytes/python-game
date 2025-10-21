@@ -261,8 +261,22 @@ class SpecialistDetailModal(ModernPanel):
         if hasattr(self.game_state, '_relationships_system') and self.game_state._relationships_system:
             self._render_section_title(screen, "TEAM SYNERGIES", y)
             y += line_height + 5
-            
-            synergies = self.game_state._relationships_system.get_synergies_for_specialist(self.specialist.id)
+
+            # RelationshipsSystem does not expose a get_synergies_for_specialist API
+            # in some versions; compute synergies from the registered relationships
+            # to remain compatible across releases.
+            synergies: dict[str, float] = {}
+            rel_system = self.game_state._relationships_system
+            spec_rels = getattr(rel_system, 'specialists_relationships', {}).get(self.specialist.id)
+            if spec_rels and getattr(spec_rels, 'relationships', None):
+                for other_id, rel in spec_rels.relationships.items():
+                    try:
+                        multiplier = rel.get_synergy_multiplier()
+                    except Exception:
+                        # Defensive: if Relationship object shape changes, default to neutral
+                        multiplier = 1.0
+                    synergies[other_id] = multiplier
+
             if synergies:
                 for other_spec_id, multiplier in list(synergies.items())[:2]:
                     other_spec = self.game_state.get_specialist_by_id(other_spec_id)

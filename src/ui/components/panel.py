@@ -372,8 +372,15 @@ class ModernPanel:
                 self.resize_start_size = self.size.copy()
                 return True
 
-        # Event consumed by panel (click inside)
-        return True
+        # Only consume the event here if the panel started dragging or resizing
+        # or a control button was clicked. Otherwise allow subclasses to handle
+        # content-area clicks (selection, drag-start, etc.).
+        # If we started a drag or resize, return True to indicate consumption.
+        if self.is_dragging or self.is_resizing:
+            return True
+
+        # Otherwise, do not consume the click so subclasses can process it.
+        return False
 
     def _handle_mouse_up(self, event: Any) -> bool:
         """Handle mouse button up event."""

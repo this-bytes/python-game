@@ -120,11 +120,14 @@ class OfflineProgressSystem:
         
         # Calculate how many incidents would have spawned
         for client in game_state.clients:
-            if not client.is_active():
+            if not client.is_active:
                 continue
             
-            # Base incident rate in minutes
-            rate_per_minute = client.incident_rate_per_minute * self._offline_incident_rate_multiplier
+            # Base incident rate: convert from avg_monthly_incidents to per-second rate
+            monthly_incidents = client.avg_monthly_incidents if hasattr(client, 'avg_monthly_incidents') else 10
+            seconds_per_month = 30 * 24 * 3600  # Average month in seconds
+            rate_per_second = monthly_incidents / seconds_per_month
+            rate_per_minute = rate_per_second * 60 * self._offline_incident_rate_multiplier
             
             # Calculate expected incidents
             minutes_elapsed = time_elapsed / 60.0
@@ -137,8 +140,8 @@ class OfflineProgressSystem:
             
             for _ in range(num_incidents):
                 incident_events.append({
-                    "client_id": client.id,
-                    "client_name": client.name,
+                    "client_id": client.client_id,
+                    "client_name": client.company_name,
                     "specialty": self._select_random_specialty(),
                     "difficulty": self._select_random_difficulty()
                 })
@@ -259,8 +262,8 @@ class OfflineProgressSystem:
             
             # Simple retainer calculation
             for client in game_state.clients:
-                if client.is_active():
-                    hourly_rate = client.contract_value * 0.001
+                if client.is_active:
+                    hourly_rate = client.monthly_contract_value * 0.001
                     hours = time_elapsed / 3600.0
                     total_income += hourly_rate * hours
             

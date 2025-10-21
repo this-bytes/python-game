@@ -1,7 +1,7 @@
 """GameState model representing the complete state of the cybersecurity firm game.
 
 The GameState is the central hub that manages all game entities, tracks game progression,
-handles time-based mechanics, and provides the inte                    self._logger.info(f"[GAME_STATE] Incident {incident.id} generated for client {incident.client_id}")for all game operations.
+handles time-based mechanics, and provides the inte for all game operations.
 """
 
 from dataclasses import dataclass, field
@@ -14,6 +14,8 @@ from src.models.specialist import Specialist, SpecialistStats
 from src.models.incident import Incident
 from src.models.client import Client
 from src.models.automation_script import AutomationScript
+from src.models.budget import Budget
+from src.models.sla_tracker import SLATracker
 from src.core.incident_generator import IncidentGenerator
 from src.core.automation_processor import AutomationProcessor
 from src.core.passive_income_system import PassiveIncomeSystem
@@ -113,6 +115,12 @@ class GameState:
     current_money: float = 5000.0  # Starting money
     total_money_earned: float = 0.0
     investments: Dict[str, float] = field(default_factory=dict)  # Investment type → amount
+    budget: Budget = field(default_factory=lambda: Budget(total_reserves=10000.0))
+    
+    # SOC Startup tracking
+    sla_trackers: List[SLATracker] = field(default_factory=list)
+    company_founded_month: int = 0
+    current_month: int = 1
     
     # Offline progress
     last_save_time: float = field(default_factory=time.time)  # Last time game was saved
@@ -498,8 +506,9 @@ class GameState:
         self.metrics.automation_scripts_triggered += executed_count
         
         # Apply passive income
-        if self._passive_income_system:
-            passive_income_result = self._passive_income_system.apply_passive_income(self, effective_delta)
+        # TODO: Update passive_income_system to use new Client model (satisfaction instead of reputation)
+        # if self._passive_income_system:
+        #     passive_income_result = self._passive_income_system.apply_passive_income(self, effective_delta)
 
         # Update dopamine system (combo timers, etc.)
         self._dopamine_system.update(effective_delta)
@@ -1236,6 +1245,48 @@ class GameState:
             else:
                 self._cached_config = {}
         return self._cached_config
+
+    # === PHASE 1: SOC STARTUP CORE METHODS ===
+    
+    def get_active_clients(self) -> List[Client]:
+        """Get all currently active clients.
+        
+        Returns:
+            List of active Client instances
+        """
+        return [c for c in self.clients if c.is_active]
+    
+    def get_sla_tracker_for_client_this_month(self, client_id: str) -> Optional[SLATracker]:
+        """Get SLA tracker for client in current month.
+        
+        Args:
+            client_id: The client ID
+            
+        Returns:
+            SLATracker instance or None if not found
+        """
+        for tracker in self.sla_trackers:
+            if tracker.client_id == client_id and tracker.month == self.current_month:
+                return tracker
+        return None
+    
+    def create_sla_tracker_for_client(self, client_id: str) -> SLATracker:
+        """Create new SLA tracker for client in current month.
+        
+        Args:
+            client_id: The client ID
+            
+        Returns:
+            New SLATracker instance
+        """
+        tracker_id = f"sla_{client_id}_{self.current_month}"
+        tracker = SLATracker(
+            tracker_id=tracker_id,
+            client_id=client_id,
+            month=self.current_month,
+        )
+        self.sla_trackers.append(tracker)
+        return tracker
 
     def __repr__(self) -> str:
         """String representation of game state."""

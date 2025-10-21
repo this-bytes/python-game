@@ -33,6 +33,7 @@ class Incident:
     base_reward: int  # Monetary reward for resolution
     xp_reward: int  # XP reward for resolution
     client_id: str
+    description: Optional[str] = ""
     status: str = "pending"
     assigned_specialist_id: Optional[str] = None
     spawn_time: float = field(default_factory=time.time)
@@ -339,6 +340,7 @@ class Incident:
             base_reward=data["base_reward"],
             xp_reward=data["xp_reward"],
             client_id=data["client_id"],
+            description=data.get("description", ""),
             status=data.get("status", "pending"),
             assigned_specialist_id=data.get("assigned_specialist_id"),
             spawn_time=data.get("spawn_time", time.time()),

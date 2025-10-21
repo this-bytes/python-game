@@ -86,7 +86,6 @@ class GameUI:
         self.notification_manager = NotificationManager(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
         self.hotkey_manager = HotkeyManager()
         self.drag_drop_manager = get_drag_drop_manager()
-        self.modal_manager = ModalManager(self.screen)
         
         # Initialize layout system
         self._initialize_layout_system()
@@ -119,7 +118,7 @@ class GameUI:
         # Apply theme to panels
         self._apply_theme_to_panels()
 
-        # Panels list for z-order management
+    # Panels list for z-order management
         self.panels = [
             self.specialist_roster_panel,
             self.incident_queue_panel,
@@ -132,6 +131,15 @@ class GameUI:
             self.team_dynamics_panel,
             self.economy_panel,
         ]
+
+        # Create the modal manager after panels and layout have been initialized so
+        # the modal callbacks can access the layout/layer manager to restore focus.
+        self.modal_manager = ModalManager(
+            self.screen,
+            self.game_state,
+            on_open=self._on_modal_open,
+            on_close=self._on_modal_close
+        )
         
         # Initialize navigation menu
         menu_items = [
@@ -390,6 +398,43 @@ class GameUI:
         """
         self.notification_manager.show_info("View", f"Switched to {view_config.title}")
         self.logger.info(f"[GAME_UI] Switched to view: {view_config.title}")
+
+    def _get_top_panel(self):
+        """Return the top-most panel component according to the layer manager.
+
+        This is used to remember which panel had focus (z-order) when a modal
+        opens so focus can be restored when the modal closes.
+        """
+        try:
+            render_order = self.layout_manager.layer_manager.get_render_order()
+            # Return the last component that is one of our panels
+            for comp in reversed(render_order):
+                if comp in self.panels:
+                    return comp
+        except Exception:
+            return None
+        return None
+
+    def _on_modal_open(self) -> None:
+        """Called when a modal opens. Save the current top panel so we can
+        restore it later when the modal closes."""
+        try:
+            self._saved_focused_panel = self._get_top_panel()
+        except Exception:
+            self._saved_focused_panel = None
+
+    def _on_modal_close(self) -> None:
+        """Called when a modal closes. Restore the previously focused panel
+        by bringing it to the front of its layer."""
+        try:
+            panel = getattr(self, '_saved_focused_panel', None)
+            if panel and panel in self.panels:
+                # Bring back to front so it receives subsequent input
+                self.layout_manager.layer_manager.bring_to_front(panel)
+        except Exception:
+            pass
+        finally:
+            self._saved_focused_panel = None
 
     def _register_hotkey_callbacks(self) -> None:
         """Register hotkey callbacks."""

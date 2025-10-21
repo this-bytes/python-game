@@ -89,7 +89,7 @@ class MetricsPanel(ModernPanel):
             f"Incidents Failed: {self.game_state.metrics.total_incidents_failed}",
             f"Total XP Awarded: {self.game_state.metrics.total_xp_awarded:,.0f}",
             f"Specialist Utilization: {self.game_state.metrics.specialist_utilization_rate:.1f}%",
-            f"Active Clients: {len([c for c in self.game_state.clients if c.active])}",
+            f"Active Clients: {len([c for c in self.game_state.clients if c.is_active])}",
             f"Game Time: {self.game_state.get_game_time_elapsed():.1f}s",
             f"Assignment Success Rate: {self.game_state.metrics.assignment_success_rate:.1f}%",
             f"Specialty Matches: {self.game_state.metrics.specialty_match_assignments}",

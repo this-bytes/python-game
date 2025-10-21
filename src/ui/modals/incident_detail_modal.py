@@ -2,6 +2,7 @@
 
 import pygame
 from typing import Optional
+from utils.logger import Logger
 
 from src.models.incident import Incident
 from src.ui.components.panel import ModernPanel
@@ -77,6 +78,7 @@ class IncidentDetailModal(ModernPanel):
     def _on_assign_clicked(self):
         """Handle assign button click."""
         # This would ideally open a specialist selection view or modal
+        
         print(f"Assign button clicked for incident {self.incident.id}")
         self._on_close_clicked()
 
@@ -104,12 +106,19 @@ class IncidentDetailModal(ModernPanel):
         y_offset = content_rect.y + 10
 
         # Incident Details
+        # Compute SLA timer using the Incident API (time_remaining property)
+        try:
+            sla_remaining = float(self.incident.time_remaining)
+        except Exception:
+            # Fallback to 0 if unexpected
+            sla_remaining = 0.0
+
         details = {
             "Client": self.incident.client_id,
             "Difficulty": str(self.incident.difficulty),
             "Specialty Required": self.incident.specialty_required,
             "Status": self.incident.status.capitalize(),
-            "SLA Timer": f"{self.incident.sla_timer:.0f}s remaining",
+            "SLA Timer": f"{max(0.0, sla_remaining):.0f}s remaining",
         }
 
         for label, value in details.items():
@@ -118,14 +127,19 @@ class IncidentDetailModal(ModernPanel):
             
         y_offset += 10
         
-        # Description
+        # Description (not all Incident instances include a description field)
+        incident_description = getattr(self.incident, 'description', None)
+        if not incident_description:
+            # Fallback to incident type as a brief description
+            incident_description = f"{self.incident.incident_type} incident"
+
         self._draw_text_box(
             screen,
             content_rect.x,
             y_offset,
             content_rect.width,
             "Description",
-            self.incident.description
+            incident_description
         )
         y_offset += 80
 

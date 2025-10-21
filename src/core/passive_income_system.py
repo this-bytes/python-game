@@ -27,26 +27,29 @@ class PassiveIncomeSystem:
             config: Game configuration dictionary containing passive income settings
             logger: Optional logger for passive income events
         """
-    # Class-level annotations for static analysis
-    self._logger: GameLogger = logger or GameLogger("passive_income")
-    self._config: Dict[str, Any] = config.get("passive_income", {})
-        
+        # Instance attribute annotations for static analysis
+        self._logger: GameLogger = logger or GameLogger("passive_income")
+        self._config: Dict[str, Any] = config.get("passive_income", {})
+
         # Investment configuration
-        self._investment_types: Dict[str, Dict[str, float]] = self._config.get("investment_types", {
-            "low_risk": {"return_rate": 0.02, "risk": 0.0},
-            "medium_risk": {"return_rate": 0.05, "risk": 0.1},
-            "high_risk": {"return_rate": 0.10, "risk": 0.25}
-        })
-        
+        self._investment_types: Dict[str, Dict[str, float]] = self._config.get(
+            "investment_types",
+            {
+                "low_risk": {"return_rate": 0.02, "risk": 0.0},
+                "medium_risk": {"return_rate": 0.05, "risk": 0.1},
+                "high_risk": {"return_rate": 0.10, "risk": 0.25},
+            },
+        )
+
         # Retainer income multiplier
-    self._retainer_multiplier: float = self._config.get("retainer_income_multiplier", 1.0)
-        
+        self._retainer_multiplier: float = self._config.get("retainer_income_multiplier", 1.0)
+
         # Statistics tracking
         self._stats: Dict[str, float] = {
             "total_retainer_income": 0.0,
             "total_investment_income": 0.0,
             "total_investment_losses": 0.0,
-            "total_reputation_bonus": 0.0
+            "total_reputation_bonus": 0.0,
         }
 
     def calculate_retainer_income(self, clients: List[Client], delta_time: float) -> float:
@@ -65,11 +68,11 @@ class PassiveIncomeSystem:
         total_income = 0.0
         
         for client in clients:
-            # Only active clients with good reputation provide retainers
-            if hasattr(client, 'is_active') and client.is_active():
+            # Only active clients with good satisfaction provide retainers
+            if hasattr(client, 'is_active') and client.is_active:
                 # Base retainer is a small percentage of contract value per hour
                 retainer_rate = 0.001  # 0.1% per hour
-                hourly_retainer = client.contract_value * retainer_rate
+                hourly_retainer = client.monthly_contract_value * retainer_rate
                 
                 # Convert delta_time from seconds to hours
                 hours_elapsed = delta_time / 3600.0
@@ -167,16 +170,16 @@ class PassiveIncomeSystem:
         if not clients:
             return 1.0
         
-        # Calculate average reputation across all clients
-        total_reputation = sum(client.reputation for client in clients)
-        avg_reputation = total_reputation / len(clients)
+        # Calculate average satisfaction across all clients (0-1 scale)
+        total_satisfaction = sum(client.satisfaction for client in clients)
+        avg_satisfaction = total_satisfaction / len(clients)
         
-        # Reputation ranges from 0-100
-        # Bonus ranges from 0% at rep 0 to 50% at rep 100
-        reputation_bonus = (avg_reputation / 100.0) * 0.5
-        multiplier = 1.0 + reputation_bonus
+        # Satisfaction ranges from 0-1
+        # Bonus ranges from 0% at satisfaction 0 to 50% at satisfaction 1.0
+        satisfaction_bonus = avg_satisfaction * 0.5
+        multiplier = 1.0 + satisfaction_bonus
         
-        self._stats["total_reputation_bonus"] = reputation_bonus
+        self._stats["total_satisfaction_bonus"] = satisfaction_bonus
         
         return multiplier
 
