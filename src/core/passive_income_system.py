@@ -27,21 +27,22 @@ class PassiveIncomeSystem:
             config: Game configuration dictionary containing passive income settings
             logger: Optional logger for passive income events
         """
-        self._logger = logger or GameLogger("passive_income")
-        self._config = config.get("passive_income", {})
+    # Class-level annotations for static analysis
+    self._logger: GameLogger = logger or GameLogger("passive_income")
+    self._config: Dict[str, Any] = config.get("passive_income", {})
         
         # Investment configuration
-        self._investment_types = self._config.get("investment_types", {
+        self._investment_types: Dict[str, Dict[str, float]] = self._config.get("investment_types", {
             "low_risk": {"return_rate": 0.02, "risk": 0.0},
             "medium_risk": {"return_rate": 0.05, "risk": 0.1},
             "high_risk": {"return_rate": 0.10, "risk": 0.25}
         })
         
         # Retainer income multiplier
-        self._retainer_multiplier = self._config.get("retainer_income_multiplier", 1.0)
+    self._retainer_multiplier: float = self._config.get("retainer_income_multiplier", 1.0)
         
         # Statistics tracking
-        self._stats = {
+        self._stats: Dict[str, float] = {
             "total_retainer_income": 0.0,
             "total_investment_income": 0.0,
             "total_investment_losses": 0.0,

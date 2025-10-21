@@ -1,0 +1,40 @@
+name: Full CI
+
+on:
+  push:
+    branches: [ "dev", "main", "master" ]
+  pull_request:
+    branches: [ "dev", "main", "master" ]
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.10]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
+
+      - name: Run test suite
+        run: |
+          python -m pytest -q
+
+      - name: Run mypy (optional)
+        run: |
+          if command -v mypy >/dev/null 2>&1; then
+            mypy src || true
+          else
+            echo "mypy not installed; install requirements-dev to run static checks"
+          fi

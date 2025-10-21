@@ -20,7 +20,7 @@ class FeatureConfig:
     id: str
     enabled: bool = False
     rollout_percentage: float = 100.0  # 0-100
-    dependencies: List[str] = None  # Required features
+    dependencies: Optional[List[str]] = None  # Required features
     description: str = ""
     
     def __post_init__(self):
@@ -53,7 +53,7 @@ class FeatureManager:
         ```
     """
     
-    def __init__(self, config_path: str = None):
+    def __init__(self, config_path: Optional[str] = None):
         """Initialize feature manager.
         
         Args:
@@ -180,7 +180,7 @@ class FeatureManager:
         
         # Check dependencies
         if check_dependencies:
-            for dep_id in feature.dependencies:
+            for dep_id in (feature.dependencies or []):
                 if not self.is_enabled(dep_id, check_dependencies=True, user_id=user_id):
                     return False
         
@@ -249,7 +249,7 @@ class FeatureManager:
         errors = []
         
         for feature_id, feature in self._features.items():
-            for dep_id in feature.dependencies:
+            for dep_id in (feature.dependencies or []):
                 if dep_id not in self._features:
                     errors.append(
                         f"Feature '{feature_id}' depends on unknown feature '{dep_id}'"
@@ -288,7 +288,7 @@ class FeatureManager:
         visited.add(feature_id)
         
         feature = self._features[feature_id]
-        for dep_id in feature.dependencies:
+        for dep_id in (feature.dependencies or []):
             if self._has_circular_dependency(dep_id, visited.copy()):
                 return True
         
@@ -336,7 +336,7 @@ class FeatureManager:
 
 
 # Global feature manager instance (singleton pattern)
-_global_feature_manager: FeatureManager = None
+_global_feature_manager: Optional[FeatureManager] = None
 
 
 def get_feature_manager() -> FeatureManager:

@@ -23,7 +23,9 @@ Example plugin implementation:
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
+from src.core.event_bus import EventBus
+from src.core.feature_manager import FeatureManager
 import logging
 
 logger = logging.getLogger(__name__)
@@ -132,17 +134,18 @@ class SystemManager:
     - Coordinate save/load of system state
     """
     
-    def __init__(self, event_bus, feature_manager):
+    def __init__(self, event_bus: EventBus, feature_manager: FeatureManager):
         """Initialize system manager.
         
         Args:
             event_bus: EventBus for system communication
             feature_manager: FeatureManager for checking feature flags
         """
-        self.event_bus = event_bus
-        self.feature_manager = feature_manager
+        # Instance attributes with type hints for static analysis
+        self.event_bus: EventBus = event_bus
+        self.feature_manager: FeatureManager = feature_manager
         self.systems: Dict[str, GameSystem] = {}
-        self.update_order: list[str] = []  # Systems update in this order
+        self.update_order: List[str] = []  # Systems update in this order
         logger.info("SystemManager initialized")
     
     def register_system(self, system: GameSystem, dependencies: Optional[list[str]] = None) -> None:
