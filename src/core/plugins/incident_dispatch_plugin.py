@@ -45,14 +45,25 @@ class IncidentDispatchPlugin(GameSystem):
         return "incident_dispatch_system"
     
     def initialize(self, game_state) -> None:
-        """Initialize incident dispatch plugin."""
+        """Initialize incident dispatch plugin.
+        
+        Subscribes to game loop events for phase-based incident management:
+        - 'day_started': Generate incidents for the day
+        - 'evening_started': Start resolving incidents
+        - 'night_started': Calculate SLA impact and cleanup
+        """
         self._subscription_ids = [
+            # Game loop phase events
+            self._event_bus.subscribe("day_started", self._on_day_started),
+            self._event_bus.subscribe("evening_started", self._on_evening_started),
+            self._event_bus.subscribe("night_started", self._on_night_started),
+            
+            # Internal incident events
             self._event_bus.subscribe("incident_generated", self._on_incident_generated),
             self._event_bus.subscribe("incident_assigned", self._on_incident_assigned),
             self._event_bus.subscribe("incident_resolved", self._on_incident_resolved),
-            self._event_bus.subscribe("phase_changed", self._on_phase_changed),
         ]
-        self._logger.logger.info("[INCIDENT_DISPATCH_PLUGIN] Initialized")
+        self._logger.logger.info("[INCIDENT_DISPATCH_PLUGIN] Initialized with game loop phase events")
     
     def update(self, game_state, delta_time: float) -> None:
         """Update incident dispatch system each frame."""
@@ -218,6 +229,96 @@ class IncidentDispatchPlugin(GameSystem):
     def _on_incident_resolved(self, event: Event) -> None:
         """Handle incident resolved event."""
         pass
+    
+    def _on_day_started(self, event: Event) -> None:
+        """Handle day started event from GameLoopPlugin.
+        
+        Called at transition from MORNING to DAY phase.
+        Clear yesterday's resolved incidents for fresh slate.
+        """
+        day = event.data.get("day", 1)
+        self._logger.logger.info(
+            f"[INCIDENT_DISPATCH_PLUGIN] Day {day} started. "
+            f"Clearing resolved incidents from previous day."
+        )
+        self._incidents_this_turn.clear()
+    
+    def _on_evening_started(self, event: Event) -> None:
+        """Handle evening started event from GameLoopPlugin.
+        
+        Called at transition from DAY to EVENING phase.
+        Process outcomes for all assigned and unassigned incidents.
+        """
+        self._logger.logger.info(
+            "[INCIDENT_DISPATCH_PLUGIN] Evening started. "
+            "Processing incident outcomes for today."
+        )
+        
+        active_incidents = self._dispatch_system.get_active_incidents()
+        for incident in active_incidents:
+            if incident.status in ["pending", "assigned"]:
+                if incident.assigned_specialist_id is None:
+                    # Unassigned incident - mark as failed
+                    incident.status = "failed"
+                    self._event_bus.publish("incident_failed", {
+                        "incident_id": incident.id,
+                        "client_id": incident.client_id,
+                        "reason": "unassigned",
+                        "sla_met": False,
+                    })
+                else:
+                    # Assigned incident - mark as resolved
+                    incident.status = "resolved"
+                    self._event_bus.publish("incident_resolved_evening", {
+                        "incident_id": incident.id,
+                        "specialist_id": incident.assigned_specialist_id,
+                        "client_id": incident.client_id,
+                    })
+    
+    def _on_night_started(self, event: Event) -> None:
+        """Handle night started event from GameLoopPlugin.
+        
+        Called at transition from EVENING to NIGHT phase.
+        Calculate daily SLA compliance and prepare for next day.
+        """
+        day = event.data.get("day", 1)
+        month = event.data.get("month", 1)
+        
+        self._logger.logger.info(
+            f"[INCIDENT_DISPATCH_PLUGIN] Night started (day {day}, month {month}). "
+            "Calculating daily SLA compliance."
+        )
+        
+        # Get all incidents that were resolved/failed today
+        all_incidents_today = [
+            i for i in self._dispatch_system._incidents.values()
+            if i.status in ["resolved", "failed"]
+        ]
+        
+        if all_incidents_today:
+            sla_met_count = sum(1 for i in all_incidents_today if getattr(i, 'sla_met', False))
+            sla_compliance_rate = sla_met_count / len(all_incidents_today)
+            
+            self._logger.logger.info(
+                f"[INCIDENT_DISPATCH_PLUGIN] Daily SLA: {sla_met_count}/{len(all_incidents_today)} "
+                f"met ({sla_compliance_rate*100:.1f}%)"
+            )
+            
+            # Emit daily summary for other systems (Budget, Client satisfaction, etc)
+            self._event_bus.publish("daily_sla_summary", {
+                "day": day,
+                "month": month,
+                "total_incidents": len(all_incidents_today),
+                "sla_met": sla_met_count,
+                "sla_missed": len(all_incidents_today) - sla_met_count,
+                "sla_compliance_rate": sla_compliance_rate,
+            })
+        
+        # Clear old incidents for fresh day tomorrow
+        cleared = self._dispatch_system.clear_resolved_incidents()
+        self._logger.logger.info(
+            f"[INCIDENT_DISPATCH_PLUGIN] End of day cleanup: cleared {cleared} incidents."
+        )
     
     def _on_phase_changed(self, event: Event) -> None:
         """Handle phase change event."""

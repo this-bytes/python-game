@@ -45,6 +45,7 @@ from src.core.plugins.budget_plugin import BudgetPlugin
 from src.core.plugins.sla_plugin import SLAPlugin
 from src.core.plugins.game_loop_plugin import GameLoopPlugin
 from src.core.plugins.incident_dispatch_plugin import IncidentDispatchPlugin
+from src.core.plugins.client_plugin import ClientPlugin
 
 
 class Game:
@@ -277,19 +278,14 @@ class Game:
                     self.logger.critical("[GAME] Cannot initialize systems: game_state is None!")
                     return False
                 
-                # Initialize UI
-                with self.logger.operation("UI Initialization"):
-                    self.logger.debug("[GAME] Creating GameUI instance...")
-                    self.ui = GameUI(self.game_state)
-                    self.logger.info("[GAME] User interface initialized successfully")
-
-                # Initialize plugin architecture (SystemManager)
+                # Initialize plugin architecture (SystemManager) FIRST
                 with self.logger.operation("Plugin Architecture Initialization"):
                     self.logger.debug("[GAME] Creating SystemManager...")
                     self.system_manager = SystemManager()
                     self.logger.info("[GAME] Plugin architecture initialized")
                 
-                # Register game systems as plugins
+                # Register game systems as plugins BEFORE UI initialization
+                # This ensures UI can discover all UIProvider plugins immediately
                 with self.logger.operation("Plugin Registration"):
                     # Instantiate plugin classes defensively: if one plugin fails
                     # to instantiate, log the error and continue registering the
@@ -308,6 +304,7 @@ class Game:
                         ("SLAPlugin", SLAPlugin),
                         ("GameLoopPlugin", GameLoopPlugin),
                         ("IncidentDispatchPlugin", IncidentDispatchPlugin),
+                        ("ClientPlugin", ClientPlugin),
                         ("PassiveIncomePlugin", PassiveIncomePlugin),
                         ("FacilityPlugin", FacilityPlugin),
                         ("ProgressiveDifficultyPlugin", ProgressiveDifficultyPlugin),
@@ -333,6 +330,13 @@ class Game:
                             self.logger.error(f"[SYSTEM] Failed to register {plugin_name}: {e}")
 
                     self.logger.info(f"[SYSTEM] Registered {registered} game systems")
+                
+                # Initialize UI AFTER plugins are registered
+                # This allows DashboardManager to discover UIProvider plugins immediately
+                with self.logger.operation("UI Initialization"):
+                    self.logger.debug("[GAME] Creating GameUI instance...")
+                    self.ui = GameUI(self.game_state, self.system_manager)
+                    self.logger.info("[GAME] User interface initialized successfully")
                 
                 # Initialize all registered systems
                 with self.logger.operation("Systems Initialization"):
@@ -522,13 +526,106 @@ class Game:
 
     def _handle_game_action(self, action) -> None:
         """Handle game actions from the UI.
+        
+        Processes actions like incident assignments, specialist actions, etc.
+        Actions are routed to appropriate systems based on action_type.
 
         Args:
-            action: The action to process
+            action: GameAction with action_type and data dict
         """
-        # This will be expanded as we implement more UI interactions
-        # For now, just log the action
-        self.logger.debug(f"[GAME] Processing action: {action}")
+        if not action or not hasattr(action, 'action_type'):
+            return
+        
+        action_type = action.action_type
+        action_data = getattr(action, 'data', {})
+        
+        # Route action to appropriate handler
+        if action_type == "assign_incident":
+            self._handle_assign_incident_action(action_data)
+        elif action_type == "rest_specialist":
+            self._handle_rest_specialist_action(action_data)
+        elif action_type == "hire_specialist":
+            self._handle_hire_specialist_action(action_data)
+        else:
+            self.logger.debug(f"[GAME] Unknown action type: {action_type}")
+    
+    def _handle_assign_incident_action(self, data: dict) -> None:
+        """Handle incident assignment action from UI.
+        
+        Assigns an incident to a specialist through the IncidentDispatchPlugin.
+        
+        Args:
+            data: Action data containing incident_id and specialist_id
+        """
+        incident_id = data.get("incident_id")
+        specialist_id = data.get("specialist_id")
+        
+        if not incident_id or not specialist_id:
+            self.logger.warning(f"[GAME] Invalid assignment action data: {data}")
+            return
+        
+        # Safety check: ensure game state exists
+        if not self.game_state:
+            self.logger.error("[GAME] GameState not available for assignment")
+            return
+        
+        # Get incident and specialist from game state
+        if not hasattr(self.game_state, 'incidents') or not hasattr(self.game_state, 'specialists'):
+            self.logger.error("[GAME] GameState missing incidents or specialists attributes")
+            return
+        
+        incident = next((i for i in self.game_state.incidents if i.id == incident_id), None)
+        specialist = next((s for s in self.game_state.specialists if s.id == specialist_id), None)
+        
+        if not incident:
+            self.logger.error(f"[GAME] Incident {incident_id} not found")
+            return
+        
+        if not specialist:
+            self.logger.error(f"[GAME] Specialist {specialist_id} not found")
+            return
+        
+        # Get IncidentDispatchPlugin from system manager
+        if not self.system_manager:
+            self.logger.error("[GAME] SystemManager not available")
+            return
+        
+        incident_dispatch_plugin = self.system_manager.get_system("IncidentDispatchPlugin")
+        if not incident_dispatch_plugin:
+            self.logger.error("[GAME] IncidentDispatchPlugin not found in SystemManager")
+            return
+        
+        # Assign through plugin (cast to IncidentDispatchPlugin to access assign_incident method)
+        try:
+            success = incident_dispatch_plugin.assign_incident(incident, specialist)
+            
+            if success:
+                self.logger.info(f"[GAME] Assigned {incident.incident_type} to {specialist.name}")
+            else:
+                self.logger.warning(f"[GAME] Failed to assign {incident.incident_type} to {specialist.name}")
+        except Exception as e:
+            self.logger.error(f"[GAME] Error assigning incident: {e}")
+    
+    def _handle_rest_specialist_action(self, data: dict) -> None:
+        """Handle specialist rest action from UI.
+        
+        Args:
+            data: Action data containing specialist_id
+        """
+        specialist_id = data.get("specialist_id")
+        self.logger.debug(f"[GAME] Rest specialist action: {specialist_id}")
+        # TODO: Implement rest specialist logic
+    
+    def _handle_hire_specialist_action(self, data: dict) -> None:
+        """Handle specialist hiring action from UI.
+        
+        Args:
+            data: Action data containing specialty and level
+        """
+        specialty = data.get("specialty")
+        level = data.get("level", 1)
+        self.logger.debug(f"[GAME] Hire specialist action: specialty={specialty}, level={level}")
+        # TODO: Implement hire specialist logic
 
     def shutdown(self) -> None:
         """Clean shutdown of all systems."""

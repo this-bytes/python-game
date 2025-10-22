@@ -1,17 +1,7 @@
 """Game User Interface using Pygame.
 
 This module handles all visual rendering and user input for the game.
-Following the architecture pri        self.panel_dict = {
-            "specialist_roster": self.specialist_roster_panel,
-            "incident_queue": self.incident_queue_panel,
-            "metrics": self.metrics_panel,
-            "equipment_shop": self.equipment_shop_panel,
-            "equipment_inventory": self.equipment_inventory_panel,
-            "automation_builder": self.automation_builder_panel,
-            "progressive_difficulty": self.progressive_difficulty_panel,
-            "skill_tree": self.skill_tree_panel,
-            "team_dynamics": self.team_dynamics_panel,
-        }game renders, it doesn't think.
+Following the architecture principles of separation of concerns.
 """
 
 import pygame
@@ -47,6 +37,8 @@ from src.ui.layout_validator import validate_layout
 from src.ui.debug_overlay import LayoutDebugOverlay, DebugOverlayMode
 from src.ui.drag_drop_manager import get_drag_drop_manager
 from src.ui.modal_manager import ModalManager
+from src.ui.dashboard_manager import DashboardManager
+from src.ui.dashboard_panel import DashboardPanel
 from src.ui import event_types
 
 
@@ -65,14 +57,16 @@ class GameUI:
     WINDOW_HEIGHT = 720
     FPS = 60
 
-    def __init__(self, game_state: GameState):
+    def __init__(self, game_state: GameState, system_manager=None):
         """Initialize the game UI.
 
         Args:
             game_state: The game state to render
+            system_manager: Optional SystemManager for dashboard integration
         """
         self.logger = GameLogger("game_ui")
         self.game_state = game_state
+        self.system_manager = system_manager
 
         # Initialize Pygame
         pygame.init()
@@ -141,6 +135,20 @@ class GameUI:
             on_close=self._on_modal_close
         )
         
+        # Initialize dashboard manager for extensible UI framework
+        if self.system_manager:
+            self.dashboard_manager = DashboardManager(self.system_manager)
+            self.dashboard_panel = DashboardPanel(
+                x=10,
+                y=60,
+                on_widget_clicked=self._on_dashboard_widget_clicked
+            )
+            self.logger.debug("[GAME_UI] Dashboard manager and panel initialized with system plugins")
+        else:
+            self.dashboard_manager = None
+            self.dashboard_panel = None
+            self.logger.debug("[GAME_UI] Dashboard not available (no system_manager)")
+        
         # Initialize navigation menu
         menu_items = [
             MenuItem("overview", "Overview", "📊", "Game dashboard and key metrics", pygame.K_F1),
@@ -203,7 +211,7 @@ class GameUI:
         # Initialize quick reference card
         self.quick_reference = QuickReference(
             position="bottom-right",
-            auto_hide_delay=15.0  # Auto-hide after 15 seconds
+            auto_hide_delay=5.0  # Auto-hide after 5 seconds
         )
 
         # Debug overlay for layout visualization and diagnostics
@@ -609,6 +617,18 @@ class GameUI:
             if self.navigation_menu.handle_event(event, self.WINDOW_WIDTH, self.WINDOW_HEIGHT):
                 continue
             
+            # Handle dashboard widget clicks
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                if self.dashboard_panel:
+                    clicked_plugin = self.dashboard_panel.handle_click(event.pos)
+                    if clicked_plugin:
+                        continue
+            
+            # Handle mouse movement for dashboard hover effects
+            if event.type == pygame.MOUSEMOTION:
+                if self.dashboard_panel:
+                    self.dashboard_panel.update_hover(event.pos)
+            
             # Handle drag and drop events (before panels)
             if self._handle_drag_drop_event(event):
                 continue
@@ -913,6 +933,10 @@ class GameUI:
         if current_view == GameView.OPERATIONS:
             self._render_drag_drop()
         
+        # Render dashboard panel overlay (shows UIProvider summaries)
+        if self.dashboard_panel and self.dashboard_manager:
+            self.dashboard_panel.render(self.screen, self.dashboard_manager, self.game_state)
+        
         # Render view transition overlay
         self.view_manager.render_transition_overlay(self.screen)
         
@@ -1036,6 +1060,29 @@ class GameUI:
             inst_text = self.small_font.render(instruction, True, text_color)
             self.screen.blit(inst_text, (240, y_offset))
             y_offset += 18
+
+    def _on_dashboard_widget_clicked(self, plugin_name: str) -> None:
+        """Handle dashboard widget click to open detail panel.
+        
+        Args:
+            plugin_name: Name of the plugin that was clicked
+        """
+        if not self.dashboard_manager:
+            return
+        
+        # Set expanded panel in dashboard manager
+        self.dashboard_manager.set_expanded_panel(plugin_name)
+        
+        # Get detail panel data from dashboard manager
+        detail_data = self.dashboard_manager.get_detail_panel_data(
+            plugin_name,
+            self.game_state
+        )
+        
+        if detail_data:
+            # Log the action
+            self.logger.debug(f"[GAME_UI] Dashboard widget clicked: {plugin_name}")
+            self.logger.debug(f"[GAME_UI] Detail data keys: {list(detail_data.keys())}")
 
     def _render_help_overlay(self) -> None:
         """Render help overlay with all hotkeys."""

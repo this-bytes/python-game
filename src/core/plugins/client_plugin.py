@@ -19,22 +19,27 @@ from src.core.client_system import (
     handle_contract_termination,
     load_clients_from_json,
 )
+from src.ui.ui_provider import UIProvider, UISummaryItem, UISectionItem, UIPanelSection
 from src.utils.logger import GameLogger
 
 
 logger = GameLogger("client_plugin")
 
 
-class ClientPlugin(GameSystem):
+class ClientPlugin(GameSystem, UIProvider):
     """Plugin for managing client lifecycle and satisfaction.
     
     Subscribes to SLA tracking events to update client satisfaction,
     handles contract renewals at month-end, and manages client acquisition.
     
+    Implements UIProvider to display client dashboard summary and detail panel.
+    
     Lifecycle:
     - initialize(): Load clients from JSON or default
     - update(): Check for contract renewals at month-end
     - shutdown(): Save client state
+    - get_dashboard_summary(): Return summary for dashboard widget
+    - get_detail_panel_data(): Return expanded client details for modal
     """
     
     def __init__(self):
@@ -167,3 +172,118 @@ class ClientPlugin(GameSystem):
             if client.client_id == client_id:
                 return client
         return None
+    
+    # ===== UI PROVIDER IMPLEMENTATION =====
+    
+    def get_dashboard_summary(self, game_state: GameState) -> UISummaryItem:
+        """Get dashboard summary for client manager widget.
+        
+        Displays key client metrics on the persistent dashboard overlay.
+        This is DISPLAY-ONLY - no game logic, just state visualization.
+        
+        Args:
+            game_state: Current game state (read-only)
+            
+        Returns:
+            UISummaryItem with client summary data
+        """
+        active_count = len(self.get_active_clients())
+        total_value = sum(c.monthly_contract_value for c in self.get_active_clients())
+        avg_satisfaction = (
+            sum(c.satisfaction for c in self.get_active_clients()) / active_count
+            if active_count > 0
+            else 0.0
+        )
+        
+        # Determine status color based on satisfaction
+        if avg_satisfaction >= 0.8:
+            accent = "green"
+        elif avg_satisfaction >= 0.6:
+            accent = "yellow"
+        else:
+            accent = "red"
+        
+        return UISummaryItem(
+            title="Clients",
+            icon="🏢",
+            lines=[
+                f"Active: {active_count}",
+                f"Revenue: ${total_value:,.0f}/month",
+                f"Avg Satisfaction: {avg_satisfaction:.0%}",
+            ],
+            accent_color=accent,
+            data={
+                "active_count": active_count,
+                "total_value": total_value,
+                "avg_satisfaction": avg_satisfaction,
+                "total_clients": len(self.clients),
+            }
+        )
+    
+    def get_detail_panel_data(self, game_state: GameState) -> Dict[str, Any]:
+        """Get detail panel data for expanded client view.
+        
+        Provides full client information for modal detail panel.
+        Player can click action buttons which are published as "action:" events.
+        This is DISPLAY-ONLY - no mutations happen in this method.
+        
+        Args:
+            game_state: Current game state (read-only)
+            
+        Returns:
+            Dictionary with panel structure and client data
+        """
+        active_clients = self.get_active_clients()
+        
+        # Build section items for each client
+        client_items = []
+        for client in active_clients:
+            satisfaction_bar = self._satisfaction_bar(client.satisfaction)
+            client_items.append(
+                UISectionItem(
+                    name=client.company_name,
+                    details=[
+                        f"Industry: {client.industry}",
+                        f"Contract: ${client.monthly_contract_value:,.0f}/month",
+                        f"Satisfaction: {satisfaction_bar} {client.satisfaction:.0%}",
+                        f"SLA: {client.sla_response_time_seconds}s response",
+                    ],
+                    clickable=True,
+                    data={
+                        "client_id": client.client_id,
+                        "company_name": client.company_name,
+                    }
+                )
+            )
+        
+        return {
+            "title": "Client Management",
+            "sections": [
+                UIPanelSection(
+                    title=f"Active Clients ({len(active_clients)})",
+                    items=client_items,
+                    section_type="list"
+                )
+            ],
+            "stats": {
+                "total_revenue": sum(c.monthly_contract_value for c in active_clients),
+                "avg_satisfaction": (
+                    sum(c.satisfaction for c in active_clients) / len(active_clients)
+                    if active_clients else 0.0
+                ),
+            }
+        }
+    
+    @staticmethod
+    def _satisfaction_bar(satisfaction: float, width: int = 10) -> str:
+        """Create ASCII satisfaction bar for display.
+        
+        Args:
+            satisfaction: Satisfaction value 0.0-1.0
+            width: Width of bar in characters
+            
+        Returns:
+            ASCII bar representation
+        """
+        filled = int(satisfaction * width)
+        return "█" * filled + "░" * (width - filled)
