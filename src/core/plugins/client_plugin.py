@@ -103,8 +103,12 @@ class ClientPlugin(GameSystem, UIProvider):
         """
         pass  # Main work happens in event handlers
     
-    def shutdown(self) -> None:
-        """Shutdown and cleanup."""
+    def shutdown(self, game_state: GameState) -> None:
+        """Shutdown and cleanup.
+        
+        Args:
+            game_state: Current game state
+        """
         logger.info("[ClientPlugin] Shutting down")
     
     def set_event_bus(self, event_bus: EventBus) -> None:

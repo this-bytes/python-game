@@ -531,7 +531,7 @@ class Game:
 
         # Update UI
         self.ui.handle_input(events)
-        self.ui.update(delta_time, self.game_state)
+        self.ui.update(delta_time)
 
         # Update development systems
         if self.screenshot_utility:
@@ -542,7 +542,7 @@ class Game:
 
         # Render
         if self.ui:
-            self.ui.render(self.game_state)
+            self.ui.render()
 
         pygame.display.flip()
 

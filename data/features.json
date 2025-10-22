@@ -1,32 +1,53 @@
 {
   "features": [
     {
-      "id": "idle_core",
+      "id": "budget_system",
       "enabled": true,
       "rollout_percentage": 100.0,
       "dependencies": [],
-      "description": "Core idle game mechanics with auto-assignment"
+      "description": "Budget tracking and financial management - ESSENTIAL CORE"
+    },
+    {
+      "id": "sla_system",
+      "enabled": true,
+      "rollout_percentage": 100.0,
+      "dependencies": [],
+      "description": "SLA tracking and violation detection - ESSENTIAL CORE"
+    },
+    {
+      "id": "game_loop_system",
+      "enabled": true,
+      "rollout_percentage": 100.0,
+      "dependencies": [],
+      "description": "Game loop and time management - ESSENTIAL CORE"
+    },
+    {
+      "id": "idle_core",
+      "enabled": false,
+      "rollout_percentage": 0.0,
+      "dependencies": [],
+      "description": "Core idle game mechanics with auto-assignment - DISABLED (confusing)"
     },
     {
       "id": "prestige_system",
-      "enabled": true,
-      "rollout_percentage": 100.0,
+      "enabled": false,
+      "rollout_percentage": 0.0,
       "dependencies": [],
-      "description": "Prestige/rebirth system for meta-progression"
+      "description": "Prestige/rebirth system - DISABLED (no UI)"
     },
     {
       "id": "achievement_system",
-      "enabled": true,
-      "rollout_percentage": 100.0,
+      "enabled": false,
+      "rollout_percentage": 0.0,
       "dependencies": [],
-      "description": "Achievement tracking and rewards"
+      "description": "Achievement tracking - DISABLED (not visible)"
     },
     {
       "id": "dopamine_system",
-      "enabled": true,
-      "rollout_percentage": 100.0,
+      "enabled": false,
+      "rollout_percentage": 0.0,
       "dependencies": [],
-      "description": "Visual feedback and dopamine-driven engagement"
+      "description": "Visual feedback - DISABLED (effects only)"
     },
     {
       "id": "team_dynamics",

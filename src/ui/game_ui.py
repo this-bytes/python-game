@@ -318,7 +318,7 @@ class GameUI:
         self.modal_manager.update(delta_time)
         
         # Update notification manager
-        self.notification_manager.update(delta_time)
+        self.notification_manager.update(delta_time, self.game_state)
 
     def render(self) -> None:
         """Render the game UI."""
