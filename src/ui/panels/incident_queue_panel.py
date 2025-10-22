@@ -232,7 +232,7 @@ class IncidentQueuePanel:
         
         # Client name
         client_text = self.font_label.render(
-            f"Client: {incident.client_id[:15]}...", 
+            f"Client: {incident.client_id[:15]}{'...' if len(incident.client_id) > 15 else ''}", 
             True, 
             self.LABEL_COLOR
         )
