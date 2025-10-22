@@ -53,6 +53,9 @@ class DashboardPanel(UIComponent):
                 widget.hovered = widget.rect.collidepoint(event.pos)
         return False
 
+    def update_hover(self) -> None:
+        for widget in self.widgets:
+            widget.hovered = widget.rect.collidepoint(pygame.mouse.get_pos())
     def draw(self, screen: pygame.Surface, game_state) -> None:
         if not self.dashboard_manager or not self.game_state:
             return
