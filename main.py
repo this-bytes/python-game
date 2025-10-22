@@ -320,21 +320,6 @@ class Game:
                     
                     # DISABLED PLUGINS (no UI implementation or not essential to core loop)
                     # These add complexity without visible player value
-                    disabled_plugins = [
-                        # "IdlePlugin",                  # Confusing for active play, no clear UI
-                        # "PrestigeSystem",              # No UI implementation
-                        # "AchievementSystem",           # Not visible to player
-                        # "RelationshipsPlugin",         # Team dynamics - has UI but adds complexity
-                        # "TeamDynamicsPlugin",          # Duplicate with relationships
-                        # "DopaminePlugin",              # Visual effects only, no gameplay
-                        # "EquipmentPlugin",             # Drops exist but can't be seen/managed
-                        # "AbilityPlugin",               # Abilities exist but no activation UI
-                        # "PassiveIncomePlugin",         # Hidden system, confusing
-                        # "FacilityPlugin",              # No visible facility upgrades
-                        # "ProgressiveDifficultyPlugin", # Automatic, invisible to player
-                        # "SkillTreePlugin",             # No skill tree UI
-                        # "EconomyPlugin",               # Market events invisible
-                    ]
 
                     registered = 0
                     for plugin_name, plugin_cls in plugin_classes:
