@@ -334,13 +334,17 @@ class GameUI:
                 # Handle both clicks and hover
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     # Check if a widget was clicked
+                    widget_clicked = False
                     for widget in self.dashboard_panel.widgets:
                         if widget.rect.collidepoint(event.pos):
                             # Publish event to open detail panel
                             self.event_bus.publish("ui_dashboard_widget_clicked", {
                                 "plugin_name": widget.plugin_name
                             }, source="game_ui")
-                            continue
+                            widget_clicked = True
+                            break
+                    if widget_clicked:
+                        continue
                 elif event.type == pygame.MOUSEMOTION:
                     self.dashboard_panel.update_hover()
 
