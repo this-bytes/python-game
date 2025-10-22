@@ -6,7 +6,26 @@ import time
 import pytest
 
 from src.core.passive_income_system import PassiveIncomeSystem
-from src.models.client import Client
+from src.models.client import Client, Industry
+
+
+def create_test_client(client_id: str, company_name: str, is_active: bool = True, 
+                       contract_value: float = 10000.0, satisfaction: float = 0.85,
+                       industry: Industry = Industry.TECHNOLOGY) -> Client:
+    """Helper to create a test client with standard fields."""
+    return Client(
+        client_id=client_id,
+        company_name=company_name,
+        industry=industry,
+        monthly_contract_value=contract_value,
+        sla_response_time_seconds=3600,
+        sla_resolution_time_seconds=86400,
+        contract_start_month=0,
+        contract_end_month=12,
+        satisfaction=satisfaction,
+        is_active=is_active,
+        avg_monthly_incidents=5
+    )
 
 
 class TestPassiveIncomeSystem:
@@ -33,26 +52,8 @@ class TestPassiveIncomeSystem:
         system = PassiveIncomeSystem(config)
         
         clients = [
-            Client(
-                id="client1",
-                name="Test Client 1",
-                industry="Technology",
-                incident_rate_per_minute=0.5,
-                sla_multiplier=1.0,
-                reputation=80,
-                contract_value=10000,
-                active=True
-            ),
-            Client(
-                id="client2",
-                name="Test Client 2",
-                industry="Finance",
-                incident_rate_per_minute=0.3,
-                sla_multiplier=1.0,
-                reputation=90,
-                contract_value=15000,
-                active=True
-            )
+            create_test_client("client1", "Test Client 1", contract_value=10000.0),
+            create_test_client("client2", "Test Client 2", contract_value=15000.0, industry=Industry.FINANCE),
         ]
         
         # Calculate for 1 hour (3600 seconds)
@@ -69,16 +70,7 @@ class TestPassiveIncomeSystem:
         system = PassiveIncomeSystem(config)
         
         clients = [
-            Client(
-                id="client1",
-                name="Inactive Client",
-                industry="Technology",
-                incident_rate_per_minute=0.5,
-                sla_multiplier=1.0,
-                reputation=80,
-                contract_value=10000,
-                active=False  # Inactive
-            )
+            create_test_client("client1", "Inactive Client", is_active=False),
         ]
         
         delta_time = 3600.0

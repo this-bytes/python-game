@@ -8,27 +8,25 @@ import sys
 import time
 import pygame
 import os
+
 from datetime import datetime
 from typing import Optional
 
-
-
-# NOTE: Avoid inserting absolute paths into sys.path. Development should use
-# an editable install (pip install -e .) or run from the project root so
-# imports resolve correctly. Do not modify sys.path here.
-
-
 from src.models.game_state import GameState
+
 from src.ui.game_ui import GameUI
 from src.ui.main_menu import MainMenu, MenuAction
+
 from src.utils.logger import GameLogger
 from src.utils.json_loader import load_game_data
 from src.utils.rich_parameter_system import get_parameter_system
 from src.utils.screenshot import initialize_screenshot_utility
 from src.utils.backend_integration import initialize_backend_integration, connect_to_backend
 from src.utils.game_args import parse_game_args, GameMode, GameArgs
+
 from src.core.save_manager import SaveManager
 from src.core.system_manager import SystemManager
+
 from src.core.plugins.idle_plugin import IdlePlugin
 from src.core.plugins.prestige_plugin import PrestigeSystem
 from src.core.plugins.achievement_plugin import AchievementSystem
@@ -45,6 +43,8 @@ from src.core.plugins.team_dynamics_plugin import TeamDynamicsPlugin
 from src.core.plugins.economy_plugin import EconomyPlugin
 from src.core.plugins.budget_plugin import BudgetPlugin
 from src.core.plugins.sla_plugin import SLAPlugin
+from src.core.plugins.game_loop_plugin import GameLoopPlugin
+from src.core.plugins.incident_dispatch_plugin import IncidentDispatchPlugin
 
 
 class Game:
@@ -306,6 +306,8 @@ class Game:
                         ("AbilityPlugin", AbilityPlugin),
                         ("BudgetPlugin", BudgetPlugin),
                         ("SLAPlugin", SLAPlugin),
+                        ("GameLoopPlugin", GameLoopPlugin),
+                        ("IncidentDispatchPlugin", IncidentDispatchPlugin),
                         ("PassiveIncomePlugin", PassiveIncomePlugin),
                         ("FacilityPlugin", FacilityPlugin),
                         ("ProgressiveDifficultyPlugin", ProgressiveDifficultyPlugin),

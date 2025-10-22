@@ -14,8 +14,8 @@ class TestBudget:
             monthly_revenue=5000.0,
             monthly_expenses=3000.0,
             specialist_salary_per_month=3000.0,
-            infrastructure_cost_per_month=2000.0,
-            overhead_per_month=1000.0,
+            infrastructure_cost_per_client=500.0,
+            fixed_overhead=1500.0,
         )
         
         # Verify basic fields
@@ -23,8 +23,8 @@ class TestBudget:
         assert budget.monthly_revenue == 5000.0
         assert budget.monthly_expenses == 3000.0
         assert budget.specialist_salary_per_month == 3000.0
-        assert budget.infrastructure_cost_per_month == 2000.0
-        assert budget.overhead_per_month == 1000.0
+        assert budget.infrastructure_cost_per_client == 500.0
+        assert budget.fixed_overhead == 1500.0
     
     def test_get_monthly_profit(self):
         """Verify monthly profit calculation."""
@@ -166,8 +166,8 @@ class TestBudget:
             "revenue_history": [5000.0],
             "expense_history": [3000.0],
             "specialist_salary_per_month": 3000.0,
-            "infrastructure_cost_per_month": 2000.0,
-            "overhead_per_month": 1000.0,
+            "infrastructure_cost_per_client": 500.0,
+            "fixed_overhead": 1500.0,
         }
         
         budget = Budget.from_dict(data)

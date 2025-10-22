@@ -12,7 +12,7 @@ import pytest
 from src.models.game_state import GameState
 from src.models.specialist import Specialist
 from src.models.incident import Incident
-from src.models.client import Client
+from src.models.client import Client, Industry
 from src.core.resolution_system import ResolutionSystem
 
 
@@ -26,13 +26,17 @@ def game_state() -> GameState:
 def test_client(game_state: GameState) -> Client:
     """Provide test client."""
     client = Client(
-        id="client_test_001",
-        name="Test Corp",
-        industry="Technology",
-        incident_rate_per_minute=2.0,
-        sla_multiplier=1.0,
-        reputation=75,
-        contract_value=5000
+        client_id="client_test_001",
+        company_name="Test Corp",
+        industry=Industry.TECHNOLOGY,
+        monthly_contract_value=5000,
+        sla_response_time_seconds=3600,
+        sla_resolution_time_seconds=86400,
+        contract_start_month=0,
+        contract_end_month=12,
+        satisfaction=0.75,
+        is_active=True,
+        avg_monthly_incidents=2
     )
     game_state.clients.append(client)
     return client

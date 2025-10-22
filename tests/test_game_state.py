@@ -83,13 +83,22 @@ class TestGameState:
             return {
                 "clients": [
                     {
-                        "id": "client_001",
-                        "name": "TechCorp Inc.",
-                        "industry": "Technology",
-                        "incident_rate_per_minute": 0.5,
-                        "sla_multiplier": 1.0,
-                        "reputation": 80,
-                        "contract_value": 10000
+                        "client_id": "client_001",
+                        "company_name": "TechCorp Inc.",
+                        "industry": "technology",
+                        "monthly_contract_value": 10000,
+                        "sla_response_time_seconds": 3600,
+                        "sla_resolution_time_seconds": 86400,
+                        "contract_start_month": 0,
+                        "contract_end_month": 12,
+                        "satisfaction": 0.85,
+                        "is_active": True,
+                        "avg_monthly_incidents": 5,
+                        "threat_landscape": ["API Abuse", "Account Enumeration"],
+                        "incident_severity_distribution": {"critical": 0.05, "high": 0.20, "medium": 0.50, "low": 0.25},
+                        "assigned_specialists": [],
+                        "historical_sla_misses": 0,
+                        "months_active": 0
                     }
                 ]
             }
@@ -170,7 +179,7 @@ class TestGameState:
         """Test getting client by ID."""
         client = sample_game_state.get_client_by_id("client_001")
         assert client is not None
-        assert client.name == "TechCorp Inc."
+        assert client.company_name == "TechCorp Inc."
 
     def test_get_automation_script_by_id(self, sample_game_state):
         """Test getting automation script by ID."""

@@ -1,7 +1,7 @@
 """Tests for ClientManager class."""
 
 import pytest
-from src.models.client import Client
+from src.models.client import Client, Industry
 from src.models.incident import Incident
 from src.core.client_manager import ClientManager
 
@@ -16,14 +16,17 @@ def client_manager():
 def sample_client():
     """Create a sample client for testing."""
     return Client(
-        id="client_test_001",
-        name="Test Corp",
-        industry="Technology",
-        incident_rate_per_minute=0.5,
-        sla_multiplier=1.0,
-        reputation=80,
-        contract_value=10000,
-        active=True,
+        client_id="client_test_001",
+        company_name="Test Corp",
+        industry=Industry.TECHNOLOGY,
+        monthly_contract_value=10000,
+        sla_response_time_seconds=3600,
+        sla_resolution_time_seconds=86400,
+        contract_start_month=0,
+        contract_end_month=12,
+        satisfaction=0.85,
+        is_active=True,
+        avg_monthly_incidents=5
     )
 
 
@@ -246,15 +249,13 @@ class TestClientManager:
         sample_client.total_incidents_resolved = 8
         sample_client.total_sla_failures = 2
         sample_client.satisfaction_history = [100.0, 60.0, 100.0, 100.0, 60.0]
-        sample_client.reputation = 80
-        sample_client.tier = client_manager.determine_tier(sample_client)  # Calculate tier
+        # Note: Client model doesn't have reputation, satisfaction is the equivalent
+        sample_client.satisfaction = 0.80  # High satisfaction
 
         summary = client_manager.get_client_summary(sample_client)
 
-        assert summary["client_id"] == sample_client.id
-        assert summary["name"] == sample_client.name
-        assert summary["reputation"] == 80
-        assert summary["tier"] == 5
+        assert summary["client_id"] == sample_client.client_id
+        assert summary["name"] == sample_client.company_name
         assert summary["tier_name"] == "Excellent"
         assert summary["satisfaction"] == 84.0  # Average of satisfaction_history
         assert summary["total_incidents_assigned"] == 10

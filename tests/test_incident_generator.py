@@ -6,7 +6,7 @@ from unittest.mock import patch, MagicMock
 from datetime import datetime
 
 from src.core.incident_generator import IncidentGenerator, IncidentTemplate, GenerationConfig
-from src.models.client import Client
+from src.models.client import Client, Industry
 from src.models.incident import Incident
 from src.utils.logger import GameLogger
 
@@ -66,14 +66,17 @@ class TestIncidentGenerator:
     def sample_client(self):
         """Create a sample client for testing."""
         return Client(
-            id="client_001",
-            name="Test Client",
-            industry="Technology",
-            incident_rate_per_minute=0.5,
-            sla_multiplier=1.0,
-            reputation=80,
-            contract_value=10000,
-            active=True
+            client_id="client_001",
+            company_name="Test Client",
+            industry=Industry.TECHNOLOGY,
+            monthly_contract_value=10000,
+            sla_response_time_seconds=3600,
+            sla_resolution_time_seconds=86400,
+            contract_start_month=0,
+            contract_end_month=12,
+            satisfaction=0.85,
+            is_active=True,
+            avg_monthly_incidents=5
         )
 
     @pytest.fixture
@@ -139,14 +142,17 @@ class TestIncidentGenerator:
     def test_should_generate_incident_inactive_client(self, generator):
         """Test incident generation check for inactive client."""
         inactive_client = Client(
-            id="client_002",
-            name="Inactive Client",
-            industry="Technology",
-            incident_rate_per_minute=1.0,
-            sla_multiplier=1.0,
-            reputation=80,
-            contract_value=10000,
-            active=False
+            client_id="client_002",
+            company_name="Inactive Client",
+            industry=Industry.TECHNOLOGY,
+            monthly_contract_value=10000,
+            sla_response_time_seconds=3600,
+            sla_resolution_time_seconds=86400,
+            contract_start_month=0,
+            contract_end_month=12,
+            satisfaction=0.85,
+            is_active=False,
+            avg_monthly_incidents=5
         )
 
         result = generator.should_generate_incident(inactive_client, 60.0, 0)
@@ -163,7 +169,7 @@ class TestIncidentGenerator:
 
         assert isinstance(incident, Incident)
         assert incident.id == "test_inc_001"
-        assert incident.client_id == sample_client.id
+        assert incident.client_id == sample_client.client_id
         assert incident.specialty_required in ["Network Security", "Malware Analysis"]
         assert 1 <= incident.difficulty <= 3
         assert incident.status == "pending"

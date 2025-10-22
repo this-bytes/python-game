@@ -212,7 +212,7 @@ class ContractManager:
         total_income = 0.0
 
         for contract in contracts:
-            if contract.contract_type == "retainer" and contract.is_active::
+            if contract.contract_type == "retainer" and contract.is_active:
                 # Calculate income based on time elapsed
                 # Retainer pays evenly over contract duration
                 daily_rate = contract.base_rate / contract.duration_days
@@ -256,7 +256,7 @@ class ContractManager:
             "contract_type": contract.contract_type,
             "base_rate": contract.base_rate,
             "status": contract.status,
-            "is_active": contract.is_active:,
+            "is_active": contract.is_active,
             "days_remaining": contract.get_days_remaining(),
             "time_remaining_seconds": contract.get_time_remaining(),
             "duration_days": contract.duration_days,
@@ -276,7 +276,7 @@ class ContractManager:
         Returns:
             Number of active contracts
         """
-        return sum(1 for c in contracts if c.is_active:)
+        return sum(1 for c in contracts if c.is_active)
 
     def get_total_retainer_value(self, contracts: List["Contract"]) -> float:
         """Get total value of all active retainer contracts.
@@ -290,5 +290,5 @@ class ContractManager:
         return sum(
             c.base_rate
             for c in contracts
-            if c.contract_type == "retainer" and c.is_active:
+            if c.contract_type == "retainer" and c.is_active
         )
