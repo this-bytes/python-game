@@ -47,27 +47,6 @@ achievement_system.check_achievement()
 stats.increment_counter()
 ```
 
-Use event bus:
-```python
-# ✅ GOOD: Event-driven
-event_bus.emit("incident_assigned", {
-    "specialist": specialist,
-    "incident": incident
-})
-
-# Listeners auto-respond:
-# - UI updates
-# - Achievements check
-# - Stats increment
-# - Multiplayer syncs
-```
-
-**Benefits:**
-- ✅ Add new features without touching existing code
-- ✅ Features can be disabled independently
-- ✅ Easy to parallelize development
-- ✅ Coding agent can work on isolated features
-
 ### 3. **Plugin Architecture** (NEW!)
 
 ```python

@@ -111,7 +111,7 @@ class StateManager:
 
     def add_client(self, client: Client) -> None:
         """Add a client to the state."""
-        self.clients[client.id] = client
+        self.clients[client.client_id] = client
 
     def get_client(self, client_id: str) -> Optional[Client]:
         """Get a client by ID."""
@@ -155,7 +155,7 @@ class StateManager:
 
     def add_sla_tracker(self, sla_tracker: SLATracker) -> None:
         """Add an SLA tracker to the state."""
-        self.sla_trackers[sla_tracker.id] = sla_tracker
+        self.sla_trackers[sla_tracker.tracker_id] = sla_tracker
 
     def get_sla_tracker(self, tracker_id: str) -> Optional[SLATracker]:
         """Get an SLA tracker by ID."""

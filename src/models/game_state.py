@@ -1,11 +1,15 @@
 """GameState model representing the complete state of the cybersecurity firm game.
 
-The GameState is the central hub that manages all game entities, tracks game progression,
-handles time-based mechanics, and provides the interface for all game operations.
+The GameState is now a facade that coordinates the layered architecture:
+- StateManager: Pure data layer for entity storage and CRUD operations
+- GameLogic: Business rules and game mechanics
+- SystemCoordinator: Internal system management and time-based updates
+
+This facade maintains the public API while delegating to the layered components.
 """
 
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, Callable
 from datetime import datetime
 import time
 import random
@@ -17,7 +21,13 @@ from src.models.client import Client
 from src.models.automation_script import AutomationScript
 from src.models.budget import Budget
 from src.models.sla_tracker import SLATracker
-# Core System Imports (Types used as Optional or for instantiation)
+
+# Layered Architecture Imports
+from src.core.state_manager import StateManager
+from src.core.game_logic import GameLogic
+from src.core.system_coordinator import SystemCoordinator
+
+# Core System Imports (for backward compatibility)
 from src.core.dopamine_system import DopamineSystem
 from src.core.equipment_system import EquipmentSystem
 from src.core.incident_generator import IncidentGenerator
@@ -90,110 +100,419 @@ class GameMetrics:
 
 @dataclass
 class GameState:
-    """Central game state manager for the cybersecurity firm simulation."""
+    """Facade for the layered game state architecture.
 
-    # Core game entities
-    specialists: List[Specialist] = field(default_factory=list)
-    incidents: List[Incident] = field(default_factory=list)
-    clients: List[Client] = field(default_factory=list)
-    automation_scripts: List[AutomationScript] = field(default_factory=list)
-    equipment_instances: Dict[str, Any] = field(default_factory=dict)  # equipment_id -> Equipment instance
-    
-    # Tycoon system entities
-    contracts: List = field(default_factory=list)  # List[Contract]
-    facilities: List = field(default_factory=list)  # List[Facility]
-    recruitment_pool: List[Dict] = field(default_factory=list)  # Candidate data
-    recruitment_refresh_time: float = 0.0
-    active_events: List[Dict] = field(default_factory=list)  # {event_id, remaining_time}
-    event_cooldowns: Dict[str, float] = field(default_factory=dict)  # event_id -> next_allowed_time
+    This class maintains the public API while delegating to the layered components:
+    - StateManager: Pure data layer for entity storage and CRUD operations
+    - GameLogic: Business rules and game mechanics
+    - SystemCoordinator: Internal system management and time-based updates
+    """
 
-    # Game progression
-    game_start_time: float = field(default_factory=time.time)
-    current_time: float = field(default_factory=time.time)
-    game_speed_multiplier: float = 1.0
-    is_paused: bool = False
-    is_tutorial: bool = False
+    # Layered Architecture Components
+    _state_manager: StateManager = field(init=False)
+    _game_logic: GameLogic = field(init=False)
+    _system_coordinator: SystemCoordinator = field(init=False)
 
-    # Financial state
-    current_money: float = 5000.0  # Starting money
-    total_money_earned: float = 0.0
-    investments: Dict[str, float] = field(default_factory=dict)  # Investment type → amount
-    budget: Budget = field(default_factory=lambda: Budget(total_reserves=10000.0))
-    
-    # SOC Startup tracking
-    sla_trackers: List[SLATracker] = field(default_factory=list)
-    company_founded_month: int = 0
-    current_month: int = 1
-    
-    # Offline progress
-    last_save_time: float = field(default_factory=time.time)  # Last time game was saved
-    
-    # Prestige/Rebirth system
-    prestige_points: int = 0
-    prestige_upgrades: Dict[str, int] = field(default_factory=dict)
-    total_prestiges: int = 0
-    
-    # Achievement system
-    unlocked_achievements: List[str] = field(default_factory=list)
-    achievement_progress: Dict[str, float] = field(default_factory=dict)
+    # Observer pattern for UI state change notifications
+    _observers: List[Callable[[str, Any], None]] = field(default_factory=list)
 
-    # Dopamine/addictive mechanics
-    dopamine_feedback_queue: List[Dict] = field(default_factory=list)
-    active_risk_contracts: Dict[str, Any] = field(default_factory=dict)
+    # Legacy attributes for backward compatibility (delegated to layers via properties)
+    # Note: These are now properties that delegate to the layered architecture
 
-    # Game configuration
-    max_active_incidents: int = 50
-    max_specialists: int = 10
-    incident_generation_enabled: bool = True
-
-    # Metrics and statistics
-    metrics: GameMetrics = field(default_factory=GameMetrics)
-
-    # Internal state (systems) - Using string literals for type hints
-    _json_loader: Optional[JSONLoader] = None
-    _logger: Optional[GameLogger] = None
-    _incident_generator: Optional[IncidentGenerator] = None
-    _automation_processor: Optional[AutomationProcessor] = None
-    _passive_income_system: Optional[PassiveIncomeSystem] = None
-    # _offline_progress_system: Optional[OfflineProgressSystem] = None
-    # _burnout_system: Optional['BurnoutSystem'] = None
-    _relationships_system: Optional['RelationshipsSystem'] = None
-    _dopamine_system: Optional[DopamineSystem] = None
-    _idle_core: Optional[IdleCore] = None
-    _equipment_system: Optional[EquipmentSystem] = None
-    _last_incident_generation: float = field(default_factory=time.time)
-    _incident_generation_accumulator: float = 0.0
-    _offline_progress_calculated: bool = False
-    _last_offline_report: Optional[Dict[str, Any]] = None
+    # Internal systems (for backward compatibility)
+    _json_loader: Optional[JSONLoader] = field(init=False)
+    _logger: Optional[GameLogger] = field(init=False)
+    _incident_generator: Optional[IncidentGenerator] = field(init=False)
+    _automation_processor: Optional[AutomationProcessor] = field(init=False)
+    _passive_income_system: Optional[PassiveIncomeSystem] = field(init=False)
+    _relationships_system: Optional[RelationshipsSystem] = field(init=False)
+    _dopamine_system: Optional[DopamineSystem] = field(init=False)
+    _idle_core: Optional[Any] = field(init=False)
+    _equipment_system: Optional[EquipmentSystem] = field(init=False)
+    _last_incident_generation: float = field(init=False)
+    _incident_generation_accumulator: float = field(init=False)
+    _offline_progress_calculated: bool = field(init=False)
+    _last_offline_report: Optional[Dict[str, Any]] = field(init=False)
 
     def __post_init__(self):
-        """Initialize game state after creation."""
-        # 1. Initialize Essential Systems (Loader/Logger)
-        if self._json_loader is None:
-            import os
-            current_dir = os.getcwd()
-            if os.path.basename(current_dir) == 'src':
-                project_root = os.path.dirname(current_dir)
-            else:
-                project_root = current_dir
-            data_dir = os.path.join(project_root, "data")
-            self._json_loader = JSONLoader(data_dir=data_dir)
-            
-        if self._logger is None:
-            self._logger = GameLogger("game_state")
+        """Initialize game state facade with layered architecture."""
+        # Initialize layered components
+        self._initialize_layered_architecture()
 
-        # 2. Initialize Core Systems (using a helper)
+        # Initialize legacy systems for backward compatibility
+        self._initialize_legacy_systems()
+
+        # Set up backward compatibility properties
+        self._setup_backward_compatibility()
+
+        # Load initial data and set up event subscriptions
+        self._initialize_game_data()
+
+    def _initialize_layered_architecture(self):
+        """Initialize the layered architecture components."""
+        # Load game config first
+        game_config = {}
+        if self._json_loader:
+            try:
+                game_config = self._json_loader.load_data("game_config.json")
+            except Exception as e:
+                if self._logger:
+                    self._logger.warning(f"[GAME_STATE] Failed to load game config: {e}")
+
+        # Initialize StateManager with starting budget
+        self._state_manager = StateManager(budget=Budget(total_reserves=5000.0))
+
+        # Initialize GameLogic with game config
+        self._game_logic = GameLogic(game_config)
+
+        # Initialize SystemCoordinator with all required parameters
+        self._system_coordinator = SystemCoordinator(self._state_manager, self._game_logic, game_config)
+
+    def _initialize_legacy_systems(self):
+        """Initialize legacy systems for backward compatibility."""
+        # Initialize essential systems
+        self._json_loader = None
+        self._logger = None
+        self._incident_generator = None
+        self._automation_processor = None
+        self._passive_income_system = None
+        self._relationships_system = None
+        self._dopamine_system = None
+        self._idle_core = None
+        self._equipment_system = None
+
+        # Initialize timing accumulators
+        self._last_incident_generation = time.time()
+        self._incident_generation_accumulator = 0.0
+        self._offline_progress_calculated = False
+        self._last_offline_report = None
+
+        # Initialize JSON loader and logger
+        self._initialize_json_loader()
+        self._initialize_logger()
+
+        # Initialize core systems using layered approach
         self._initialize_core_systems()
 
-        # 3. Load Initial Data (Only for new games)
+    def _initialize_json_loader(self):
+        """Initialize JSON loader."""
+        import os
+        current_dir = os.getcwd()
+        if os.path.basename(current_dir) == 'src':
+            project_root = os.path.dirname(current_dir)
+        else:
+            project_root = current_dir
+        data_dir = os.path.join(project_root, "data")
+        self._json_loader = JSONLoader(data_dir=data_dir)
+
+    def _initialize_logger(self):
+        """Initialize logger."""
+        self._logger = GameLogger("game_state")
+
+    def _setup_backward_compatibility(self):
+        """Set up properties that delegate to layered components for backward compatibility."""
+        # These will be properties that convert between dict/list formats
+        pass
+
+    # Backward compatibility properties that convert between StateManager dicts and GameState lists
+    @property
+    def specialists(self) -> List[Specialist]:
+        """Get specialists as list for backward compatibility."""
+        return list(self._state_manager.specialists.values())
+
+    @specialists.setter
+    def specialists(self, value: List[Specialist]):
+        """Set specialists from list, converting to dict storage."""
+        self._state_manager.specialists = {s.id: s for s in value}
+
+    @property
+    def incidents(self) -> List[Incident]:
+        """Get incidents as list for backward compatibility."""
+        return list(self._state_manager.incidents.values())
+
+    @incidents.setter
+    def incidents(self, value: List[Incident]):
+        """Set incidents from list, converting to dict storage."""
+        self._state_manager.incidents = {i.id: i for i in value}
+
+    @property
+    def clients(self) -> List[Client]:
+        """Get clients as list for backward compatibility."""
+        return list(self._state_manager.clients.values())
+
+    @clients.setter
+    def clients(self, value: List[Client]):
+        """Set clients from list, converting to dict storage."""
+        self._state_manager.clients = {c.client_id: c for c in value}
+
+    @property
+    def contracts(self) -> List:
+        """Get contracts as list for backward compatibility."""
+        return list(self._state_manager.contracts.values())
+
+    @contracts.setter
+    def contracts(self, value: List):
+        """Set contracts from list, converting to dict storage."""
+        self._state_manager.contracts = {c.id: c for c in value}
+
+    @property
+    def sla_trackers(self) -> List[SLATracker]:
+        """Get SLA trackers as list for backward compatibility."""
+        return list(self._state_manager.sla_trackers.values())
+
+    @sla_trackers.setter
+    def sla_trackers(self, value: List[SLATracker]):
+        """Set SLA trackers from list, converting to dict storage."""
+        self._state_manager.sla_trackers = {t.tracker_id: t for t in value}
+
+    @property
+    def budget(self) -> Budget:
+        """Get budget from StateManager."""
+        return self._state_manager.budget or Budget(total_reserves=5000.0)
+
+    @budget.setter
+    def budget(self, value: Budget):
+        """Set budget in StateManager."""
+        self._state_manager.budget = value
+
+    # Simple delegation properties for other attributes
+    @property
+    def game_start_time(self) -> float:
+        return self._state_manager.game_time
+
+    @game_start_time.setter
+    def game_start_time(self, value: float):
+        self._state_manager.game_time = value
+
+    @property
+    def current_time(self) -> float:
+        return self._state_manager.game_time
+
+    @current_time.setter
+    def current_time(self, value: float):
+        self._state_manager.game_time = value
+
+    @property
+    def current_money(self) -> float:
+        return self._state_manager.budget.total_reserves if self._state_manager.budget else 5000.0
+
+    @current_money.setter
+    def current_money(self, value: float):
+        if self._state_manager.budget:
+            self._state_manager.budget.total_reserves = value
+
+    @property
+    def total_money_earned(self) -> float:
+        return self._state_manager.total_money_earned
+
+    @total_money_earned.setter
+    def total_money_earned(self, value: float):
+        self._state_manager.total_money_earned = value
+
+    # Placeholder properties for attributes not yet in StateManager
+    @property
+    def automation_scripts(self) -> List[AutomationScript]:
+        return []
+
+    @automation_scripts.setter
+    def automation_scripts(self, value: List[AutomationScript]):
+        pass  # TODO: Add to StateManager
+
+    @property
+    def equipment_instances(self) -> Dict[str, Any]:
+        return {}
+
+    @equipment_instances.setter
+    def equipment_instances(self, value: Dict[str, Any]):
+        pass  # TODO: Add to StateManager
+
+    @property
+    def facilities(self) -> List:
+        return []
+
+    @facilities.setter
+    def facilities(self, value: List):
+        pass  # TODO: Add to StateManager
+
+    @property
+    def recruitment_pool(self) -> List[Dict]:
+        return []
+
+    @recruitment_pool.setter
+    def recruitment_pool(self, value: List[Dict]):
+        pass  # TODO: Add to StateManager
+
+    @property
+    def recruitment_refresh_time(self) -> float:
+        return 0.0
+
+    @recruitment_refresh_time.setter
+    def recruitment_refresh_time(self, value: float):
+        pass  # TODO: Add to StateManager
+
+    @property
+    def active_events(self) -> List[Dict]:
+        return []
+
+    @active_events.setter
+    def active_events(self, value: List[Dict]):
+        pass  # TODO: Add to StateManager
+
+    @property
+    def event_cooldowns(self) -> Dict[str, float]:
+        return {}
+
+    @event_cooldowns.setter
+    def event_cooldowns(self, value: Dict[str, float]):
+        pass  # TODO: Add to StateManager
+
+    @property
+    def game_speed_multiplier(self) -> float:
+        return 1.0
+
+    @game_speed_multiplier.setter
+    def game_speed_multiplier(self, value: float):
+        pass  # TODO: Add to StateManager
+
+    @property
+    def is_paused(self) -> bool:
+        return False
+
+    @is_paused.setter
+    def is_paused(self, value: bool):
+        pass  # TODO: Add to StateManager
+
+    @property
+    def investments(self) -> Dict[str, float]:
+        return {}
+
+    @investments.setter
+    def investments(self, value: Dict[str, float]):
+        pass  # TODO: Add to StateManager
+
+    @property
+    def company_founded_month(self) -> int:
+        return 0
+
+    @company_founded_month.setter
+    def company_founded_month(self, value: int):
+        pass  # TODO: Add to StateManager
+
+    @property
+    def current_month(self) -> int:
+        return 1
+
+    @current_month.setter
+    def current_month(self, value: int):
+        pass  # TODO: Add to StateManager
+
+    @property
+    def last_save_time(self) -> float:
+        return time.time()
+
+    @last_save_time.setter
+    def last_save_time(self, value: float):
+        pass  # TODO: Add to StateManager
+
+    @property
+    def prestige_points(self) -> int:
+        return 0
+
+    @prestige_points.setter
+    def prestige_points(self, value: int):
+        pass  # TODO: Add to StateManager
+
+    @property
+    def prestige_upgrades(self) -> Dict[str, int]:
+        return {}
+
+    @prestige_upgrades.setter
+    def prestige_upgrades(self, value: Dict[str, int]):
+        pass  # TODO: Add to StateManager
+
+    @property
+    def total_prestiges(self) -> int:
+        return 0
+
+    @total_prestiges.setter
+    def total_prestiges(self, value: int):
+        pass  # TODO: Add to StateManager
+
+    @property
+    def unlocked_achievements(self) -> List[str]:
+        return []
+
+    @unlocked_achievements.setter
+    def unlocked_achievements(self, value: List[str]):
+        pass  # TODO: Add to StateManager
+
+    @property
+    def achievement_progress(self) -> Dict[str, float]:
+        return {}
+
+    @achievement_progress.setter
+    def achievement_progress(self, value: Dict[str, float]):
+        pass  # TODO: Add to StateManager
+
+    @property
+    def dopamine_feedback_queue(self) -> List[Dict]:
+        return []
+
+    @dopamine_feedback_queue.setter
+    def dopamine_feedback_queue(self, value: List[Dict]):
+        pass  # TODO: Add to StateManager
+
+    @property
+    def active_risk_contracts(self) -> Dict[str, Any]:
+        return {}
+
+    @active_risk_contracts.setter
+    def active_risk_contracts(self, value: Dict[str, Any]):
+        pass  # TODO: Add to StateManager
+
+    @property
+    def max_active_incidents(self) -> int:
+        return 50
+
+    @max_active_incidents.setter
+    def max_active_incidents(self, value: int):
+        pass  # TODO: Add to StateManager
+
+    @property
+    def max_specialists(self) -> int:
+        return 10
+
+    @max_specialists.setter
+    def max_specialists(self, value: int):
+        pass  # TODO: Add to StateManager
+
+    @property
+    def incident_generation_enabled(self) -> bool:
+        return True
+
+    @incident_generation_enabled.setter
+    def incident_generation_enabled(self, value: bool):
+        pass  # TODO: Add to StateManager
+
+    @property
+    def metrics(self) -> GameMetrics:
+        return GameMetrics()  # TODO: Integrate with StateManager metrics
+
+    @metrics.setter
+    def metrics(self, value: GameMetrics):
+        pass  # TODO: Integrate with StateManager metrics
+
+    def _initialize_game_data(self):
+        """Initialize game data and set up subscriptions."""
+        # Load initial data for new games
         if not self.specialists:
             self._load_initial_data()
             self._generate_initial_incidents()
-        
-        # 4. Check for offline progress on initialization
+
+        # Check for offline progress
         self._check_offline_progress()
 
-        # 5. Set up event bus subscriptions
+        # Set up event bus subscriptions
         self._setup_event_subscriptions()
 
     def _initialize_core_systems(self):
@@ -455,32 +774,35 @@ class GameState:
         self.last_save_time = current_time
 
     def update(self, delta_time: float):
-        """Update game state by the given time delta."""
+        """Update game state by delegating to the layered architecture."""
         if self.is_paused:
             return
 
         effective_delta = delta_time * self.game_speed_multiplier
         self.current_time += effective_delta
 
-        # Update core game mechanics
-        self._update_incidents(effective_delta)
-        self._generate_incidents(effective_delta)
-        self._auto_assign_incidents()
-        
-        # Process automation
-        if self._automation_processor:
-            automation_results = self._automation_processor.process_automation(self, effective_delta)
-            try:
-                executed_count = len(automation_results)
-            except Exception:
-                executed_count = 0
-            self.metrics.automation_scripts_triggered += executed_count
-        
-        # Update dopamine system (combo timers, etc.)
-        if self._dopamine_system:
-            self._dopamine_system.update(effective_delta)
+        # Delegate to SystemCoordinator for time-based updates
+        self._system_coordinator.update(effective_delta)
 
-        self._update_metrics()
+        # Notify observers of state changes
+        self._notify_observers("game_updated", {"delta_time": effective_delta})
+
+    def add_observer(self, observer: Callable[[str, Any], None]):
+        """Add an observer for state change notifications."""
+        self._observers.append(observer)
+
+    def remove_observer(self, observer: Callable[[str, Any], None]):
+        """Remove an observer."""
+        self._observers.remove(observer)
+
+    def _notify_observers(self, event_type: str, data: Any):
+        """Notify all observers of a state change."""
+        for observer in self._observers:
+            try:
+                observer(event_type, data)
+            except Exception as e:
+                if self._logger:
+                    self._logger.warning(f"[GAME_STATE] Observer notification failed: {e}")
 
     def _auto_assign_incidents(self):
         """Handles auto-assignment of incidents using the IdleCore."""
@@ -756,54 +1078,22 @@ class GameState:
     # Public interface methods
 
     def assign_incident_to_specialist(self, incident_id: str, specialist_id: str) -> bool:
-        """Manually assign an incident to a specialist."""
-        incident = self.get_incident_by_id(incident_id)
-        specialist = self.get_specialist_by_id(specialist_id)
+        """Manually assign an incident to a specialist via GameLogic."""
+        result = self._game_logic.assign_specialist_to_incident(
+            state_manager=self._state_manager,
+            incident_id=incident_id,
+            specialist_id=specialist_id
+        )
 
-        if not incident or not specialist:
-            return False
-
-        if incident.status != "pending" or not specialist.is_available():
-            return False
-
-        # --- REFACTOR FIX: Track assignment metrics immediately ---
-        specialty_match = specialist.matches_specialty(incident.specialty_required)
-
-        self.metrics.total_assignments_attempted += 1
-        if specialty_match:
-            self.metrics.specialty_match_assignments += 1
-        else:
-            self.metrics.specialty_mismatch_assignments += 1
-            # Assignment fails if specialty doesn't match
-            # if self._logger:
-            #     self._logger.warning(f"[GAME_STATE] Assignment failed: {specialist_id} specialty mismatch for {incident_id}")
-            return False
-
-        # Perform assignment (Only proceeds if specialty_match is True)
-        success = specialist.assign_to_incident(incident_id)
-        if success:
-            self.metrics.total_assignments_successful += 1
-            if self.metrics.total_assignments_attempted > 0:
-                self.metrics.assignment_success_rate = (
-                    self.metrics.total_assignments_successful / self.metrics.total_assignments_attempted * 100
-                )
-
-            incident.status = "assigned"
-            incident.assigned_specialist_id = specialist_id
-            incident.assignment_time = self.current_time
-
-            # Publish event for dopamine plugin
-            event_bus = get_event_bus()
-            event_bus.publish("incident_assigned", {
-                "incident": incident,
-                "specialist": specialist,
+        # Notify observers of assignment
+        if result.success:
+            self._notify_observers("incident_assigned", {
+                "incident_id": incident_id,
+                "specialist_id": specialist_id,
                 "assignment_time": self.current_time
             })
-            if self._logger:
-                self._logger.debug(f"[GAME_STATE] Published incident_assigned event for {incident_id}")
-                self._logger.info(f"[GAME_STATE] Manual assignment: incident {incident_id} to specialist {specialist_id}")
 
-        return success
+        return result.success
 
     def hire_specialist(self, specialist_data: Dict) -> bool:
         """Hire a new specialist."""

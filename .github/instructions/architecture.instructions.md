@@ -135,6 +135,65 @@ def update_specialist(specialist_id: str):
 
 ---
 
+#### Event-Driven Communication
+
+**Systems MUST communicate via the global EventBus singleton.** This is the core of the
+decoupled plugin architecture.
+
+```python
+from src.core.event_bus import get_event_bus, EventPriority, Event
+from src.core.game_system import GameSystem # Assuming GameSystem is the base
+import logging
+
+logger = logging.getLogger(__name__)
+
+class IncidentPlugin(GameSystem):
+    """Plugin that manages incidents."""
+    
+    def initialize(self, game_state) -> None:
+        """Subscribe to events."""
+        # Get the global event bus instance
+        self.event_bus = get_event_bus()
+        
+        # Subscribe to events
+        self.event_bus.subscribe(
+            "specialist_assigned", 
+            self._on_specialist_assigned
+        )
+        self.event_bus.subscribe(
+            "incident_resolved", 
+            self._on_incident_resolved,
+            EventPriority.LOW # Example of setting priority
+        )
+    
+    def _on_specialist_assigned(self, event: "Event") -> None:
+        """Handle specialist assignment event."""
+        specialist_id = event.data["specialist_id"]
+        incident_id = event.data["incident_id"]
+        logger.info(f"Incident {incident_id} assigned to {specialist_id}")
+
+    def _on_incident_resolved(self, event: "Event") -> None:
+        """Handle incident resolution."""
+        pass # Handle event
+    
+    def update(self, game_state, delta_time: float) -> None:
+        """Generate new incidents if needed."""
+        if self._should_generate_incident(game_state):
+            incident = self._generate_incident()
+            game_state.add_incident(incident)
+            
+            # Publish an event
+            self.event_bus.publish(
+                "incident_generated", 
+                {
+                    "incident_id": incident.id,
+                    "type": incident.type
+                },
+                source="incident_plugin"
+            )
+
+```
+
 ## PLUGIN SYSTEM ARCHITECTURE (UNIFIED)
 
 **ALL GAME SYSTEMS ARE NOW PLUGINS.** The plugin system is the ONLY system architecture.

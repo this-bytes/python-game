@@ -330,16 +330,22 @@ Your plugin will now:
 ### Event-Driven Communication
 
 **DO:**
+
 ```python
-# Publish events instead of direct calls
-event_bus.publish("specialist_hired", {"specialist_id": "spec_001"})
+# ALWAYS publish events for cross-system communication
+event_bus.publish("specialist_hired", {"specialist_id": "spec_001"}, source="roster_system")
 ```
 
 **DON'T:**
-```python
-# Avoid direct system coupling
-other_system.handle_specialist_hired("spec_001")
-```
+
+CRITICAL: NEVER call another system or manager directly
+This creates tight coupling and breaks the architecture.
+other_system.handle_specialist_hired("spec_001") # <-- ANTI-PATTERN
+DO NOT directly modify GameState from other systems (e.g., UI).
+game_state.is_paused = True # <-- ANTI-PATTERN
+
+INSTEAD, publish an event:
+event_bus.publish("game_paused", {}, source="ui")
 
 ### Feature Flags
 
@@ -361,12 +367,14 @@ run_advanced_logic()  # Always runs, no gradual rollout
 ### Dependencies
 
 **DO:**
+
 ```python
 def get_dependencies(self) -> list:
     return ["idle_core", "prestige_system"]
 ```
 
 **DON'T:**
+
 ```python
 # Don't assume systems are initialized
 self.idle_core.do_something()  # May not exist!
@@ -375,6 +383,7 @@ self.idle_core.do_something()  # May not exist!
 ### State Management
 
 **DO:**
+
 ```python
 def save_state(self, game_state: GameState) -> dict:
     return {"my_custom_data": self.data}
@@ -384,6 +393,7 @@ def load_state(self, game_state: GameState, state_data: dict):
 ```
 
 **DON'T:**
+
 ```python
 # Don't store state in files directly
 with open("my_state.json", "w") as f:
@@ -393,6 +403,7 @@ with open("my_state.json", "w") as f:
 ## Testing Your Plugin
 
 Create `tests/test_my_feature_plugin.py`:
+
 ```python
 import pytest
 from src.plugins.my_feature_plugin import MyFeaturePlugin

@@ -117,7 +117,6 @@ class ModalManager:
             # Draw the top-most modal
             self.get_active_modal().draw()
     
-
     def is_modal_active(self) -> bool:
         """
         Checks if there is any modal currently active.

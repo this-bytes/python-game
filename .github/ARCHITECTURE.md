@@ -268,45 +268,56 @@ All game parameters live in JSON, not hardcoded in Python.
 
 ## DESIGN PATTERNS
 
-### Event-Driven Architecture
+### Event-Driven Architecture (via Global EventBus)
 
-Use observer pattern for state changes:
+**CRITICAL:** All cross-system communication **MUST** use the global EventBus singleton.
+This ensures systems are decoupled and can be added, removed, or feature-flagged
+without breaking other systems.
+
+- **Source:** `src/core/event_bus.py`
+- **Access:** `get_event_bus()`
+
+**DO NOT** use direct method calls between systems.
+**DO NOT** use any other observer pattern (like one on GameState). The EventBus is the *only* way.
 
 ```python
-class GameState:
-    """Game state with observer pattern for events."""
-    
+from src.core.event_bus import get_event_bus, EventPriority, Event
+
+# --- System A (e.g., Resolution System) ---
+
+class ResolutionSystem(GameSystem):
     def __init__(self):
-        self._observers: list[Callable] = []
-    
-    def register_observer(self, callback: Callable) -> None:
-        """Register callback for state changes."""
-        self._observers.append(callback)
-    
-    def notify_observers(self, event_type: str, data: dict) -> None:
-        """Notify all observers of state change."""
-        for observer in self._observers:
-            observer(event_type, data)
-    
+        self.event_bus = get_event_bus()
+
     def complete_incident(self, incident: Incident, specialist: Specialist) -> None:
-        """Complete incident and notify observers."""
         reward = self.calculate_reward(incident, specialist)
-        specialist.gain_xp(reward)
         
-        # Notify observers
-        self.notify_observers("incident_completed", {
-            "incident_id": incident.id,
-            "specialist_id": specialist.id,
-            "reward": reward
-        })
+        # Publish an event to notify all other systems
+        self.event_bus.publish(
+            "incident_resolved",
+            {
+                "incident_id": incident.id,
+                "specialist_id": specialist.id,
+                "reward": reward
+            },
+            source="resolution_system"
+        )
 
-# UI listens to events
-def on_incident_completed(event_type: str, data: dict) -> None:
-    specialist_id = data["specialist_id"]
-    reward = data["reward"]
-    ui.show_reward_popup(specialist_id, reward)
+# --- System B (e.g., UI or Achievement System) ---
 
-game_state.register_observer(on_incident_completed)
+class AchievementSystem(GameSystem):
+    def initialize(self, game_state):
+        self.event_bus = get_event_bus()
+        self.event_bus.subscribe(
+            "incident_resolved", 
+            self.on_incident_resolved,
+            EventPriority.NORMAL
+        )
+    
+    def on_incident_resolved(self, event: "Event"):
+        """Listen for events from other systems."""
+        reward = event.data["reward"]
+        self.check_for_high_roller_achievement(reward)
 ```
 
 ### Factory Pattern for Entity Creation

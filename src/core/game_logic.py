@@ -184,7 +184,7 @@ class GameLogic:
         Returns:
             ResolutionResult with outcome details
         """
-        if incident.is_resolved:
+        if incident.is_resolved():
             return ResolutionResult(
                 success=False,
                 message="Incident is already resolved"
@@ -427,10 +427,11 @@ class GameLogic:
             return False, f"Insufficient reserves (${current_budget.total_reserves}) for hiring cost (${hiring_cost})"
 
         # Check if monthly expenses would exceed revenue
-        _, current_expenses, _ = self.calculate_monthly_budget(state_manager)
+        budget_result = self.calculate_monthly_budget(state_manager, current_month=1)
+        current_expenses = budget_result.monthly_expenses
         new_monthly_expenses = current_expenses + salary
 
-        revenue, _, _ = self.calculate_monthly_budget(state_manager)
+        revenue = budget_result.monthly_revenue
         if new_monthly_expenses > revenue * 1.2:  # Allow 20% deficit
             return False, f"Hiring would cause excessive deficit (expenses: ${new_monthly_expenses}, revenue: ${revenue})"
 
@@ -495,6 +496,59 @@ class GameLogic:
         errors.extend(business_errors)
 
         return errors
+
+    # ===== BUDGET BUSINESS LOGIC =====
+
+    def calculate_monthly_budget(
+        self,
+        state_manager: StateManager,
+        current_month: int
+    ) -> Budget:
+        """
+        Calculate monthly budget including revenue, expenses, and profit.
+
+        Args:
+            state_manager: Current state manager
+            current_month: Current game month
+
+        Returns:
+            Updated budget with calculated values
+        """
+        budget = state_manager.get_budget()
+
+        # Calculate revenue from active clients
+        total_revenue = 0.0
+        for client in state_manager.get_all_clients():
+            if client.is_active:
+                # Apply satisfaction multiplier to contract value
+                satisfaction_multiplier = client.satisfaction
+                client_revenue = client.monthly_contract_value * satisfaction_multiplier
+                total_revenue += client_revenue
+
+        # Calculate expenses from specialists
+        total_expenses = 0.0
+        specialist_count = len(state_manager.get_all_specialists())
+        specialist_salary = budget.specialist_salary_per_month
+        total_expenses += specialist_count * specialist_salary
+
+        # Calculate profit
+        monthly_profit = total_revenue - total_expenses
+
+        # Update budget
+        budget.monthly_revenue = total_revenue
+        budget.monthly_expenses = total_expenses
+        # monthly_profit is calculated via get_monthly_profit() method
+        budget.total_reserves += monthly_profit
+
+        # Store in history
+        budget.revenue_history.append(total_revenue)
+        budget.expense_history.append(total_expenses)
+        budget.profit_history.append(monthly_profit)
+
+        logger.info(f"Monthly budget calculated: revenue=${total_revenue:.2f}, "
+                   f"expenses=${total_expenses:.2f}, profit=${monthly_profit:.2f}")
+
+        return budget
 
     def _validate_business_rules(self, state_manager: StateManager) -> List[str]:
         """Validate business rules across the game state."""
