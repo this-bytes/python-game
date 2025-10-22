@@ -17,6 +17,7 @@ from src.ui.hotkey_manager import HotkeyManager, HotkeyAction
 from src.ui.modal_manager import ModalManager
 from src.ui.dashboard_manager import DashboardManager
 from src.ui.dashboard_panel import DashboardPanel
+from src.ui.detail_panel_renderer import DetailPanelRenderer
 from src.ui.components.hud_overlay import HUDOverlay
 from src.ui.components.quick_reference import QuickReference
 from src.core.event_bus import get_event_bus
@@ -84,8 +85,11 @@ class GameUI:
             self.screen,
             self.game_state,
             on_open=None,
-            on_close=None
+            on_close=self._on_detail_panel_close
         )
+        
+        # Initialize detail panel renderer
+        self.detail_panel_renderer = DetailPanelRenderer()
         
         # Initialize dashboard manager and panel
         if self.system_manager:
@@ -109,7 +113,15 @@ class GameUI:
         self.running = True
         
         # Detail panel state
-        self.detail_panel_modal = None
+        self.detail_panel_open = False
+        self.detail_panel_plugin = None
+        self.detail_panel_data = None
+        self.detail_panel_rect = pygame.Rect(
+            (self.WINDOW_WIDTH - 700) // 2,
+            (self.WINDOW_HEIGHT - 500) // 2,
+            700,
+            500
+        )
 
         self.logger.info("[GAME_UI] Game UI initialized (Dashboard Framework)")
 
@@ -144,30 +156,26 @@ class GameUI:
         )
         
         if detail_data:
-            # Open detail panel modal
-            self._open_detail_panel(plugin_name, detail_data)
+            # Open detail panel
+            self.detail_panel_open = True
+            self.detail_panel_plugin = plugin_name
+            self.detail_panel_data = detail_data
+            self.dashboard_manager.set_expanded_panel(plugin_name)
+            
+            self.logger.debug(f"[GAME_UI] Detail panel opened for {plugin_name}")
         else:
             self.logger.warning(f"[GAME_UI] No detail data for {plugin_name}")
-
-    def _open_detail_panel(self, plugin_name: str, detail_data: dict) -> None:
-        """Open a detail panel modal with plugin data.
+    
+    def _on_detail_panel_close(self) -> None:
+        """Handle detail panel close."""
+        self.detail_panel_open = False
+        self.detail_panel_plugin = None
+        self.detail_panel_data = None
         
-        Args:
-            plugin_name: Name of plugin
-            detail_data: Detail panel data structure
-        """
-        self.logger.debug(f"[GAME_UI] Opening detail panel for {plugin_name}")
+        if self.dashboard_manager:
+            self.dashboard_manager.close_panel()
         
-        # For now, just log the data - full modal rendering in next phase
-        title = detail_data.get("title", plugin_name)
-        sections = detail_data.get("sections", [])
-        actions = detail_data.get("actions", [])
-        
-        self.logger.debug(f"[GAME_UI] Detail panel: {title}")
-        self.logger.debug(f"[GAME_UI] Sections: {len(sections)}")
-        self.logger.debug(f"[GAME_UI] Actions: {len(actions)}")
-        
-        # TODO: Implement full modal rendering with action buttons
+        self.logger.debug("[GAME_UI] Detail panel closed")
 
     def handle_input(self, events: List[pygame.event.Event]) -> List[GameAction]:
         """Process input events and return game actions.
@@ -184,6 +192,39 @@ class GameUI:
             # Modal manager gets first priority
             if self.modal_manager.handle_event(event):
                 continue
+            
+            # Detail panel gets next priority
+            if self.detail_panel_open:
+                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    # Check if click is on detail panel
+                    if self.detail_panel_rect.collidepoint(event.pos):
+                        # Let detail panel renderer handle it
+                        if self.detail_panel_renderer.handle_click(
+                            event.pos,
+                            self.detail_panel_rect
+                        ):
+                            # Action button clicked, keep panel open
+                            continue
+                        # Check if close button clicked (handled internally)
+                        # Close button is in top-right corner
+                        close_x = self.detail_panel_rect.x + self.detail_panel_rect.width - 40
+                        close_y = self.detail_panel_rect.y + 10
+                        close_rect = pygame.Rect(close_x, close_y, 30, 30)
+                        if close_rect.collidepoint(event.pos):
+                            self._on_detail_panel_close()
+                            continue
+                    else:
+                        # Click outside panel - close it
+                        self._on_detail_panel_close()
+                        continue
+                
+                elif event.type == pygame.MOUSEMOTION:
+                    # Update hover state
+                    self.detail_panel_renderer.update_hover(
+                        event.pos,
+                        self.detail_panel_rect
+                    )
+                    continue
 
             # Handle window resize
             if event.type == pygame.VIDEORESIZE:
@@ -213,8 +254,10 @@ class GameUI:
                     if not self.show_help_overlay:
                         self.quick_reference.toggle()
                 elif event.key == pygame.K_ESCAPE:
-                    # Close modals or exit
-                    if self.modal_manager.is_modal_open():
+                    # Close detail panel or exit
+                    if self.detail_panel_open:
+                        self._on_detail_panel_close()
+                    elif self.modal_manager.is_modal_open():
                         self.modal_manager.close_modal()
                     else:
                         self.running = False
@@ -276,6 +319,23 @@ class GameUI:
         
         # Render quick reference card
         self.quick_reference.render(self.screen)
+        
+        # Render detail panel if open
+        if self.detail_panel_open and self.detail_panel_data:
+            # Draw semi-transparent overlay
+            overlay = pygame.Surface((self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
+            overlay.set_alpha(150)
+            overlay.fill((0, 0, 0))
+            self.screen.blit(overlay, (0, 0))
+            
+            # Render detail panel
+            self.detail_panel_renderer.render(
+                self.screen,
+                self.detail_panel_data,
+                self.detail_panel_rect.x,
+                self.detail_panel_rect.y,
+                on_close=self._on_detail_panel_close
+            )
 
         # Render modals on top of everything
         self.modal_manager.draw()
