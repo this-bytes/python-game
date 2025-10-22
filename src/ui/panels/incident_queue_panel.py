@@ -331,7 +331,9 @@ class IncidentQueuePanel:
             Seconds remaining (negative if overdue)
         """
         # Get current game time
-        current_time = getattr(game_state, 'game_time', time.time())
+        if not hasattr(game_state, 'game_time'):
+            raise AttributeError("game_state is missing required attribute 'game_time'. SLA calculations require game_time to be present.")
+        current_time = game_state.game_time
         
         # Calculate time since spawn
         if hasattr(incident, 'spawn_time'):
