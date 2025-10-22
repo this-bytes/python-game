@@ -21,7 +21,7 @@ class PrestigeSystem:
     handles game resets, and applies prestige upgrade bonuses.
     """
 
-    def __init__(self, prestige_upgrades: List[PrestigeUpgrade], logger: Optional[GameLogger] = None):
+    def __init__(self, prestige_upgrades: List[PrestigeUpgrade], logger: Optional[GameLogger] = None) -> None:
         """Initialize the prestige system.
         
         Args:

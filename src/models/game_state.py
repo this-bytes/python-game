@@ -18,21 +18,17 @@ from src.models.automation_script import AutomationScript
 from src.models.budget import Budget
 from src.models.sla_tracker import SLATracker
 # Core System Imports (Types used as Optional or for instantiation)
+from src.core.dopamine_system import DopamineSystem
+from src.core.equipment_system import EquipmentSystem
 from src.core.incident_generator import IncidentGenerator
 from src.core.automation_processor import AutomationProcessor
 from src.core.passive_income_system import PassiveIncomeSystem
-from src.core.offline_progress import OfflineProgressSystem
-from src.core.burnout_system import BurnoutSystem
 from src.core.relationships_system import RelationshipsSystem
 from src.utils.json_loader import JSONLoader
 from src.utils.logger import GameLogger
 from src.core.event_bus import get_event_bus
 
-
-# Forward references for type checking to avoid circular imports
-DopamineSystem = 'src.core.dopamine_system.DopamineSystem'
 IdleCore = 'src.core.idle_core.IdleCore'
-EquipmentSystem = 'src.core.equipment_system.EquipmentSystem'
 
 
 @dataclass
@@ -159,8 +155,8 @@ class GameState:
     _incident_generator: Optional[IncidentGenerator] = None
     _automation_processor: Optional[AutomationProcessor] = None
     _passive_income_system: Optional[PassiveIncomeSystem] = None
-    _offline_progress_system: Optional[OfflineProgressSystem] = None
-    _burnout_system: Optional['BurnoutSystem'] = None
+    # _offline_progress_system: Optional[OfflineProgressSystem] = None
+    # _burnout_system: Optional['BurnoutSystem'] = None
     _relationships_system: Optional['RelationshipsSystem'] = None
     _dopamine_system: Optional[DopamineSystem] = None
     _idle_core: Optional[IdleCore] = None
@@ -218,13 +214,13 @@ class GameState:
         from src.core.dopamine_system import DopamineSystem
         from src.core.idle_core import IdleCore
         from src.core.equipment_system import EquipmentSystem
-        from src.core.burnout_system import BurnoutSystem
+        # from src.core.burnout_system import BurnoutSystem
         from src.core.relationships_system import RelationshipsSystem
         
         if self._dopamine_system is None:
             self._dopamine_system = DopamineSystem()
-        if self._burnout_system is None:
-            self._burnout_system = BurnoutSystem()
+        # if self._burnout_system is None:
+        #     self._burnout_system = BurnoutSystem()
         if self._relationships_system is None:
             self._relationships_system = RelationshipsSystem(game_config)
         if self._idle_core is None:
@@ -239,8 +235,8 @@ class GameState:
         
         if self._passive_income_system is None:
             self._passive_income_system = PassiveIncomeSystem(game_config, self._logger)
-        if self._offline_progress_system is None:
-            self._offline_progress_system = OfflineProgressSystem(game_config, self._logger)
+        # if self._offline_progress_system is None:
+        #     self._offline_progress_system = OfflineProgressSystem(game_config, self._logger)
 
         if self._logger:
             self._logger.info("[GAME_STATE] All core systems initialized.")
@@ -779,8 +775,8 @@ class GameState:
         else:
             self.metrics.specialty_mismatch_assignments += 1
             # Assignment fails if specialty doesn't match
-            if self._logger:
-                self._logger.warning(f"[GAME_STATE] Assignment failed: {specialist_id} specialty mismatch for {incident_id}")
+            # if self._logger:
+            #     self._logger.warning(f"[GAME_STATE] Assignment failed: {specialist_id} specialty mismatch for {incident_id}")
             return False
 
         # Perform assignment (Only proceeds if specialty_match is True)

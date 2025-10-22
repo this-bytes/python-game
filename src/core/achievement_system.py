@@ -132,7 +132,7 @@ class AchievementSystem:
         
         return False
     
-    def award_achievement(self, achievement: Achievement, game_state):
+    def award_achievement(self, achievement: Achievement, game_state) -> None:
         """Award achievement rewards to the player.
         
         Args:

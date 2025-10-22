@@ -29,11 +29,11 @@ if TYPE_CHECKING:
 class ContractManager:
     """Manages service contracts with clients."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the ContractManager."""
         self.contract_templates: Dict[str, Dict] = {}
 
-    def load_templates(self, templates_data: List[Dict]):
+    def load_templates(self, templates_data: List[Dict]) -> None:
         """Load contract templates from configuration.
 
         Args:
@@ -79,7 +79,7 @@ class ContractManager:
         duration_days = terms.get("duration_days", template["duration_days"])
 
         contract = Contract(
-            id=contract_id,
+            contract_id=contract_id,
             client_id=client.id,
             contract_type=template["contract_type"],
             base_rate=base_rate,

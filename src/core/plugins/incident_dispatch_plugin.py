@@ -1,387 +1,157 @@
-"""Incident dispatch plugin for managing incident generation and assignment.
+"""Incident dispatch plugin for managing incident assignment via the event bus."""
 
-This plugin integrates the incident generation and assignment systems into the game,
-handling the creation, assignment, and resolution of incidents based on game state
-and client threat landscapes.
-"""
-
-import logging
-from typing import Optional, Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 from src.core.game_system import GameSystem
 from src.core.event_bus import get_event_bus, Event
-from src.core.incident_generator import IncidentGenerator
-from src.core.incident_dispatch_system import IncidentDispatchSystem, ResolutionResult
+from src.models.game_state import GameState
 from src.models.incident import Incident
 from src.models.specialist import Specialist
-from src.models.client import Client
 from src.utils.logger import GameLogger
+from src.ui.ui_provider import UIProvider, UISummaryItem, UISectionItem, UIPanelSection, UIAction
 
-
-class IncidentDispatchPlugin(GameSystem):
-    """Plugin for managing incident generation, assignment, and resolution."""
+class IncidentDispatchPlugin(GameSystem, UIProvider):
+    """Plugin for managing incident assignment, driven by UI events."""
     
     def __init__(self):
-        """Initialize the incident dispatch plugin."""
         super().__init__()
         self._logger = GameLogger("incident_dispatch_plugin")
         self._event_bus = get_event_bus()
         self._subscription_ids: List[str] = []
-        
-        # Systems
-        self._incident_generator = IncidentGenerator(self._logger)
-        self._dispatch_system = IncidentDispatchSystem(self._logger)
-        
-        # State tracking
-        self._incidents_this_turn: List[Incident] = []
-        self._pending_assignments: List[tuple] = []  # (incident, specialist) pairs
     
     def get_name(self) -> str:
-        """Get plugin name."""
         return "IncidentDispatchPlugin"
-    
-    def get_feature_id(self) -> str:
-        """Get feature flag ID."""
-        return "incident_dispatch_system"
-    
-    def initialize(self, game_state) -> None:
-        """Initialize incident dispatch plugin.
-        
-        Subscribes to game loop events for phase-based incident management:
-        - 'day_started': Generate incidents for the day
-        - 'evening_started': Start resolving incidents
-        - 'night_started': Calculate SLA impact and cleanup
-        """
+
+    def initialize(self, game_state: GameState) -> None:
         self._subscription_ids = [
-            # Game loop phase events
-            self._event_bus.subscribe("day_started", self._on_day_started),
-            self._event_bus.subscribe("evening_started", self._on_evening_started),
-            self._event_bus.subscribe("night_started", self._on_night_started),
-            
-            # Internal incident events
-            self._event_bus.subscribe("incident_generated", self._on_incident_generated),
-            self._event_bus.subscribe("incident_assigned", self._on_incident_assigned),
-            self._event_bus.subscribe("incident_resolved", self._on_incident_resolved),
+            self._event_bus.subscribe("action:assign_incident", self._on_assign_incident_action)
         ]
-        self._logger.logger.info("[INCIDENT_DISPATCH_PLUGIN] Initialized with game loop phase events")
-    
-    def update(self, game_state, delta_time: float) -> None:
-        """Update incident dispatch system each frame."""
-        if not hasattr(game_state, 'clients') or not game_state.clients:
-            return
-        
-        # Generate incidents for each active client
-        for client in game_state.clients:
-            if not client.is_active:
-                continue
-            
-            # Check if incident should be generated
-            active_incident_count = len(self._dispatch_system.get_active_incidents())
-            if self._incident_generator.should_generate_incident(client, delta_time, active_incident_count):
-                incident = self._incident_generator.generate_incident(client)
-                self._dispatch_system.add_incident(incident)
-                self._incidents_this_turn.append(incident)
-                
-                # Emit event for UI and other systems
-                self._event_bus.publish("incident_generated", {
-                    "incident_id": incident.id,
-                    "incident_type": incident.incident_type,
-                    "client_id": incident.client_id,
-                    "difficulty": incident.difficulty,
-                    "specialty_required": incident.specialty_required,
-                    "sla_seconds": incident.sla_seconds,
-                })
-        
-        # Check for overdue incidents and fail them
-        overdue_incidents = self._dispatch_system.get_overdue_incidents()
-        for incident in overdue_incidents:
-            if incident.is_active():
-                # Get specialist who was assigned
-                specialist_id = incident.assigned_specialist_id
-                if specialist_id and hasattr(game_state, 'specialists'):
-                    specialist = next(
-                        (s for s in game_state.specialists if s.id == specialist_id),
-                        None
-                    )
-                    if specialist:
-                        # Fail the incident
-                        result = self._dispatch_system.resolve_incident(
-                            incident,
-                            specialist,
-                            success=False,
-                            time_taken=incident.get_time_remaining() * -1  # Time overdue
-                        )
-                        self._emit_resolution_event(result)
-    
-    def shutdown(self, game_state) -> None:
-        """Shutdown incident dispatch plugin."""
+        self._logger.info("[IncidentDispatchPlugin] Initialized and subscribed to UI actions.")
+
+    def update(self, game_state: GameState, delta_time: float) -> None:
+        # Incident generation and resolution is handled by other systems.
+        # This plugin is now only responsible for the assignment action.
+        pass
+
+    def shutdown(self, game_state: GameState) -> None:
         for subscription_id in self._subscription_ids:
             self._event_bus.unsubscribe(subscription_id)
         self._subscription_ids.clear()
-        self._logger.logger.info("[INCIDENT_DISPATCH_PLUGIN] Shutdown")
-    
-    def save_state(self, game_state) -> Dict[str, Any]:
-        """Save plugin state."""
-        return {
-            "incidents": {
-                incident_id: self._serialize_incident(incident)
-                for incident_id, incident in self._dispatch_system._incidents.items()
-            },
-            "active_assignments": self._dispatch_system._active_assignments.copy(),
-        }
-    
-    def load_state(self, game_state, state_data: Dict[str, Any]) -> None:
-        """Load plugin state."""
-        # Restore incidents
-        for incident_id, incident_data in state_data.get("incidents", {}).items():
-            incident = self._deserialize_incident(incident_data)
-            self._dispatch_system._incidents[incident_id] = incident
+
+    # Event handler for the UI action
+    def _on_assign_incident_action(self, event: Event) -> None:
+        game_state: GameState = event.data.get("game_state")
+        incident_id = event.data.get("incident_id")
+        specialist_id = event.data.get("specialist_id")
+
+        if not all([game_state, incident_id, specialist_id]):
+            self._logger.warning("Assign incident action received with missing data.")
+            return
+
+        incident = game_state.get_incident_by_id(incident_id)
+        specialist = game_state.get_specialist_by_id(specialist_id)
+
+        if not incident or not specialist:
+            self._logger.warning("Assign incident action failed: Incident or Specialist not found.")
+            return
+
+        # The core logic of assigning an incident.
+        success = game_state.assign_incident_to_specialist(incident_id, specialist_id)
         
-        # Restore active assignments
-        self._dispatch_system._active_assignments = state_data.get("active_assignments", {})
+        if success:
+            message = f"Assigned {incident.incident_type} to {specialist.name}."
+            self._logger.info(message)
+            self._event_bus.publish("notification", {"title": "Incident Assigned", "message": message})
+        else:
+            message = f"Failed to assign {incident.incident_type} to {specialist.name}."
+            self._logger.warning(message)
+            self._event_bus.publish("notification", {"title": "Assignment Failed", "message": message})
+
+    # UIProvider Interface Implementation
+    def get_dashboard_summary(self, game_state: GameState) -> UISummaryItem:
+        pending_incidents = game_state.get_pending_incidents()
+        active_incidents = [i for i in game_state.incidents if i.status == 'assigned']
         
-        self._logger.logger.info(
-            f"[INCIDENT_DISPATCH_PLUGIN] Loaded {len(self._dispatch_system._incidents)} incidents"
+        color = "green"
+        if len(pending_incidents) > 5:
+            color = "yellow"
+        if len(pending_incidents) > 10:
+            color = "red"
+
+        return UISummaryItem(
+            title="Incidents",
+            icon="🚨",
+            lines=[
+                f"Pending: {len(pending_incidents)}",
+                f"Active: {len(active_incidents)}"
+            ],
+            accent_color=color
         )
-    
-    def assign_incident(
-        self,
-        incident: Incident,
-        specialist: Specialist
-    ) -> bool:
-        """Public method to assign an incident to a specialist.
-        
-        Args:
-            incident: Incident to assign
-            specialist: Specialist to assign to
-            
-        Returns:
-            True if assignment successful, False otherwise
-        """
-        result = self._dispatch_system.assign_incident(incident, specialist)
-        
-        if result.success:
-            self._event_bus.publish("incident_assigned", {
-                "incident_id": incident.id,
-                "specialist_id": specialist.id,
-                "specialist_name": specialist.name,
-                "incident_type": incident.incident_type,
-            })
-        
-        return result.success
-    
-    def resolve_incident(
-        self,
-        incident: Incident,
-        specialist: Specialist,
-        success: bool,
-        time_taken: Optional[float] = None
-    ) -> ResolutionResult:
-        """Public method to resolve an incident.
-        
-        Args:
-            incident: Incident to resolve
-            specialist: Specialist who resolved it
-            success: Whether resolution was successful
-            time_taken: Optional time taken to resolve
-            
-        Returns:
-            ResolutionResult with outcome details
-        """
-        result = self._dispatch_system.resolve_incident(incident, specialist, success, time_taken)
-        self._emit_resolution_event(result)
-        return result
-    
-    def get_pending_incidents(self) -> List[Incident]:
-        """Get all pending incidents waiting for assignment."""
-        return self._dispatch_system.get_pending_incidents()
-    
-    def get_active_incidents(self) -> List[Incident]:
-        """Get all active incidents."""
-        return self._dispatch_system.get_active_incidents()
-    
-    def get_incidents_for_client(self, client_id: str) -> List[Incident]:
-        """Get all incidents for a client."""
-        return self._dispatch_system.get_incidents_for_client(client_id)
-    
-    def get_best_specialist_for_incident(
-        self,
-        incident: Incident,
-        available_specialists: List[Specialist]
-    ) -> Optional[Specialist]:
-        """Find the best specialist for an incident."""
-        return self._dispatch_system.find_best_specialist(incident, available_specialists)
-    
-    def get_dispatch_stats(self) -> Dict[str, Any]:
-        """Get dispatch system statistics."""
-        return self._dispatch_system.get_dispatch_stats()
-    
-    # Event handlers
-    def _on_incident_generated(self, event: Event) -> None:
-        """Handle incident generated event."""
-        # Already tracked in update(), this is for other systems to react
-        pass
-    
-    def _on_incident_assigned(self, event: Event) -> None:
-        """Handle incident assigned event."""
-        pass
-    
-    def _on_incident_resolved(self, event: Event) -> None:
-        """Handle incident resolved event."""
-        pass
-    
-    def _on_day_started(self, event: Event) -> None:
-        """Handle day started event from GameLoopPlugin.
-        
-        Called at transition from MORNING to DAY phase.
-        Clear yesterday's resolved incidents for fresh slate.
-        """
-        day = event.data.get("day", 1)
-        self._logger.logger.info(
-            f"[INCIDENT_DISPATCH_PLUGIN] Day {day} started. "
-            f"Clearing resolved incidents from previous day."
-        )
-        self._incidents_this_turn.clear()
-    
-    def _on_evening_started(self, event: Event) -> None:
-        """Handle evening started event from GameLoopPlugin.
-        
-        Called at transition from DAY to EVENING phase.
-        Process outcomes for all assigned and unassigned incidents.
-        """
-        self._logger.logger.info(
-            "[INCIDENT_DISPATCH_PLUGIN] Evening started. "
-            "Processing incident outcomes for today."
-        )
-        
-        active_incidents = self._dispatch_system.get_active_incidents()
-        for incident in active_incidents:
-            if incident.status in ["pending", "assigned"]:
-                if incident.assigned_specialist_id is None:
-                    # Unassigned incident - mark as failed
-                    incident.status = "failed"
-                    self._event_bus.publish("incident_failed", {
-                        "incident_id": incident.id,
-                        "client_id": incident.client_id,
-                        "reason": "unassigned",
-                        "sla_met": False,
-                    })
-                else:
-                    # Assigned incident - mark as resolved
-                    incident.status = "resolved"
-                    self._event_bus.publish("incident_resolved_evening", {
-                        "incident_id": incident.id,
-                        "specialist_id": incident.assigned_specialist_id,
-                        "client_id": incident.client_id,
-                    })
-    
-    def _on_night_started(self, event: Event) -> None:
-        """Handle night started event from GameLoopPlugin.
-        
-        Called at transition from EVENING to NIGHT phase.
-        Calculate daily SLA compliance and prepare for next day.
-        """
-        day = event.data.get("day", 1)
-        month = event.data.get("month", 1)
-        
-        self._logger.logger.info(
-            f"[INCIDENT_DISPATCH_PLUGIN] Night started (day {day}, month {month}). "
-            "Calculating daily SLA compliance."
-        )
-        
-        # Get all incidents that were resolved/failed today
-        all_incidents_today = [
-            i for i in self._dispatch_system._incidents.values()
-            if i.status in ["resolved", "failed"]
+
+    def get_detail_panel_data(self, game_state: GameState) -> Dict[str, Any]:
+        # Section for pending incidents
+        incident_items = [
+            UISectionItem(name=f"{i.incident_type} (Diff: {i.difficulty})", details=[f"Client: {i.client_id}", f"Required: {i.specialty_required}"])
+            for i in game_state.get_pending_incidents()
         ]
-        
-        if all_incidents_today:
-            sla_met_count = sum(1 for i in all_incidents_today if getattr(i, 'sla_met', False))
-            sla_compliance_rate = sla_met_count / len(all_incidents_today)
-            
-            self._logger.logger.info(
-                f"[INCIDENT_DISPATCH_PLUGIN] Daily SLA: {sla_met_count}/{len(all_incidents_today)} "
-                f"met ({sla_compliance_rate*100:.1f}%)"
-            )
-            
-            # Emit daily summary for other systems (Budget, Client satisfaction, etc)
-            self._event_bus.publish("daily_sla_summary", {
-                "day": day,
-                "month": month,
-                "total_incidents": len(all_incidents_today),
-                "sla_met": sla_met_count,
-                "sla_missed": len(all_incidents_today) - sla_met_count,
-                "sla_compliance_rate": sla_compliance_rate,
-            })
-        
-        # Clear old incidents for fresh day tomorrow
-        cleared = self._dispatch_system.clear_resolved_incidents()
-        self._logger.logger.info(
-            f"[INCIDENT_DISPATCH_PLUGIN] End of day cleanup: cleared {cleared} incidents."
-        )
-    
-    def _on_phase_changed(self, event: Event) -> None:
-        """Handle phase change event."""
-        phase = event.data.get("phase")
-        
-        # Clear resolved incidents at start of day (morning phase)
-        if phase == "morning":
-            cleared = self._dispatch_system.clear_resolved_incidents()
-            if cleared > 0:
-                self._logger.logger.debug(f"[INCIDENT_DISPATCH_PLUGIN] Cleared {cleared} incidents at phase start")
-    
-    def _emit_resolution_event(self, result: ResolutionResult) -> None:
-        """Emit incident resolved event."""
-        self._event_bus.publish("incident_resolved", {
-            "incident_id": result.incident_id,
-            "specialist_id": result.specialist_id,
-            "client_id": result.client_id,
-            "success": result.success,
-            "sla_met": result.sla_met,
-            "time_taken": result.time_taken,
-            "xp_earned": result.xp_earned,
-            "reward_earned": result.reward_earned,
-        })
-    
-    @staticmethod
-    def _serialize_incident(incident: Incident) -> Dict[str, Any]:
-        """Serialize incident to dictionary."""
+        incident_section = UIPanelSection(title="Pending Incidents", items=incident_items)
+
+        # Section for available specialists
+        specialist_items = [
+            UISectionItem(name=f"{s.name} (Lvl: {s.level})", details=[f"Specialty: {s.specialty}", f"Burnout: {s.burnout_level:.0f}%"])
+            for s in game_state.get_available_specialists()
+        ]
+        specialist_section = UIPanelSection(title="Available Specialists", items=specialist_items)
+
+        # For this refactor, we'll create a non-interactive action to prove the event loop.
+        # A proper implementation would require the UI to support selecting one item from each list.
+        actions = []
+        best_specialist = self._find_best_specialist_for_highest_priority_incident(game_state)
+        if best_specialist:
+            incident, specialist = best_specialist
+            actions.append(UIAction(
+                id="assign_incident",
+                label=f"Auto-Assign Best Match",
+                description=f"Assign {incident.incident_type} to {specialist.name}",
+                enabled=True,
+                data={
+                    "game_state": game_state,
+                    "incident_id": incident.id,
+                    "specialist_id": specialist.id
+                }
+            ))
+
         return {
-            "id": incident.id,
-            "incident_type": incident.incident_type,
-            "specialty_required": incident.specialty_required,
-            "difficulty": incident.difficulty,
-            "sla_seconds": incident.sla_seconds,
-            "base_reward": incident.base_reward,
-            "xp_reward": incident.xp_reward,
-            "client_id": incident.client_id,
-            "description": incident.description,
-            "status": incident.status,
-            "assigned_specialist_id": incident.assigned_specialist_id,
-            "spawn_time": incident.spawn_time,
-            "assignment_time": incident.assignment_time,
-            "completion_time": incident.completion_time,
-            "sla_deadline": incident.sla_deadline,
+            "title": "Incident Dispatch",
+            "sections": [incident_section, specialist_section],
+            "actions": actions
         }
-    
-    @staticmethod
-    def _deserialize_incident(data: Dict[str, Any]) -> Incident:
-        """Deserialize incident from dictionary."""
-        incident = Incident(
-            id=data["id"],
-            incident_type=data["incident_type"],
-            specialty_required=data["specialty_required"],
-            difficulty=data["difficulty"],
-            sla_seconds=data["sla_seconds"],
-            base_reward=data["base_reward"],
-            xp_reward=data["xp_reward"],
-            client_id=data["client_id"],
-            description=data.get("description", ""),
-            status=data.get("status", "pending"),
-            assigned_specialist_id=data.get("assigned_specialist_id"),
-            spawn_time=data.get("spawn_time", 0),
-            assignment_time=data.get("assignment_time"),
-            completion_time=data.get("completion_time"),
-            sla_deadline=data.get("sla_deadline"),
-        )
-        return incident
+
+    def _find_best_specialist_for_highest_priority_incident(self, game_state: GameState) -> Optional[tuple[Incident, Specialist]]:
+        """Finds the best specialist for the highest priority (oldest) incident."""
+        pending_incidents = sorted(game_state.get_pending_incidents(), key=lambda i: i.spawn_time)
+        if not pending_incidents:
+            return None
+
+        incident_to_assign = pending_incidents[0]
+        available_specialists = game_state.get_available_specialists()
+        if not available_specialists:
+            return None
+
+        best_match = None
+        highest_score = -1
+
+        for spec in available_specialists:
+            score = 0
+            if spec.specialty == incident_to_assign.specialty_required:
+                score += 100  # Major bonus for matching specialty
+            score -= spec.burnout_level # Penalize for burnout
+            score += spec.level # Bonus for level
+
+            if score > highest_score:
+                highest_score = score
+                best_match = spec
+        
+        if best_match:
+            return (incident_to_assign, best_match)
+        return None

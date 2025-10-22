@@ -5,6 +5,8 @@ from typing import List, Optional
 from enum import Enum
 from dataclasses import dataclass
 
+from src.ui.components.base import UIComponent
+
 
 class NotificationType(Enum):
     """Notification type."""
@@ -28,7 +30,7 @@ class Notification:
         self.time_remaining = self.duration
 
 
-class NotificationManager:
+class NotificationManager(UIComponent):
     """Manage toast notifications."""
 
     def __init__(self, screen_width: int = 1280, screen_height: int = 720):
@@ -38,6 +40,9 @@ class NotificationManager:
             screen_width: Screen width for positioning
             screen_height: Screen height for positioning
         """
+        # Initialize UIComponent with full screen rect (notifications overlay everything)
+        super().__init__(pygame.Rect(0, 0, screen_width, screen_height), visible=True)
+        
         self.notifications: List[Notification] = []
         self.screen_width = screen_width
         self.screen_height = screen_height
@@ -89,11 +94,12 @@ class NotificationManager:
         """Show error notification."""
         self.show(Notification(title, message, NotificationType.ERROR, duration))
 
-    def update(self, delta_time: float) -> None:
+    def update(self, delta_time: float, game_state) -> None:
         """Update notifications (countdown timers).
 
         Args:
             delta_time: Time elapsed since last update
+            game_state: Current game state (unused)
         """
         # Update timers
         for notification in self.notifications[:]:
@@ -101,15 +107,17 @@ class NotificationManager:
             if notification.time_remaining <= 0:
                 self.notifications.remove(notification)
 
-    def render(self, screen: pygame.Surface) -> None:
-        """Render notifications.
+    def draw(self, screen: pygame.Surface, game_state) -> None:
+        """Draw notifications to screen.
 
         Args:
             screen: Pygame surface to render on
+            game_state: Current game state (unused)
         """
         # Initialize fonts if needed
         if self.title_font is None:
             self.title_font = pygame.font.SysFont('Arial', 14, bold=True)
+        if self.message_font is None:
             self.message_font = pygame.font.SysFont('Arial', 12)
 
         # Render notifications from top-right

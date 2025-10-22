@@ -1,274 +1,187 @@
 """BurnoutPlugin - Specialist Psychological Management System.
 
-Plugin wrapper for BurnoutSystem providing specialist burnout tracking and recovery.
-Integrates with game events to automatically track incident assignments and completions.
-
-Features:
-- Burnout accumulates: 5% per incident (additional 5% per difficulty level 2+)
-- Performance penalty: -2% per burnout level (0-100%)
-- Recovery: Rest day = -30%, Vacation = -50-80%, Therapy = clears trauma
-- Thresholds: Warn at 60%, critical at 80%, force rest at 95%
+This plugin manages specialist burnout, a critical factor affecting performance.
+It listens to game events and adjusts specialist burnout levels based on their
+activities, such as completing incidents or taking rests. All configuration
+is driven by the `data/burnout.json` file.
 """
 
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Tuple, Optional
+from enum import Enum
+
 from src.core.game_system import GameSystem
-from src.core.burnout_system import BurnoutSystem, SpecialistBurnout
 from src.core.event_bus import get_event_bus, Event
+from src.models.game_state import GameState
+from src.models.specialist import Specialist
+from src.utils.json_loader import JSONLoader
+from src.ui.ui_provider import UIProvider, UISummaryItem, UISectionItem, UIPanelSection, UIAction
 
+class BurnoutTier(Enum):
+    """Burnout severity levels."""
+    FRESH = "fresh"
+    STRESSED = "stressed"
+    EXHAUSTED = "exhausted"
+    CRITICAL = "critical"
+    BROKEN = "broken"
 
-class BurnoutPlugin(GameSystem):
-    """Plugin wrapper for BurnoutSystem with GameSystem integration."""
+class BurnoutPlugin(GameSystem, UIProvider):
+    """A self-contained system for managing specialist burnout, with UI hooks."""
 
     def __init__(self):
-        """Initialize burnout plugin."""
         super().__init__()
-        self._burnout_system = BurnoutSystem()
         self._event_bus = get_event_bus()
         self._subscription_ids: List[str] = []
+        self.config: Dict[str, Any] = {}
+        self._json_loader = JSONLoader()
 
     def get_name(self) -> str:
-        """Get plugin name."""
         return "BurnoutPlugin"
 
     def get_feature_id(self) -> str:
-        """Get feature flag ID for burnout system."""
         return "burnout_system"
 
-    def initialize(self, game_state) -> None:
-        """Initialize burnout plugin.
-
-        Args:
-            game_state: Current game state
-        """
-        # Subscribe to relevant events
+    def initialize(self, game_state: GameState) -> None:
+        self.config = self._json_loader.load_data("burnout.json")
         self._subscription_ids = [
-            self._event_bus.subscribe("incident_assigned", self._on_incident_assigned),
             self._event_bus.subscribe("incident_completed", self._on_incident_completed),
-            self._event_bus.subscribe("specialist_hired", self._on_specialist_hired),
-            self._event_bus.subscribe("specialist_rested", self._on_specialist_rested),
-            self._event_bus.subscribe("specialist_vacation", self._on_specialist_vacation),
-            self._event_bus.subscribe("specialist_therapy", self._on_specialist_therapy),
+            self._event_bus.subscribe("action:rest_specialist", self._on_rest_specialist_action),
         ]
 
-    def update(self, game_state, delta_time: float) -> None:
-        """Update burnout plugin.
-
-        Args:
-            game_state: Current game state
-            delta_time: Time elapsed since last update
-        """
-        # Burnout system is event-driven, no continuous updates needed
+    def update(self, game_state: GameState, delta_time: float) -> None:
         pass
 
-    def shutdown(self, game_state) -> None:
-        """Shutdown burnout plugin.
-
-        Args:
-            game_state: Current game state
-        """
-        # Unsubscribe from all events
+    def shutdown(self, game_state: GameState) -> None:
         for subscription_id in self._subscription_ids:
             self._event_bus.unsubscribe(subscription_id)
         self._subscription_ids.clear()
 
-    def save_state(self, game_state) -> Dict[str, Any]:
-        """Save burnout plugin state.
+    def _get_specialist(self, game_state: GameState, specialist_id: str) -> Optional[Specialist]:
+        return game_state.get_specialist_by_id(specialist_id)
 
-        Args:
-            game_state: Current game state
-
-        Returns:
-            State data to save
-        """
-        # Convert burnout system state to serializable format
-        state_data = {}
-        for specialist_id, burnout in self._burnout_system.specialists.items():
-            state_data[specialist_id] = {
-                "burnout_level": burnout.burnout_level,
-                "failed_incidents": burnout.failed_incidents,
-                "last_rest_time": burnout.last_rest_time,
-            }
-        return state_data
-
-    def load_state(self, game_state, state_data: Dict[str, Any]) -> None:
-        """Load burnout plugin state.
-
-        Args:
-            game_state: Current game state
-            state_data: Previously saved state data
-        """
-        # Restore burnout system state
-        for specialist_id, burnout_data in state_data.items():
-            burnout = self._burnout_system.register_specialist(specialist_id)
-            burnout.burnout_level = burnout_data.get("burnout_level", 0.0)
-            burnout.failed_incidents = burnout_data.get("failed_incidents", 0)
-            burnout.last_rest_time = burnout_data.get("last_rest_time", 0.0)
-
-    def _on_incident_assigned(self, event: Event) -> None:
-        """Handle incident assignment event.
-
-        Args:
-            event: Incident assignment event
-        """
+    # Event Handlers
+    def _on_incident_completed(self, event: Event) -> None:
+        game_state: GameState = event.data.get("game_state")
+        if not game_state:
+            return
         specialist_id = event.data.get("specialist_id")
         incident_difficulty = event.data.get("incident_difficulty", 1)
-
-        if specialist_id:
-            allowed, message = self._burnout_system.assign_incident(
-                specialist_id, incident_difficulty
-            )
-
-            # Publish burnout update event
-            self._event_bus.publish("burnout_updated", {
-                "specialist_id": specialist_id,
-                "burnout_level": self._burnout_system.get_specialist_status(specialist_id)["burnout_level"],
-                "message": message,
-                "allowed": allowed,
-            })
-
-    def _on_incident_completed(self, event: Event) -> None:
-        """Handle incident completion event.
-
-        Args:
-            event: Incident completion event
-        """
-        specialist_id = event.data.get("specialist_id")
         success = event.data.get("success", True)
 
-        if specialist_id:
-            self._burnout_system.complete_incident(specialist_id, success)
+        specialist = self._get_specialist(game_state, specialist_id)
+        if not specialist:
+            return
 
-            # Publish burnout update event
-            self._event_bus.publish("burnout_updated", {
-                "specialist_id": specialist_id,
-                "burnout_level": self._burnout_system.get_specialist_status(specialist_id)["burnout_level"],
-            })
+        burnout_cost = self.config["burnout_costs"]["base_incident_cost"] + \
+                       (max(0, incident_difficulty - 1) * self.config["burnout_costs"]["per_difficulty_level_cost"])
+        specialist.burnout_level = min(100.0, specialist.burnout_level + burnout_cost)
 
-    def _on_specialist_hired(self, event: Event) -> None:
-        """Handle specialist hired event.
+        if not success:
+            specialist.burnout_level = min(100.0, specialist.burnout_level + self.config["burnout_costs"]["incident_failure_cost"])
 
-        Args:
-            event: Specialist hired event
-        """
+        self._event_bus.publish("burnout_updated", {"specialist_id": specialist_id, "burnout_level": specialist.burnout_level})
+
+    def _on_rest_specialist_action(self, event: Event) -> None:
+        game_state: GameState = event.data.get("game_state")
+        if not game_state:
+            return
         specialist_id = event.data.get("specialist_id")
         if specialist_id:
-            self._burnout_system.register_specialist(specialist_id)
+            self.take_rest_day(game_state, specialist_id)
 
-    def _on_specialist_rested(self, event: Event) -> None:
-        """Handle specialist rest event.
+    # Public API Methods
+    def take_rest_day(self, game_state: GameState, specialist_id: str) -> Tuple[bool, str]:
+        specialist = self._get_specialist(game_state, specialist_id)
+        if not specialist:
+            return False, "Specialist not found."
 
-        Args:
-            event: Specialist rest event
-        """
-        specialist_id = event.data.get("specialist_id")
-        if specialist_id:
-            success, message = self._burnout_system.take_rest_day(specialist_id)
+        recovery_multiplier = self.config["recovery_rates"]["rest_day_recovery_multiplier"]
+        recovery_amount = specialist.burnout_level * recovery_multiplier
+        specialist.burnout_level = max(0, specialist.burnout_level - recovery_amount)
 
-            # Publish burnout update event
-            self._event_bus.publish("burnout_updated", {
-                "specialist_id": specialist_id,
-                "burnout_level": self._burnout_system.get_specialist_status(specialist_id)["burnout_level"],
-                "message": message,
-                "action": "rest",
-            })
+        message = f"Rested. Recovered {recovery_amount:.0f}%. Burnout now: {specialist.burnout_level:.0f}%"
+        self._event_bus.publish("burnout_updated", {"specialist_id": specialist_id, "burnout_level": specialist.burnout_level})
+        self._event_bus.publish("notification", {"title": f"{specialist.name} Rested", "message": message})
+        return True, message
 
-    def _on_specialist_vacation(self, event: Event) -> None:
-        """Handle specialist vacation event.
+    # UIProvider Interface Implementation
+    def get_dashboard_summary(self, game_state: GameState) -> UISummaryItem:
+        team_status = self.get_team_status(game_state)
+        avg_burnout = team_status["average_burnout"]
+        critical_count = team_status["critical_count"]
 
-        Args:
-            event: Specialist vacation event
-        """
-        specialist_id = event.data.get("specialist_id")
-        days = event.data.get("days", 1)
-        cost_per_day = event.data.get("cost_per_day", 100)
+        color = "green"
+        if avg_burnout > 50:
+            color = "yellow"
+        if avg_burnout > 75 or critical_count > 0:
+            color = "red"
 
-        if specialist_id:
-            success, message = self._burnout_system.take_vacation(
-                specialist_id, days, cost_per_day
+        return UISummaryItem(
+            title="Team Morale",
+            icon="❤️",
+            lines=[
+                f"Avg. Burnout: {avg_burnout:.1f}%",
+                f"Critical: {critical_count}"
+            ],
+            accent_color=color
+        )
+
+    def get_detail_panel_data(self, game_state: GameState) -> Dict[str, Any]:
+        specialist_items = []
+        most_burned_out_spec = None
+        max_burnout = -1
+
+        for spec in sorted(game_state.specialists, key=lambda s: s.burnout_level, reverse=True):
+            if spec.burnout_level > max_burnout:
+                max_burnout = spec.burnout_level
+                most_burned_out_spec = spec
+
+            tier = self.get_burnout_tier(spec)
+            item = UISectionItem(
+                name=spec.name,
+                details=[
+                    f"Burnout: {spec.burnout_level:.1f}% ({tier.value})",
+                    f"Specialty: {spec.specialty}"
+                ]
             )
+            specialist_items.append(item)
+        
+        sections = [UIPanelSection(title="Specialist Burnout Levels", items=specialist_items)]
+        
+        actions = []
+        if most_burned_out_spec and most_burned_out_spec.burnout_level > 0:
+            actions.append(UIAction(
+                id="rest_specialist",
+                label=f"Rest {most_burned_out_spec.name}",
+                description=f"Give {most_burned_out_spec.name} a day off to recover.",
+                enabled=True,
+                data={"specialist_id": most_burned_out_spec.id, "game_state": game_state}
+            ))
 
-            # Publish burnout update event
-            self._event_bus.publish("burnout_updated", {
-                "specialist_id": specialist_id,
-                "burnout_level": self._burnout_system.get_specialist_status(specialist_id)["burnout_level"],
-                "message": message,
-                "action": "vacation",
-                "days": days,
-            })
+        return {
+            "title": "Burnout & Morale",
+            "sections": sections,
+            "actions": actions
+        }
 
-    def _on_specialist_therapy(self, event: Event) -> None:
-        """Handle specialist therapy event.
+    # Utility/Query Methods
+    def get_burnout_tier(self, specialist: Specialist) -> BurnoutTier:
+        level = specialist.burnout_level
+        if level <= 20: return BurnoutTier.FRESH
+        if level <= 40: return BurnoutTier.STRESSED
+        if level <= 60: return BurnoutTier.EXHAUSTED
+        if level <= 80: return BurnoutTier.CRITICAL
+        return BurnoutTier.BROKEN
 
-        Args:
-            event: Specialist therapy event
-        """
-        specialist_id = event.data.get("specialist_id")
-        cost = event.data.get("cost", 500)
+    def get_team_status(self, game_state: GameState) -> Dict:
+        specialists = game_state.specialists
+        if not specialists:
+            return {"team_size": 0, "average_burnout": 0.0, "critical_count": 0}
 
-        if specialist_id:
-            success, message = self._burnout_system.attend_therapy(specialist_id, cost)
+        avg_burnout = sum(s.burnout_level for s in specialists) / len(specialists)
+        critical_count = sum(1 for s in specialists if s.burnout_level > self.config["thresholds"]["critical"])
 
-            # Publish burnout update event
-            self._event_bus.publish("burnout_updated", {
-                "specialist_id": specialist_id,
-                "burnout_level": self._burnout_system.get_specialist_status(specialist_id)["burnout_level"],
-                "message": message,
-                "action": "therapy",
-                "success": success,
-            })
-
-    # Public API methods for external access
-    def get_specialist_status(self, specialist_id: str) -> Dict[str, Any]:
-        """Get specialist burnout status.
-
-        Args:
-            specialist_id: Specialist ID
-
-        Returns:
-            Burnout status dictionary
-        """
-        return self._burnout_system.get_specialist_status(specialist_id)
-
-    def get_team_status(self) -> Dict[str, Any]:
-        """Get team-wide burnout statistics.
-
-        Returns:
-            Team burnout statistics
-        """
-        return self._burnout_system.get_team_status()
-
-    def take_rest_day(self, specialist_id: str) -> tuple[bool, str]:
-        """Force specialist to take rest day.
-
-        Args:
-            specialist_id: Specialist ID
-
-        Returns:
-            (success, message)
-        """
-        return self._burnout_system.take_rest_day(specialist_id)
-
-    def take_vacation(self, specialist_id: str, days: int, cost_per_day: int) -> tuple[bool, str]:
-        """Send specialist on vacation.
-
-        Args:
-            specialist_id: Specialist ID
-            days: Vacation duration
-            cost_per_day: Cost per day
-
-        Returns:
-            (success, message)
-        """
-        return self._burnout_system.take_vacation(specialist_id, days, cost_per_day)
-
-    def attend_therapy(self, specialist_id: str, cost: int) -> tuple[bool, str]:
-        """Send specialist to therapy.
-
-        Args:
-            specialist_id: Specialist ID
-            cost: Therapy cost
-
-        Returns:
-            (success, message)
-        """
-        return self._burnout_system.attend_therapy(specialist_id, cost)
+        return {
+            "team_size": len(specialists),
+            "average_burnout": round(avg_burnout, 1),
+            "critical_count": critical_count,
+        }

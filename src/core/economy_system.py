@@ -5,6 +5,7 @@ import time
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
 
+from src.core.game_system import GameSystem
 from src.core.event_bus import get_event_bus, Event
 from src.models.game_state import GameState
 
@@ -41,10 +42,10 @@ class Investment:
     volatility: float
     current_value: float = field(init=False)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.current_value = self.amount_invested
 
-    def update_value(self, time_elapsed: float, market_multiplier: float = 1.0):
+    def update_value(self, time_elapsed: float, market_multiplier: float = 1.0) -> None:
         """Update investment value based on time and market conditions."""
         # Simple compound growth with volatility
         growth_rate = self.expected_return_rate * market_multiplier
@@ -58,10 +59,10 @@ class Investment:
         return self.current_value - self.amount_invested
 
 
-class EconomySystem:
+class EconomySystem(GameSystem):
     """Manages economic aspects of the game including market events, pricing, and investments."""
 
-    def __init__(self, economy_config: Dict[str, Any]):
+    def __init__(self):
         """Initialize economy system with configuration."""
         self.config = economy_config
         self.event_bus = get_event_bus()

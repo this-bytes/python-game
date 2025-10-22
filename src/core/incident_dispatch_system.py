@@ -10,10 +10,10 @@ import logging
 from typing import Optional, Dict, Any, List, Tuple
 from dataclasses import dataclass
 
-from ..models.incident import Incident, IncidentStatus
-from ..models.specialist import Specialist
-from ..models.client import Client
-from ..utils.logger import GameLogger
+from src.models.incident import Incident, IncidentStatus
+from src.models.specialist import Specialist
+from src.models.client import Client
+from src.utils.logger import GameLogger
 
 
 @dataclass

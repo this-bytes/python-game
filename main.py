@@ -4,48 +4,54 @@ This module initializes and runs the game, coordinating between the game logic,
 user interface, and optional backend services.
 """
 
+# Standard library imports
+import os
 import sys
 import time
-import pygame
-import os
-
 from datetime import datetime
 from typing import Optional
+
+# Third-party imports
+import pygame
+
+# Local imports
+from src.core.plugins.ability_plugin import AbilityPlugin
+from src.core.plugins.achievement_plugin import AchievementSystem
+from src.core.plugins.budget_plugin import BudgetPlugin
+from src.core.plugins.burnout_plugin import BurnoutPlugin
+from src.core.plugins.client_plugin import ClientPlugin
+from src.core.plugins.dopamine_plugin import DopaminePlugin
+from src.core.plugins.economy_plugin import EconomyPlugin
+from src.core.plugins.equipment_plugin import EquipmentPlugin
+from src.core.plugins.facility_plugin import FacilityPlugin
+from src.core.plugins.game_loop_plugin import GameLoopPlugin
+from src.core.plugins.idle_plugin import IdlePlugin
+from src.core.plugins.incident_dispatch_plugin import IncidentDispatchPlugin
+from src.core.plugins.passive_income_plugin import PassiveIncomePlugin
+from src.core.plugins.prestige_plugin import PrestigeSystem
+from src.core.plugins.progressive_difficulty_plugin import ProgressiveDifficultyPlugin
+from src.core.plugins.relationships_plugin import RelationshipsPlugin
+from src.core.plugins.skill_tree_plugin import SkillTreePlugin
+from src.core.plugins.sla_plugin import SLAPlugin
+from src.core.plugins.team_dynamics_plugin import TeamDynamicsPlugin
+
+from src.core.save_manager import SaveManager
+from src.core.system_manager import SystemManager
 
 from src.models.game_state import GameState
 
 from src.ui.game_ui import GameUI
 from src.ui.main_menu import MainMenu, MenuAction
 
-from src.utils.logger import GameLogger
+from src.utils.backend_integration import (
+    initialize_backend_integration,
+    connect_to_backend,
+)
+from src.utils.game_args import parse_game_args, GameMode, GameArgs
 from src.utils.json_loader import load_game_data
+from src.utils.logger import GameLogger
 from src.utils.rich_parameter_system import get_parameter_system
 from src.utils.screenshot import initialize_screenshot_utility
-from src.utils.backend_integration import initialize_backend_integration, connect_to_backend
-from src.utils.game_args import parse_game_args, GameMode, GameArgs
-
-from src.core.save_manager import SaveManager
-from src.core.system_manager import SystemManager
-
-from src.core.plugins.idle_plugin import IdlePlugin
-from src.core.plugins.prestige_plugin import PrestigeSystem
-from src.core.plugins.achievement_plugin import AchievementSystem
-from src.core.plugins.burnout_plugin import BurnoutPlugin
-from src.core.plugins.relationships_plugin import RelationshipsPlugin
-from src.core.plugins.dopamine_plugin import DopaminePlugin
-from src.core.plugins.equipment_plugin import EquipmentPlugin
-from src.core.plugins.ability_plugin import AbilityPlugin
-from src.core.plugins.passive_income_plugin import PassiveIncomePlugin
-from src.core.plugins.facility_plugin import FacilityPlugin
-from src.core.plugins.progressive_difficulty_plugin import ProgressiveDifficultyPlugin
-from src.core.plugins.skill_tree_plugin import SkillTreePlugin
-from src.core.plugins.team_dynamics_plugin import TeamDynamicsPlugin
-from src.core.plugins.economy_plugin import EconomyPlugin
-from src.core.plugins.budget_plugin import BudgetPlugin
-from src.core.plugins.sla_plugin import SLAPlugin
-from src.core.plugins.game_loop_plugin import GameLoopPlugin
-from src.core.plugins.incident_dispatch_plugin import IncidentDispatchPlugin
-from src.core.plugins.client_plugin import ClientPlugin
 
 
 class Game:
@@ -79,6 +85,10 @@ class Game:
         self.last_update = time.time()
         self.target_fps = 60
         self.frame_time = 1.0 / self.target_fps
+        
+        # Auto-save system
+        self.last_auto_save = time.time()
+        self.auto_save_interval = 300.0  # Default 5 minutes, will be updated from config
         
         # Menu state
         self.in_menu = args.should_show_menu()
@@ -124,8 +134,11 @@ class Game:
                     return result
 
             except Exception as e:
-                self.logger.error("[GAME] Failed to initialize game", exception=e, 
-                                mode=self.args.mode.value if hasattr(self.args.mode, 'value') else str(self.args.mode))
+                self.logger.error(
+                    "[GAME] Failed to initialize game",
+                    exception=e,
+                    mode=self.args.mode.value if hasattr(self.args.mode, 'value') else str(self.args.mode)
+                )
                 return False
     
     def _initialize_menu(self) -> bool:
@@ -197,8 +210,11 @@ class Game:
             # Load game state
             self.game_state = self.save_manager.load_game(int(slot))
 
+            # Load game data for configuration
+            game_data = load_game_data()
+
             # Initialize UI and systems with loaded state
-            return self._initialize_game_systems()
+            return self._initialize_game_systems(game_data)
 
         except FileNotFoundError:
             self.logger.error("[GAME] Save file not found")
@@ -228,7 +244,7 @@ class Game:
                     self.logger.info("[GAME] Game state initialized successfully")
                 
                 # Initialize UI and systems
-                return self._initialize_game_systems()
+                return self._initialize_game_systems(game_data)
                 
             except Exception as e:
                 self.logger.error("[GAME] Failed to initialize new game", exception=e)
@@ -259,13 +275,13 @@ class Game:
             self.logger.info("[GAME] Tutorial mode enabled")
             
             # Initialize UI and systems
-            return self._initialize_game_systems()
+            return self._initialize_game_systems(game_data)
             
         except Exception as e:
             self.logger.error(f"[GAME] Failed to initialize tutorial: {e}")
             return False
     
-    def _initialize_game_systems(self) -> bool:
+    def _initialize_game_systems(self, game_data: dict) -> bool:
         """Initialize UI and game systems (common for both new and loaded games).
         
         Returns:
@@ -343,6 +359,14 @@ class Game:
                     self.logger.debug("[SYSTEM] Initializing all registered systems...")
                     self.system_manager.initialize_all(self.game_state)
                     self.logger.info("[SYSTEM] All systems initialized successfully")
+
+                # Load auto-save configuration from game data
+                with self.logger.operation("Auto-Save Configuration"):
+                    game_config = game_data.get('game_config', {})
+                    game_settings = game_config.get('game_settings', {})
+                    auto_save_interval = game_settings.get('auto_save_interval_seconds', 300.0)
+                    self.auto_save_interval = auto_save_interval
+                    self.logger.info(f"[GAME] Auto-save interval set to {auto_save_interval} seconds")
 
                 # Legacy panel connections removed - UI now uses Dashboard Framework
                 # All UI is provided through UIProvider interface on plugins
@@ -435,7 +459,7 @@ class Game:
         finally:
             self.shutdown()
     
-    def _run_menu(self, events, delta_time: float) -> None:
+    def _run_menu(self, events: list, delta_time: float) -> None:
         """Run the menu loop.
         
         Args:
@@ -470,7 +494,7 @@ class Game:
         self.main_menu.update(delta_time)
         self.main_menu.render()
     
-    def _run_game(self, events, delta_time: float) -> None:
+    def _run_game(self, events: list, delta_time: float) -> None:
         """Run the game loop.
         
         Args:
@@ -495,13 +519,12 @@ class Game:
         if self.system_manager:
             self.system_manager.update_all(self.game_state, delta_time)
 
-        # Update UI
-        actions = self.ui.handle_input(events)
-        self.ui.update(delta_time)
+        # Check for auto-save
+        self._check_auto_save(delta_time)
 
-        # Process any game actions from UI
-        for action in actions:
-            self._handle_game_action(action)
+        # Update UI
+        self.ui.handle_input(events)
+        self.ui.update(delta_time, self.game_state)
 
         # Update development systems
         if self.screenshot_utility:
@@ -512,112 +535,38 @@ class Game:
 
         # Render
         if self.ui:
-            self.ui.render()
+            self.ui.render(self.game_state)
 
         pygame.display.flip()
 
-    def _handle_game_action(self, action) -> None:
-        """Handle game actions from the UI.
-        
-        Processes actions like incident assignments, specialist actions, etc.
-        Actions are routed to appropriate systems based on action_type.
-
-        Args:
-            action: GameAction with action_type and data dict
-        """
-        if not action or not hasattr(action, 'action_type'):
-            return
-        
-        action_type = action.action_type
-        action_data = getattr(action, 'data', {})
-        
-        # Route action to appropriate handler
-        if action_type == "assign_incident":
-            self._handle_assign_incident_action(action_data)
-        elif action_type == "rest_specialist":
-            self._handle_rest_specialist_action(action_data)
-        elif action_type == "hire_specialist":
-            self._handle_hire_specialist_action(action_data)
-        else:
-            self.logger.debug(f"[GAME] Unknown action type: {action_type}")
-    
-    def _handle_assign_incident_action(self, data: dict) -> None:
-        """Handle incident assignment action from UI.
-        
-        Assigns an incident to a specialist through the IncidentDispatchPlugin.
+    def _check_auto_save(self, delta_time: float) -> None:
+        """Check if auto-save should be triggered.
         
         Args:
-            data: Action data containing incident_id and specialist_id
+            delta_time: Time since last update
         """
-        incident_id = data.get("incident_id")
-        specialist_id = data.get("specialist_id")
+        # Update auto-save timer
+        self.last_auto_save += delta_time
         
-        if not incident_id or not specialist_id:
-            self.logger.warning(f"[GAME] Invalid assignment action data: {data}")
-            return
-        
-        # Safety check: ensure game state exists
-        if not self.game_state:
-            self.logger.error("[GAME] GameState not available for assignment")
-            return
-        
-        # Get incident and specialist from game state
-        if not hasattr(self.game_state, 'incidents') or not hasattr(self.game_state, 'specialists'):
-            self.logger.error("[GAME] GameState missing incidents or specialists attributes")
-            return
-        
-        incident = next((i for i in self.game_state.incidents if i.id == incident_id), None)
-        specialist = next((s for s in self.game_state.specialists if s.id == specialist_id), None)
-        
-        if not incident:
-            self.logger.error(f"[GAME] Incident {incident_id} not found")
-            return
-        
-        if not specialist:
-            self.logger.error(f"[GAME] Specialist {specialist_id} not found")
-            return
-        
-        # Get IncidentDispatchPlugin from system manager
-        if not self.system_manager:
-            self.logger.error("[GAME] SystemManager not available")
-            return
-        
-        incident_dispatch_plugin = self.system_manager.get_system("IncidentDispatchPlugin")
-        if not incident_dispatch_plugin:
-            self.logger.error("[GAME] IncidentDispatchPlugin not found in SystemManager")
-            return
-        
-        # Assign through plugin (cast to IncidentDispatchPlugin to access assign_incident method)
-        try:
-            success = incident_dispatch_plugin.assign_incident(incident, specialist)
+        # Check if it's time to auto-save
+        if self.last_auto_save >= self.auto_save_interval:
+            self.logger.info("[GAME] Auto-save triggered")
             
-            if success:
-                self.logger.info(f"[GAME] Assigned {incident.incident_type} to {specialist.name}")
+            # Perform auto-save
+            if self.save_manager and self.game_state:
+                try:
+                    success = self.save_manager.auto_save(self.game_state)
+                    if success:
+                        self.logger.info("[GAME] Auto-save completed successfully")
+                        # Reset timer
+                        self.last_auto_save = 0.0
+                    else:
+                        self.logger.warning("[GAME] Auto-save failed")
+                except Exception as e:
+                    self.logger.error(f"[GAME] Auto-save error: {e}")
             else:
-                self.logger.warning(f"[GAME] Failed to assign {incident.incident_type} to {specialist.name}")
-        except Exception as e:
-            self.logger.error(f"[GAME] Error assigning incident: {e}")
-    
-    def _handle_rest_specialist_action(self, data: dict) -> None:
-        """Handle specialist rest action from UI.
-        
-        Args:
-            data: Action data containing specialist_id
-        """
-        specialist_id = data.get("specialist_id")
-        self.logger.debug(f"[GAME] Rest specialist action: {specialist_id}")
-        # TODO: Implement rest specialist logic
-    
-    def _handle_hire_specialist_action(self, data: dict) -> None:
-        """Handle specialist hiring action from UI.
-        
-        Args:
-            data: Action data containing specialty and level
-        """
-        specialty = data.get("specialty")
-        level = data.get("level", 1)
-        self.logger.debug(f"[GAME] Hire specialist action: specialty={specialty}, level={level}")
-        # TODO: Implement hire specialist logic
+                self.logger.warning("[GAME] Cannot auto-save: save_manager or game_state is None")
+
 
     def shutdown(self) -> None:
         """Clean shutdown of all systems."""
@@ -673,7 +622,10 @@ def main():
         # Parse command-line arguments
         with logger.operation("Parsing Command-Line Arguments"):
             args = parse_game_args()
-            logger.info("[GAME] Arguments parsed", mode=args.mode.value if hasattr(args.mode, 'value') else str(args.mode))
+            logger.info(
+                "[GAME] Arguments parsed",
+                mode=args.mode.value if hasattr(args.mode, 'value') else str(args.mode)
+            )
         
         # Initialize Pygame
         with logger.operation("Pygame Initialization"):

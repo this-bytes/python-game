@@ -1,0 +1,25 @@
+{
+  "burnout_costs": {
+    "base_incident_cost": 5.0,
+    "per_difficulty_level_cost": 5.0,
+    "incident_failure_cost": 10.0
+  },
+  "recovery_rates": {
+    "rest_day_recovery_multiplier": 0.3,
+    "vacation_base_recovery": 0.3,
+    "vacation_recovery_per_day": 0.1,
+    "vacation_max_recovery": 0.8
+  },
+  "thresholds": {
+    "warning": 60.0,
+    "critical": 80.0,
+    "forced_rest": 95.0
+  },
+  "performance_effects": {
+    "performance_multiplier_denominator": 100.0,
+    "error_chance_multiplier": 0.5
+  },
+  "therapy": {
+    "trauma_burnout_per_failure": 10.0
+  }
+}

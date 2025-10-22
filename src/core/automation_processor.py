@@ -8,14 +8,14 @@ import time
 from typing import List, Dict, Any, Optional, TYPE_CHECKING
 from dataclasses import dataclass, field
 
-from ..models.automation_script import AutomationScript
-from ..models.specialist import Specialist
-from ..models.incident import Incident
-from ..utils.logger import GameLogger
+from src.models.automation_script import AutomationScript
+from src.models.specialist import Specialist
+from src.models.incident import Incident
+from src.utils.logger import GameLogger
 
 if TYPE_CHECKING:
     # Import for type checking only to avoid circular imports at runtime
-    from ..models.game_state import GameState
+    from src.models.game_state import GameState
 
 
 @dataclass

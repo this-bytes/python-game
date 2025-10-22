@@ -91,7 +91,7 @@ class SpecialistRelationships:
 class RelationshipsSystem:
     """Manages specialist relationships and team synergy mechanics."""
 
-    def __init__(self, game_config: dict):
+    def __init__(self, game_config: dict) -> None:
         """Initialize relationships system.
         
         Args:

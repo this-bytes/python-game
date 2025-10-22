@@ -114,6 +114,7 @@
         "glow": [255, 0, 128, 40]
       },
       "fonts": {
+        "name": "DejaVuSerif",
         "title": 28,
         "heading": 20,
         "body": 14,

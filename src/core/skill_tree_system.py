@@ -114,7 +114,7 @@ class SkillTree:
 class SkillTreeSystem(GameSystem):
     """Manages skill trees and specialist progression."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the skill tree system."""
         super().__init__()
         self.skill_trees: Dict[str, SkillTree] = {}
@@ -130,7 +130,7 @@ class SkillTreeSystem(GameSystem):
         """
         return "skill_tree_system"
 
-    def initialize(self, game_state: GameState) -> bool:
+    def _initialize(self, game_state: GameState) -> bool:
         """Initialize the skill tree system.
 
         Args:

@@ -349,27 +349,7 @@ class Specialist:
         effective_accuracy = max(10, effective_stats.accuracy - difficulty_penalty)
         return min(1.0, effective_accuracy / 100.0)
     
-    def get_performance_multiplier(self) -> float:
-        """Get overall performance multiplier including burnout effects.
-        
-        Burnout reduces specialist performance linearly: 0% burnout = 1.0x, 100% = 0.0x
-        This affects resolution time and success chance.
-        
-        Returns:
-            Performance multiplier (0.0-1.0), adjusted for burnout
-        """
-        burnout_penalty = 1.0 - (self.burnout_level / 100.0)
-        return max(0.0, burnout_penalty)
-    
-    def get_error_chance_from_burnout(self) -> float:
-        """Get probability of incident failure due to burnout.
-        
-        High burnout increases error chance: 0% burnout = 0% chance, 100% = 50% chance
-        
-        Returns:
-            Probability of failure due to burnout stress (0.0-0.5)
-        """
-        return (self.burnout_level / 100.0) * 0.5
+
     
     def to_dict(self) -> Dict:
         """Convert specialist to dictionary for serialization.

@@ -11,14 +11,14 @@ Example plugin implementation:
             super().__init__(event_bus, "prestige_system")
             self.prestige_points = 0
             
-        def initialize(self):
+        def initialize(self) -> None:
             self.event_bus.subscribe("prestige_triggered", self._on_prestige)
             
-        def update(self, dt: float):
+        def update(self, dt: float) -> None:
             # Called every frame
             pass
             
-        def _on_prestige(self, event_data: dict):
+        def _on_prestige(self, event_data: dict) -> None:
             self.prestige_points += event_data.get("points", 0)
 """
 

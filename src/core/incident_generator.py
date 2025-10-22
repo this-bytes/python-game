@@ -12,10 +12,10 @@ from dataclasses import dataclass
 import json
 import os
 
-from ..models.incident import Incident
-from ..models.client import Client
-from ..utils.json_loader import JSONLoader
-from ..utils.logger import GameLogger
+from src.models.incident import Incident
+from src.models.client import Client
+from src.utils.json_loader import JSONLoader
+from src.utils.logger import GameLogger
 
 
 @dataclass

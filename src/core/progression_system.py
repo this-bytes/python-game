@@ -10,7 +10,7 @@ from src.utils.logger import GameLogger
 class ProgressionSystem:
     """Manages specialist leveling and progression mechanics."""
     
-    def __init__(self, config: Dict):
+    def __init__(self, config: Dict) -> None:
         """Initialize the progression system.
         
         Args:

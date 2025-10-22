@@ -363,13 +363,16 @@ class DetailPanelRenderer:
             action: Action that was clicked
         """
         event_type = f"action:{action.id}"
-        
+        event_data = action.data or {}
+        # Ensure the action itself is part of the payload for context
+        event_data['action'] = action
+
         self.logger.debug(f"[DETAIL_PANEL] Action clicked: {action.id}")
         
         # Publish event
         self.event_bus.publish(
             event_type,
-            {"action_id": action.id, "action": action},
+            event_data,
             source="detail_panel"
         )
     
