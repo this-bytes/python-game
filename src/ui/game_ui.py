@@ -243,19 +243,20 @@ class GameUI:
                 self.handle_resize((event.w, event.h))
                 continue
 
-            # Handle dashboard widget clicks
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                if self.dashboard_panel:
-                    # Assuming dashboard_panel.handle_click now publishes
-                    # "ui_dashboard_widget_clicked" if a widget is clicked.
-                    # If it returns True, it handled the click, so we continue.
-                    if self.dashboard_panel.handle_click(event.pos):
-                        continue
-            
-            # Handle mouse movement for dashboard hover effects
-            if event.type == pygame.MOUSEMOTION:
-                if self.dashboard_panel:
-                    self.dashboard_panel.update_hover(event.pos)
+            # Handle dashboard widget interactions
+            if self.dashboard_panel:
+                # Handle both clicks and hover
+                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    # Check if a widget was clicked
+                    for widget in self.dashboard_panel.widgets:
+                        if widget.rect.collidepoint(event.pos):
+                            # Publish event to open detail panel
+                            self.event_bus.publish("ui_dashboard_widget_clicked", {
+                                "plugin_name": widget.plugin_name
+                            }, source="game_ui")
+                            continue
+                elif event.type == pygame.MOUSEMOTION:
+                    self.dashboard_panel.update_hover()
 
             # Handle hotkeys
             if self.hotkey_manager.handle_key_event(event):
@@ -330,7 +331,10 @@ class GameUI:
         
         # Render dashboard panel (shows UIProvider summaries)
         if self.dashboard_panel and self.dashboard_manager:
-            self.dashboard_panel.render(self.screen, self.dashboard_manager, self.game_state)
+            # Set managers if not already set
+            if not self.dashboard_panel.dashboard_manager:
+                self.dashboard_panel.set_managers(self.dashboard_manager, self.game_state)
+            self.dashboard_panel.draw(self.screen, self.game_state)
         
         # Render quick reference card
         self.quick_reference.render(self.screen)

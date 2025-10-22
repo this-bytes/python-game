@@ -303,30 +303,37 @@ class Game:
                 # Register game systems as plugins BEFORE UI initialization
                 # This ensures UI can discover all UIProvider plugins immediately
                 with self.logger.operation("Plugin Registration"):
-                    # Instantiate plugin classes defensively: if one plugin fails
-                    # to instantiate, log the error and continue registering the
-                    # remaining plugins. This makes initialization more robust
-                    # during development when plugin code may be in flux.
+                    # REFACTORED: Only register ESSENTIAL plugins for core game loop
+                    # Philosophy: "Show the core loop or remove the system"
+                    # - If player can't see/interact with it, it shouldn't be running
+                    # - Core loop: assign specialists → resolve incidents → manage budget → keep clients happy
+                    
+                    # ESSENTIAL CORE PLUGINS (functional and visible)
                     plugin_classes = [
-                        ("IdlePlugin", IdlePlugin),
-                        ("PrestigeSystem", PrestigeSystem),
-                        ("AchievementSystem", AchievementSystem),
-                        ("BurnoutPlugin", BurnoutPlugin),
-                        ("RelationshipsPlugin", RelationshipsPlugin),
-                        ("DopaminePlugin", DopaminePlugin),
-                        ("EquipmentPlugin", EquipmentPlugin),
-                        ("AbilityPlugin", AbilityPlugin),
-                        ("BudgetPlugin", BudgetPlugin),
-                        ("SLAPlugin", SLAPlugin),
-                        ("GameLoopPlugin", GameLoopPlugin),
-                        ("IncidentDispatchPlugin", IncidentDispatchPlugin),
-                        ("ClientPlugin", ClientPlugin),
-                        ("PassiveIncomePlugin", PassiveIncomePlugin),
-                        ("FacilityPlugin", FacilityPlugin),
-                        ("ProgressiveDifficultyPlugin", ProgressiveDifficultyPlugin),
-                        ("SkillTreePlugin", SkillTreePlugin),
-                        ("TeamDynamicsPlugin", TeamDynamicsPlugin),
-                        ("EconomyPlugin", EconomyPlugin),
+                        ("BudgetPlugin", BudgetPlugin),              # Money tracking - NOW HAS UI
+                        ("ClientPlugin", ClientPlugin),              # Client management - HAS UI
+                        ("IncidentDispatchPlugin", IncidentDispatchPlugin),  # Core gameplay - HAS UI
+                        ("SLAPlugin", SLAPlugin),                   # SLA tracking - essential for gameplay
+                        ("GameLoopPlugin", GameLoopPlugin),         # Time/phase management
+                        ("BurnoutPlugin", BurnoutPlugin),           # Specialist fatigue - HAS UI
+                    ]
+                    
+                    # DISABLED PLUGINS (no UI implementation or not essential to core loop)
+                    # These add complexity without visible player value
+                    disabled_plugins = [
+                        # "IdlePlugin",                  # Confusing for active play, no clear UI
+                        # "PrestigeSystem",              # No UI implementation
+                        # "AchievementSystem",           # Not visible to player
+                        # "RelationshipsPlugin",         # Team dynamics - has UI but adds complexity
+                        # "TeamDynamicsPlugin",          # Duplicate with relationships
+                        # "DopaminePlugin",              # Visual effects only, no gameplay
+                        # "EquipmentPlugin",             # Drops exist but can't be seen/managed
+                        # "AbilityPlugin",               # Abilities exist but no activation UI
+                        # "PassiveIncomePlugin",         # Hidden system, confusing
+                        # "FacilityPlugin",              # No visible facility upgrades
+                        # "ProgressiveDifficultyPlugin", # Automatic, invisible to player
+                        # "SkillTreePlugin",             # No skill tree UI
+                        # "EconomyPlugin",               # Market events invisible
                     ]
 
                     registered = 0
