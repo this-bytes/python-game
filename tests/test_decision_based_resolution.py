@@ -2,7 +2,6 @@ import pytest
 from src.core.resolution_system import ResolutionSystem, ResolutionDecision, ResolutionSession
 from src.models.specialist import Specialist, SpecialistStats
 from src.models.incident import Incident
-from src.core.burnout_system import BurnoutSystem
 from unittest.mock import Mock
 
 
@@ -11,9 +10,8 @@ class TestDecisionBasedResolution:
 
     @pytest.fixture
     def resolution_system(self):
-        """Create resolution system for testing."""
-        burnout_system = BurnoutSystem()
-        return ResolutionSystem(burnout_system)
+        """Create resolution system for testing (burnout now handled by plugin)."""
+        return ResolutionSystem()
 
     @pytest.fixture
     def specialist(self):

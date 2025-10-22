@@ -17,11 +17,12 @@ from src.core.budget_system import (
     check_game_over,
 )
 from src.core.event_bus import get_event_bus
+from src.ui.ui_provider import UIProvider, UISummaryItem
 
 logger = logging.getLogger(__name__)
 
 
-class BudgetPlugin(GameSystem):
+class BudgetPlugin(GameSystem, UIProvider):
     """Plugin for managing company budget and financial state.
     
     Responsibilities:
@@ -31,6 +32,8 @@ class BudgetPlugin(GameSystem):
         - Detect bankruptcy and critical conditions
         - Force downsizing if necessary
         - Trigger game over if required
+        
+    Implements UIProvider to show budget status on dashboard.
     """
     
     def __init__(self):
@@ -217,4 +220,129 @@ class BudgetPlugin(GameSystem):
             "software_license_base": 1000.0,
             "software_license_per_specialist": 200.0,
             "fixed_overhead": 1500.0,
+        }
+    
+    # ===== UIProvider Implementation =====
+    
+    def get_dashboard_summary(self, game_state) -> UISummaryItem:
+        """Get budget dashboard summary widget.
+        
+        Shows current financial status to player.
+        
+        Args:
+            game_state: Current game state (read-only)
+            
+        Returns:
+            UISummaryItem with budget summary
+        """
+        budget = game_state.budget
+        current_reserves = budget.total_reserves
+        monthly_revenue = budget.monthly_revenue
+        monthly_expenses = budget.monthly_expenses
+        net_profit = monthly_revenue - monthly_expenses
+        
+        # Calculate runway (months until bankruptcy)
+        if monthly_expenses > 0 and net_profit < 0:
+            runway_months = abs(current_reserves / net_profit)
+        else:
+            runway_months = 999  # Sustainable or growing
+        
+        # Determine status color
+        if current_reserves < 0:
+            accent_color = (200, 50, 50)  # Red - bankrupt
+            status_icon = "🔴"
+        elif runway_months < 3:
+            accent_color = (255, 165, 0)  # Orange - critical
+            status_icon = "⚠️"
+        elif net_profit < 0:
+            accent_color = (255, 200, 0)  # Yellow - warning
+            status_icon = "⚠️"
+        else:
+            accent_color = (50, 200, 100)  # Green - healthy
+            status_icon = "✅"
+        
+        # Format lines
+        lines = [
+            f"💰 Reserves: ${current_reserves:,.0f}",
+            f"📈 Monthly Net: ${net_profit:+,.0f}",
+        ]
+        
+        if runway_months < 12 and net_profit < 0:
+            lines.append(f"{status_icon} Runway: {runway_months:.1f} months")
+        
+        return UISummaryItem(
+            title="Budget",
+            icon="💰",
+            lines=lines,
+            accent_color=accent_color,
+            clickable=True,
+            data={
+                "reserves": current_reserves,
+                "revenue": monthly_revenue,
+                "expenses": monthly_expenses,
+                "profit": net_profit,
+                "runway": runway_months
+            }
+        )
+    
+    def get_detail_panel_data(self, game_state) -> Dict[str, Any]:
+        """Get detailed budget panel data.
+        
+        Shows comprehensive financial breakdown.
+        
+        Args:
+            game_state: Current game state (read-only)
+            
+        Returns:
+            Dictionary with panel structure
+        """
+        budget = game_state.budget
+        
+        return {
+            "title": "Financial Dashboard",
+            "sections": [
+                {
+                    "title": "Current Status",
+                    "items": [
+                        {
+                            "name": "Cash Reserves",
+                            "details": [f"${budget.total_reserves:,.2f}"],
+                            "clickable": False
+                        },
+                        {
+                            "name": "Monthly Revenue",
+                            "details": [f"${budget.monthly_revenue:,.2f}"],
+                            "clickable": False
+                        },
+                        {
+                            "name": "Monthly Expenses",
+                            "details": [f"${budget.monthly_expenses:,.2f}"],
+                            "clickable": False
+                        },
+                        {
+                            "name": "Net Profit/Loss",
+                            "details": [f"${budget.monthly_revenue - budget.monthly_expenses:+,.2f}"],
+                            "clickable": False
+                        }
+                    ]
+                },
+                {
+                    "title": "Revenue History (Last 6 Months)",
+                    "items": [
+                        {
+                            "name": f"Month {i+1}",
+                            "details": [f"${rev:,.2f}"],
+                            "clickable": False
+                        }
+                        for i, rev in enumerate(budget.revenue_history[-6:])
+                    ] if budget.revenue_history else [
+                        {
+                            "name": "No history yet",
+                            "details": ["Start operating to see trends"],
+                            "clickable": False
+                        }
+                    ]
+                }
+            ],
+            "actions": []  # No actions for budget panel (read-only)
         }

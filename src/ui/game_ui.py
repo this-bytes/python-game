@@ -104,6 +104,33 @@ class GameUI:
             self.dashboard_manager = None
             self.dashboard_panel = None
             self.logger.warning("[GAME_UI] No system_manager provided - dashboard disabled")
+        
+        # Initialize gameplay panels (NEW - management sim style layout)
+        from src.ui.panels import SpecialistRosterPanel, IncidentQueuePanel
+        
+        # Specialist roster panel (top half of main area)
+        self.specialist_roster = SpecialistRosterPanel(
+            x=230,  # After dashboard
+            y=60,   # Below HUD
+            width=1040,
+            height=300
+        )
+        
+        # Incident queue panel (bottom half of main area)
+        self.incident_queue = IncidentQueuePanel(
+            x=230,
+            y=370,  # Below roster
+            width=1040,
+            height=340
+        )
+        
+        # Set up assignment workflow callbacks
+        self.specialist_roster.set_selection_callback(self._on_specialist_selected)
+        self.incident_queue.set_selection_callback(self._on_incident_selected)
+        
+        # Track current selections for assignment
+        self.selected_specialist_id: Optional[str] = None
+        self.selected_incident_id: Optional[str] = None
 
         # Register hotkeys
         self._register_hotkey_callbacks()
@@ -193,6 +220,59 @@ class GameUI:
             self.dashboard_manager.close_panel()
         
         self.logger.debug("[GAME_UI] Detail panel closed")
+    
+    def _on_specialist_selected(self, specialist_id: str):
+        """Handle specialist selection from roster panel.
+        
+        Args:
+            specialist_id: ID of selected specialist
+        """
+        self.selected_specialist_id = specialist_id
+        self.logger.info(f"[GAME_UI] Specialist selected: {specialist_id}")
+        
+        # If both specialist and incident are selected, perform assignment
+        if self.selected_incident_id:
+            self._attempt_assignment()
+    
+    def _on_incident_selected(self, incident_id: str):
+        """Handle incident selection from queue panel.
+        
+        Args:
+            incident_id: ID of selected incident
+        """
+        self.selected_incident_id = incident_id
+        self.logger.info(f"[GAME_UI] Incident selected: {incident_id}")
+        
+        # If both specialist and incident are selected, perform assignment
+        if self.selected_specialist_id:
+            self._attempt_assignment()
+    
+    def _attempt_assignment(self):
+        """Attempt to assign selected specialist to selected incident."""
+        if not self.selected_specialist_id or not self.selected_incident_id:
+            return
+        
+        self.logger.info(
+            f"[GAME_UI] Attempting assignment: "
+            f"specialist={self.selected_specialist_id}, "
+            f"incident={self.selected_incident_id}"
+        )
+        
+        # Publish assignment event
+        self.event_bus.publish("action:assign_incident", {
+            "specialist_id": self.selected_specialist_id,
+            "incident_id": self.selected_incident_id,
+            "game_state": self.game_state
+        }, source="game_ui")
+        
+        # Clear selections
+        self.selected_specialist_id = None
+        self.selected_incident_id = None
+        self.specialist_roster.clear_selection()
+        self.incident_queue.clear_selection()
+        
+        # Show feedback
+        self.notification_manager.show_success("Assignment attempted!")
 
     def handle_input(self, events: List[pygame.event.Event]) -> None:
         """Process input events. Game actions are published via EventBus.
@@ -242,20 +322,31 @@ class GameUI:
             if event.type == pygame.VIDEORESIZE:
                 self.handle_resize((event.w, event.h))
                 continue
-
-            # Handle dashboard widget clicks
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                if self.dashboard_panel:
-                    # Assuming dashboard_panel.handle_click now publishes
-                    # "ui_dashboard_widget_clicked" if a widget is clicked.
-                    # If it returns True, it handled the click, so we continue.
-                    if self.dashboard_panel.handle_click(event.pos):
-                        continue
             
-            # Handle mouse movement for dashboard hover effects
-            if event.type == pygame.MOUSEMOTION:
-                if self.dashboard_panel:
-                    self.dashboard_panel.update_hover(event.pos)
+            # Handle gameplay panel interactions (specialist roster & incident queue)
+            if self.specialist_roster.handle_event(event):
+                continue
+            if self.incident_queue.handle_event(event):
+                continue
+
+            # Handle dashboard widget interactions
+            if self.dashboard_panel:
+                # Handle both clicks and hover
+                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    # Check if a widget was clicked
+                    widget_clicked = False
+                    for widget in self.dashboard_panel.widgets:
+                        if widget.rect.collidepoint(event.pos):
+                            # Publish event to open detail panel
+                            self.event_bus.publish("ui_dashboard_widget_clicked", {
+                                "plugin_name": widget.plugin_name
+                            }, source="game_ui")
+                            widget_clicked = True
+                            break
+                    if widget_clicked:
+                        continue
+                elif event.type == pygame.MOUSEMOTION:
+                    self.dashboard_panel.update_hover()
 
             # Handle hotkeys
             if self.hotkey_manager.handle_key_event(event):
@@ -317,7 +408,7 @@ class GameUI:
         self.modal_manager.update(delta_time)
         
         # Update notification manager
-        self.notification_manager.update(delta_time)
+        self.notification_manager.update(delta_time, self.game_state)
 
     def render(self) -> None:
         """Render the game UI."""
@@ -328,9 +419,25 @@ class GameUI:
         # Render HUD overlay
         self.hud_overlay.render(self.screen, self.game_state, "Dashboard")
         
-        # Render dashboard panel (shows UIProvider summaries)
+        # Render dashboard panel (left sidebar with UIProvider summaries)
         if self.dashboard_panel and self.dashboard_manager:
-            self.dashboard_panel.render(self.screen, self.dashboard_manager, self.game_state)
+            # Set managers if not already set
+            if not self.dashboard_panel.dashboard_manager:
+                self.dashboard_panel.set_managers(self.dashboard_manager, self.game_state)
+            self.dashboard_panel.draw(self.screen, self.game_state)
+        
+        # Render gameplay panels (main area - management sim style)
+        # Get unassigned incidents and specialists
+        unassigned_incidents = [
+            inc for inc in self.game_state.incidents 
+            if not hasattr(inc, 'assigned_specialist_id') or inc.assigned_specialist_id is None
+        ]
+        
+        # Render specialist roster panel (top)
+        self.specialist_roster.draw(self.screen, self.game_state.specialists)
+        
+        # Render incident queue panel (bottom)
+        self.incident_queue.draw(self.screen, unassigned_incidents, self.game_state)
         
         # Render quick reference card
         self.quick_reference.render(self.screen)

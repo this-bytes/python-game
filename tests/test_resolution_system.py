@@ -2,19 +2,14 @@
 
 import pytest
 from src.core.resolution_system import ResolutionSystem
-from src.core.burnout_system import BurnoutSystem
 from src.models.specialist import Specialist, SpecialistStats
 from src.models.incident import Incident
 
 
 @pytest.fixture
-def burnout_system():
-    return BurnoutSystem()
-
-
-@pytest.fixture
-def resolution_system(burnout_system):
-    return ResolutionSystem(burnout_system)
+def resolution_system():
+    """Create resolution system (burnout now handled by plugin)."""
+    return ResolutionSystem()
 
 
 @pytest.fixture

@@ -1,8 +1,13 @@
 """Game Panels package.
 
-Legacy panels removed. UI now uses Dashboard Framework with UIProvider plugins.
+Modern panel implementations for the main gameplay view.
+These panels provide rich visual interfaces for core game mechanics.
 """
 
-# All legacy panels removed - UI now uses DashboardPanel + UIProvider architecture
+from src.ui.panels.specialist_roster_panel import SpecialistRosterPanel
+from src.ui.panels.incident_queue_panel import IncidentQueuePanel
 
-__all__ = []
+__all__ = [
+    'SpecialistRosterPanel',
+    'IncidentQueuePanel',
+]

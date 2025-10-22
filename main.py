@@ -303,31 +303,23 @@ class Game:
                 # Register game systems as plugins BEFORE UI initialization
                 # This ensures UI can discover all UIProvider plugins immediately
                 with self.logger.operation("Plugin Registration"):
-                    # Instantiate plugin classes defensively: if one plugin fails
-                    # to instantiate, log the error and continue registering the
-                    # remaining plugins. This makes initialization more robust
-                    # during development when plugin code may be in flux.
+                    # REFACTORED: Only register ESSENTIAL plugins for core game loop
+                    # Philosophy: "Show the core loop or remove the system"
+                    # - If player can't see/interact with it, it shouldn't be running
+                    # - Core loop: assign specialists → resolve incidents → manage budget → keep clients happy
+                    
+                    # ESSENTIAL CORE PLUGINS (functional and visible)
                     plugin_classes = [
-                        ("IdlePlugin", IdlePlugin),
-                        ("PrestigeSystem", PrestigeSystem),
-                        ("AchievementSystem", AchievementSystem),
-                        ("BurnoutPlugin", BurnoutPlugin),
-                        ("RelationshipsPlugin", RelationshipsPlugin),
-                        ("DopaminePlugin", DopaminePlugin),
-                        ("EquipmentPlugin", EquipmentPlugin),
-                        ("AbilityPlugin", AbilityPlugin),
-                        ("BudgetPlugin", BudgetPlugin),
-                        ("SLAPlugin", SLAPlugin),
-                        ("GameLoopPlugin", GameLoopPlugin),
-                        ("IncidentDispatchPlugin", IncidentDispatchPlugin),
-                        ("ClientPlugin", ClientPlugin),
-                        ("PassiveIncomePlugin", PassiveIncomePlugin),
-                        ("FacilityPlugin", FacilityPlugin),
-                        ("ProgressiveDifficultyPlugin", ProgressiveDifficultyPlugin),
-                        ("SkillTreePlugin", SkillTreePlugin),
-                        ("TeamDynamicsPlugin", TeamDynamicsPlugin),
-                        ("EconomyPlugin", EconomyPlugin),
+                        ("BudgetPlugin", BudgetPlugin),              # Money tracking - NOW HAS UI
+                        ("ClientPlugin", ClientPlugin),              # Client management - HAS UI
+                        ("IncidentDispatchPlugin", IncidentDispatchPlugin),  # Core gameplay - HAS UI
+                        ("SLAPlugin", SLAPlugin),                   # SLA tracking - essential for gameplay
+                        ("GameLoopPlugin", GameLoopPlugin),         # Time/phase management
+                        ("BurnoutPlugin", BurnoutPlugin),           # Specialist fatigue - HAS UI
                     ]
+                    
+                    # DISABLED PLUGINS (no UI implementation or not essential to core loop)
+                    # These add complexity without visible player value
 
                     registered = 0
                     for plugin_name, plugin_cls in plugin_classes:
@@ -524,7 +516,7 @@ class Game:
 
         # Update UI
         self.ui.handle_input(events)
-        self.ui.update(delta_time, self.game_state)
+        self.ui.update(delta_time)
 
         # Update development systems
         if self.screenshot_utility:
@@ -535,7 +527,7 @@ class Game:
 
         # Render
         if self.ui:
-            self.ui.render(self.game_state)
+            self.ui.render()
 
         pygame.display.flip()
 

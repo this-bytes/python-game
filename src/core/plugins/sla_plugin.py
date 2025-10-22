@@ -18,6 +18,7 @@ from src.core.event_bus import get_event_bus, Event
 from src.core.sla_system import SLATracker, track_sla_incident
 from src.models.incident import Incident
 from src.models.client import Client
+from src.ui.ui_provider import UIProvider, UISummaryItem
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +110,7 @@ class SLAMonitor:
         self._incident_to_tracker[incident_id] = tracker_id
 
 
-class SLAPlugin(GameSystem):
+class SLAPlugin(GameSystem, UIProvider):
     """Plugin that manages SLA tracking and violation detection.
     
     Responsibilities:
@@ -119,6 +120,7 @@ class SLAPlugin(GameSystem):
         - Detect and report SLA violations
         - Calculate compliance metrics
         - Provide state persistence
+        - Display SLA status on dashboard
     
     Integration Points:
         - Events: incident_created, incident_assigned, incident_completed
@@ -387,3 +389,139 @@ class SLAPlugin(GameSystem):
         
         except Exception as e:
             logger.error(f"[SLA_PLUGIN] Error handling incident_completed: {e}", exc_info=True)
+    
+    # ===== UIProvider Implementation =====
+    
+    def get_dashboard_summary(self, game_state) -> UISummaryItem:
+        """Get SLA dashboard summary widget.
+        
+        Shows SLA compliance and active violations.
+        
+        Args:
+            game_state: Current game state (read-only)
+            
+        Returns:
+            UISummaryItem with SLA summary
+        """
+        all_trackers = self._sla_monitor.get_all_trackers()
+        
+        if not all_trackers:
+            return UISummaryItem(
+                title="SLA Status",
+                icon="⏱️",
+                lines=["No active SLAs"],
+                accent_color=(100, 100, 100),
+                clickable=True
+            )
+        
+        # Calculate metrics
+        total_incidents = len(all_trackers)
+        active_trackers = [t for t in all_trackers if not t.is_completed]
+        violations = [t for t in all_trackers if t.is_violated]
+        
+        # Calculate compliance rate
+        completed = [t for t in all_trackers if t.is_completed]
+        if completed:
+            compliance_rate = len([t for t in completed if not t.is_violated]) / len(completed)
+        else:
+            compliance_rate = 1.0
+        
+        # Determine status color
+        if violations:
+            accent_color = (200, 50, 50)  # Red - violations
+            status_icon = "🔴"
+        elif compliance_rate < 0.8:
+            accent_color = (255, 165, 0)  # Orange - poor compliance
+            status_icon = "⚠️"
+        elif compliance_rate < 0.95:
+            accent_color = (255, 200, 0)  # Yellow - acceptable
+            status_icon = "⚠️"
+        else:
+            accent_color = (50, 200, 100)  # Green - excellent
+            status_icon = "✅"
+        
+        lines = [
+            f"{status_icon} Compliance: {compliance_rate*100:.0f}%",
+            f"⏱️ Active: {len(active_trackers)}/{total_incidents}",
+        ]
+        
+        if violations:
+            lines.append(f"🔴 Violations: {len(violations)}")
+        
+        return UISummaryItem(
+            title="SLA Status",
+            icon="⏱️",
+            lines=lines,
+            accent_color=accent_color,
+            clickable=True,
+            data={
+                "total": total_incidents,
+                "active": len(active_trackers),
+                "violations": len(violations),
+                "compliance": compliance_rate
+            }
+        )
+    
+    def get_detail_panel_data(self, game_state) -> Dict[str, Any]:
+        """Get detailed SLA panel data.
+        
+        Shows comprehensive SLA tracking information.
+        
+        Args:
+            game_state: Current game state (read-only)
+            
+        Returns:
+            Dictionary with panel structure
+        """
+        all_trackers = self._sla_monitor.get_all_trackers()
+        active_trackers = [t for t in all_trackers if not t.is_completed]
+        violations = [t for t in all_trackers if t.is_violated]
+        
+        return {
+            "title": "SLA Tracking Dashboard",
+            "sections": [
+                {
+                    "title": "Active SLA Timers",
+                    "items": [
+                        {
+                            "name": f"Incident {t.tracker_id}",
+                            "details": [
+                                f"Client: {t.client_id}",
+                                f"Response SLA: {'✅' if t.response_sla_met else '❌'}",
+                                f"Resolution SLA: {'✅' if t.resolution_sla_met else '❌'}"
+                            ],
+                            "clickable": False
+                        }
+                        for t in active_trackers[:10]  # Show first 10
+                    ] if active_trackers else [
+                        {
+                            "name": "No active SLAs",
+                            "details": ["All incidents resolved or no incidents active"],
+                            "clickable": False
+                        }
+                    ]
+                },
+                {
+                    "title": "Recent Violations",
+                    "items": [
+                        {
+                            "name": f"Incident {t.tracker_id}",
+                            "details": [
+                                f"Client: {t.client_id}",
+                                f"Type: {'Response' if t.response_sla_missed else 'Resolution'}",
+                                f"Impact: Client satisfaction decreased"
+                            ],
+                            "clickable": False
+                        }
+                        for t in violations[-5:]  # Show last 5 violations
+                    ] if violations else [
+                        {
+                            "name": "No violations",
+                            "details": ["Excellent SLA performance!"],
+                            "clickable": False
+                        }
+                    ]
+                }
+            ],
+            "actions": []  # No actions for SLA panel (tracking only)
+        }
