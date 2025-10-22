@@ -7,6 +7,8 @@ from dataclasses import dataclass
 
 from src.ui.components.base import UIComponent
 
+# TODO: Counter should reset on hover. 
+# TODO: Allow click to dismiss
 
 class NotificationType(Enum):
     """Notification type."""

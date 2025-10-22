@@ -21,7 +21,7 @@ class Contract:
     """Represents a service contract with a client."""
     
     # Identity
-    contract_id: str
+    id: str
     client_id: str
     
     # Terms
@@ -35,7 +35,7 @@ class Contract:
     def to_dict(self) -> dict:
         """Convert to JSON-serializable dict."""
         return {
-            "contract_id": self.contract_id,
+            "id": self.id,
             "client_id": self.client_id,
             "monthly_value": self.monthly_value,
             "start_month": self.start_month,
@@ -47,7 +47,7 @@ class Contract:
     def from_dict(data: dict) -> "Contract":
         """Create Contract from JSON dict."""
         return Contract(
-            contract_id=data["contract_id"],
+            id=data["id"],
             client_id=data["client_id"],
             monthly_value=data["monthly_value"],
             start_month=data["start_month"],

@@ -136,6 +136,9 @@ class GameState:
 
     def __post_init__(self):
         """Initialize game state facade with layered architecture."""
+        # Initialize essential systems first
+        self._initialize_essential_systems()
+
         # Initialize layered components
         self._initialize_layered_architecture()
 
@@ -147,6 +150,12 @@ class GameState:
 
         # Load initial data and set up event subscriptions
         self._initialize_game_data()
+
+    def _initialize_essential_systems(self):
+        """Initialize essential systems needed by layered architecture."""
+        # Initialize JSON loader and logger first
+        self._initialize_json_loader()
+        self._initialize_logger()
 
     def _initialize_layered_architecture(self):
         """Initialize the layered architecture components."""
@@ -1079,10 +1088,16 @@ class GameState:
 
     def assign_incident_to_specialist(self, incident_id: str, specialist_id: str) -> bool:
         """Manually assign an incident to a specialist via GameLogic."""
+        incident = self.get_incident_by_id(incident_id)
+        specialist = self.get_specialist_by_id(specialist_id)
+
+        if not incident or not specialist:
+            return False
+
         result = self._game_logic.assign_specialist_to_incident(
-            state_manager=self._state_manager,
-            incident_id=incident_id,
-            specialist_id=specialist_id
+            specialist=specialist,
+            incident=incident,
+            state_manager=self._state_manager
         )
 
         # Notify observers of assignment

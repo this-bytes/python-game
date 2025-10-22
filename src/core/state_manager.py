@@ -50,7 +50,6 @@ class StateManager:
         """Initialize StateManager with empty collections if needed."""
         if self.budget is None:
             self.budget = Budget(total_reserves=5000.0)
-
     # ===== SPECIALIST OPERATIONS =====
 
     def add_specialist(self, specialist: Specialist) -> None:
@@ -75,6 +74,8 @@ class StateManager:
 
     def get_available_specialists(self) -> List[Specialist]:
         """Get specialists who are not currently assigned to incidents."""
+        """TODO: get incidents and check the assignments to then determine availability. I don't want to store incident data in the specialist data model."""
+        return [s for s in self.specialists.values() if s.status == "available"]
         return [s for s in self.specialists.values() if s.current_incident is None]
 
     # ===== INCIDENT OPERATIONS =====
@@ -273,7 +274,7 @@ class StateManager:
         self.clients.clear()
         self.contracts.clear()
         self.sla_trackers.clear()
-        self.budget = Budget()
+        self.budget.clear()
 
     def get_entity_counts(self) -> Dict[str, int]:
         """Get counts of all entities."""
