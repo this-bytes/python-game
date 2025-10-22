@@ -67,6 +67,7 @@ class ClientPlugin(GameSystem, UIProvider):
             logger.info("[ClientPlugin] Initializing...")
             
             # Get event bus
+            # Import placed here to avoid circular dependency between client_plugin and event_bus.
             from src.core.event_bus import get_event_bus
             self.event_bus = get_event_bus()
             
