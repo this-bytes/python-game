@@ -19,7 +19,7 @@ from src.core.client_system import (
     handle_contract_termination,
     load_clients_from_json,
 )
-from src.ui.ui_provider import UIProvider, UISummaryItem, UISectionItem, UIPanelSection
+from src.ui.ui_provider import UIProvider, UISummaryItem, UISectionItem, UIPanelSection, UIAction
 from src.utils.logger import GameLogger
 
 
@@ -65,6 +65,15 @@ class ClientPlugin(GameSystem, UIProvider):
         """
         try:
             logger.info("[ClientPlugin] Initializing...")
+            
+            # Get event bus
+            # Import placed here to avoid circular dependency between client_plugin and event_bus.
+            from src.core.event_bus import get_event_bus
+            self.event_bus = get_event_bus()
+            
+            # Subscribe to action events
+            self.event_bus.subscribe("action:view_client_details", self._on_view_details_action)
+            self.event_bus.subscribe("action:contact_client", self._on_contact_client_action)
             
             # Use clients from game state if available
             if hasattr(game_state, 'clients') and game_state.clients:
@@ -265,6 +274,20 @@ class ClientPlugin(GameSystem, UIProvider):
                     section_type="list"
                 )
             ],
+            "actions": [
+                UIAction(
+                    id="view_client_details",
+                    label="📋 View Details",
+                    description="View detailed client information",
+                    enabled=len(active_clients) > 0
+                ),
+                UIAction(
+                    id="contact_client",
+                    label="📞 Contact Client",
+                    description="Reach out to client",
+                    enabled=len(active_clients) > 0
+                ),
+            ],
             "stats": {
                 "total_revenue": sum(c.monthly_contract_value for c in active_clients),
                 "avg_satisfaction": (
@@ -287,3 +310,29 @@ class ClientPlugin(GameSystem, UIProvider):
         """
         filled = int(satisfaction * width)
         return "█" * filled + "░" * (width - filled)
+    
+    # ===== ACTION HANDLERS =====
+    
+    def _on_view_details_action(self, event) -> None:
+        """Handle 'view_client_details' action from UI.
+        
+        Args:
+            event: Event with action data
+        """
+        logger.info("[ClientPlugin] ✅ View Details action received!")
+        logger.debug(f"[ClientPlugin] Event data: {event.data}")
+        
+        # This is where game logic would go
+        # For now, just log to confirm EventBus is working
+    
+    def _on_contact_client_action(self, event) -> None:
+        """Handle 'contact_client' action from UI.
+        
+        Args:
+            event: Event with action data
+        """
+        logger.info("[ClientPlugin] ✅ Contact Client action received!")
+        logger.debug(f"[ClientPlugin] Event data: {event.data}")
+        
+        # This is where game logic would go
+        # For now, just log to confirm EventBus is working

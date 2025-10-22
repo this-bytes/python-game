@@ -344,16 +344,8 @@ class Game:
                     self.system_manager.initialize_all(self.game_state)
                     self.logger.info("[SYSTEM] All systems initialized successfully")
 
-                # Connect UI panels to their corresponding plugins
-                with self.logger.operation("UI-Plugin Connection"):
-                    self.logger.debug("[SYSTEM] Connecting UI panels to plugins...")
-                    # Find and connect economy plugin to economy panel
-                    for system in self.system_manager._systems.values():
-                        if isinstance(system, EconomyPlugin):
-                            self.ui.economy_panel.economy_plugin = system
-                            self.logger.debug("[SYSTEM] Connected economy plugin to economy panel")
-                            break
-                    self.logger.info("[SYSTEM] UI panels connected to plugins successfully")
+                # Legacy panel connections removed - UI now uses Dashboard Framework
+                # All UI is provided through UIProvider interface on plugins
 
                 # Initialize development systems
                 with self.logger.operation("Development Systems Initialization"):
