@@ -1,14 +1,8 @@
 """Game Panels package.
 
-This package contains specialized panel implementations for the game UI.
+Legacy panels removed. UI now uses Dashboard Framework with UIProvider plugins.
 """
 
-from src.ui.panels.specialist_roster_panel import SpecialistRosterPanel
-from src.ui.panels.incident_queue_panel import IncidentQueuePanel
-from src.ui.panels.metrics_panel import MetricsPanel
+# All legacy panels removed - UI now uses DashboardPanel + UIProvider architecture
 
-__all__ = [
-    "SpecialistRosterPanel",
-    "IncidentQueuePanel",
-    "MetricsPanel",
-]
+__all__ = []
