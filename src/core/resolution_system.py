@@ -409,16 +409,8 @@ class ResolutionSystem:
         # Burnout tracking is now handled by BurnoutPlugin via event system
         # It listens to "incident_completed" events published elsewhere
         
-        # Determine burnout tier based on current level (simplified)
-        burnout_tier = "fresh"
-        if specialist.burnout_level > 80:
-            burnout_tier = "broken"
-        elif specialist.burnout_level > 60:
-            burnout_tier = "critical"
-        elif specialist.burnout_level > 40:
-            burnout_tier = "exhausted"
-        elif specialist.burnout_level > 20:
-            burnout_tier = "stressed"
+        # Determine burnout tier using shared method
+        burnout_tier = specialist.get_burnout_tier()
 
         return {
             'incident_id': incident.id,
