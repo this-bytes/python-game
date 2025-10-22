@@ -339,7 +339,8 @@ class IncidentQueuePanel:
         if hasattr(incident, 'spawn_time'):
             elapsed = current_time - incident.spawn_time
         else:
-            elapsed = 0
+            GameLogger.warning(f"Incident {getattr(incident, 'id', '<unknown>')} missing spawn_time. SLA timer cannot be calculated accurately.")
+            return float('-inf')
         
         return incident.sla_seconds - elapsed
     
