@@ -6,7 +6,6 @@ import random
 import time
 import json
 import logging
-from src.core.burnout_system import BurnoutSystem
 from src.models.specialist import Specialist
 from src.models.incident import Incident
 
@@ -74,8 +73,15 @@ class ResolutionResult:
 class ResolutionSystem:
     """Decision-based incident resolution with burnout penalties."""
 
-    def __init__(self, burnout_system: BurnoutSystem, config_path: str = "data/resolution_trees.json"):
-        self.burnout_system = burnout_system
+    def __init__(self, config_path: str = "data/resolution_trees.json"):
+        """Initialize resolution system.
+        
+        Note: Burnout tracking is now handled by BurnoutPlugin through event system.
+        This system focuses on decision trees and resolution mechanics only.
+        
+        Args:
+            config_path: Path to resolution trees JSON config
+        """
         self.resolution_trees = self._load_resolution_trees(config_path)
         
     def _load_resolution_trees(self, config_path: str) -> Dict:
@@ -400,10 +406,19 @@ class ResolutionSystem:
 
         incident.complete_resolution(success)
 
-        self.burnout_system.complete_incident(
-            specialist.id,
-            success=success
-        )
+        # Burnout tracking is now handled by BurnoutPlugin via event system
+        # It listens to "incident_completed" events published elsewhere
+        
+        # Determine burnout tier based on current level (simplified)
+        burnout_tier = "fresh"
+        if specialist.burnout_level > 80:
+            burnout_tier = "broken"
+        elif specialist.burnout_level > 60:
+            burnout_tier = "critical"
+        elif specialist.burnout_level > 40:
+            burnout_tier = "exhausted"
+        elif specialist.burnout_level > 20:
+            burnout_tier = "stressed"
 
         return {
             'incident_id': incident.id,
@@ -411,9 +426,7 @@ class ResolutionSystem:
             'success': success,
             'resolution_time': actual_time,
             'burnout_level': specialist.burnout_level,
-            'burnout_tier': self.burnout_system.get_specialist_status(
-                specialist.id
-            )['tier'],
+            'burnout_tier': burnout_tier,
             'performance_multiplier': multiplier,
             'error_chance': error_chance
         }
