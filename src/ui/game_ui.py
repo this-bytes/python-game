@@ -154,6 +154,16 @@ class GameUI:
 
         # Register Event Bus subscriptions
         self.event_bus.subscribe("ui_dashboard_widget_clicked", self._on_dashboard_widget_clicked)
+        
+        # Subscribe to data change events so we know when to redraw
+        self.event_bus.subscribe("specialist_hired", self._on_data_changed)
+        self.event_bus.subscribe("specialist_fired", self._on_data_changed)
+        self.event_bus.subscribe("specialist_leveled_up", self._on_data_changed)
+        self.event_bus.subscribe("incident_generated", self._on_data_changed)
+        self.event_bus.subscribe("incident_assigned", self._on_data_changed)
+        self.event_bus.subscribe("incident_completed", self._on_data_changed)
+        
+        self.logger.info("[GAME_UI] Subscribed to data change events")
 
         # UI state
         self.show_help_overlay = False
@@ -237,6 +247,17 @@ class GameUI:
             self.dashboard_manager.close_panel()
         
         self.logger.debug("[GAME_UI] Detail panel closed")
+    
+    def _on_data_changed(self, event: Event) -> None:
+        """Handle any data change event.
+        
+        No action needed - render() will read fresh game_state next frame.
+        Just log for debugging.
+        
+        Args:
+            event: The data change event
+        """
+        self.logger.debug(f"[GAME_UI] Data changed event: {event.type}")
     
     def handle_input(self, events: List[pygame.event.Event]) -> None:
         """Process input events. Game actions are published via EventBus.
@@ -394,68 +415,39 @@ class GameUI:
         self.notification_manager.update(delta_time, self.game_state)
 
     def render(self) -> None:
-        """Render the game UI with Tab + Modal architecture."""
+        """Render the game UI with Tab + Modal architecture.
+        
+        Uses conditional rendering to show ONLY the active tab's content.
+        Each tab is a separate screen with distinct content.
+        """
         # Get background color from theme
         bg_color = self.theme_manager.get_color("background", (15, 15, 25))
         self.screen.fill(bg_color)
 
-        # Render HUD overlay
+        # Render HUD overlay (always visible)
         self.hud_overlay.draw(self.screen, self.game_state, self.active_tab.capitalize())
         
-        # Render TabBar at top
+        # Render TabBar at top (always visible)
         self.tab_bar.draw(self.screen)
         
-        # Get content area below tabs
-        content_area = self.tab_bar.get_content_area()
-        
-        # Render tab content based on active tab
+        # Render ONLY current tab content
         if self.active_tab == "dashboard":
-            # Dashboard tab - show overview with dashboard panel
-            if self.dashboard_panel and self.dashboard_manager:
-                # Set managers if not already set
-                if not self.dashboard_panel.dashboard_manager:
-                    self.dashboard_panel.set_managers(self.dashboard_manager, self.game_state)
-                self.dashboard_panel.draw(self.screen, self.game_state)
-            
-            # Render gameplay panels (specialist roster & incident queue)
-            self.specialist_roster.draw(self.screen, self.game_state.specialists)
-            
-            unassigned_incidents = [
-                inc for inc in self.game_state.incidents 
-                if not hasattr(inc, 'assigned_specialist_id') or inc.assigned_specialist_id is None
-            ]
-            self.incident_queue.draw(self.screen, unassigned_incidents, self.game_state)
-        
-        elif self.active_tab == "specialists":
-            # Specialists tab - show specialist roster with modal support
-            self.specialist_roster.draw(self.screen, self.game_state.specialists)
-            
-            # Handle specialist clicks to open modals
-            if event := getattr(self, '_last_click_event', None):
-                for specialist in self.game_state.specialists:
-                    # Simple proximity-based clicking (would be better with proper widget rects)
-                    if hasattr(specialist, 'ui_rect') and specialist.ui_rect.collidepoint(event.pos):
-                        modal = SpecialistModal(
-                            specialist,
-                            on_assign_clicked=lambda: self.logger.info(f"Assign {specialist.name}"),
-                            on_promote_clicked=lambda: self.logger.info(f"Promote {specialist.name}"),
-                            on_deactivate_clicked=lambda: self.logger.info(f"Deactivate {specialist.name}")
-                        )
-                        modal.set_position(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
-                        self.tab_modal_manager.push_modal(modal)
-        
+            self._render_dashboard_tab()
+        elif self.active_tab == "operations":
+            self._render_operations_tab()
         elif self.active_tab == "incidents":
-            # Incidents tab - show incident queue
-            unassigned_incidents = [
-                inc for inc in self.game_state.incidents 
-                if not hasattr(inc, 'assigned_specialist_id') or inc.assigned_specialist_id is None
-            ]
-            self.incident_queue.draw(self.screen, unassigned_incidents, self.game_state)
+            self._render_incidents_tab()
+        elif self.active_tab == "specialists":
+            self._render_specialists_tab()
+        elif self.active_tab == "analytics":
+            self._render_analytics_tab()
+        else:
+            self.logger.warning(f"[GAME_UI] Unknown tab: {self.active_tab}")
         
-        # Render quick reference card
+        # Render quick reference card (always visible)
         self.quick_reference.render(self.screen)
         
-        # Render detail panel if open (legacy support)
+        # Render detail panel if open (modal - always on top)
         if self.detail_panel_open and self.detail_panel_data:
             # Draw semi-transparent overlay
             overlay = pygame.Surface((self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
@@ -488,6 +480,67 @@ class GameUI:
 
         # Update display
         pygame.display.flip()
+
+    def _render_dashboard_tab(self) -> None:
+        """Render dashboard tab - overview of all systems.
+        
+        Shows UIProvider widgets from all registered plugins.
+        Dashboard provides high-level summary of game state.
+        """
+        if self.dashboard_panel and self.dashboard_manager:
+            # Set managers if not already set
+            if not self.dashboard_panel.dashboard_manager:
+                self.dashboard_panel.set_managers(self.dashboard_manager, self.game_state)
+            self.dashboard_panel.draw(self.screen, self.game_state)
+        else:
+            self.logger.debug("[GAME_UI] Dashboard not available")
+
+    def _render_operations_tab(self) -> None:
+        """Render operations tab - specialist management.
+        
+        Shows full specialist roster with hire/fire capabilities.
+        Players manage their team and view specialist details.
+        """
+        self.specialist_roster.draw(self.screen, self.game_state.specialists)
+
+    def _render_incidents_tab(self) -> None:
+        """Render incidents tab - incident queue.
+        
+        Shows unassigned incidents waiting for specialist assignment.
+        Players triage and assign incidents to specialists.
+        """
+        unassigned_incidents = [
+            inc for inc in self.game_state.incidents 
+            if not hasattr(inc, 'assigned_specialist_id') or inc.assigned_specialist_id is None
+        ]
+        self.incident_queue.draw(self.screen, unassigned_incidents, self.game_state)
+
+    def _render_specialists_tab(self) -> None:
+        """Render specialists tab - team view.
+        
+        Alternative view of specialist roster focused on team dynamics.
+        Uses same roster component as Operations tab.
+        """
+        self.specialist_roster.draw(self.screen, self.game_state.specialists)
+
+    def _render_analytics_tab(self) -> None:
+        """Render analytics tab - metrics and statistics.
+        
+        Placeholder for future analytics implementation.
+        Will show economy metrics, achievement progress, and performance stats.
+        """
+        self._render_empty_tab("📈 Analytics - Coming Soon")
+
+    def _render_empty_tab(self, message: str) -> None:
+        """Render empty tab with placeholder message.
+        
+        Args:
+            message: Text to display in center of tab
+        """
+        font = pygame.font.SysFont('Arial', 24)
+        text = font.render(message, True, (200, 200, 200))
+        text_rect = text.get_rect(center=(self.WINDOW_WIDTH // 2, self.WINDOW_HEIGHT // 2))
+        self.screen.blit(text, text_rect)
 
     def _render_help_overlay(self) -> None:
         """Render help overlay with hotkeys."""
