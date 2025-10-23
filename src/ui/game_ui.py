@@ -1,13 +1,13 @@
-"""Game User Interface using Pygame - Dashboard Framework.
+"""Game User Interface using Pygame - Tab + Modal Architecture.
 
 This module handles all visual rendering and user input for the game.
-Uses the new Dashboard Framework with UIProvider architecture.
-Legacy panel system has been removed.
+Uses Tab + Modal system with screen-level feature separation and entity inspection.
 """
 
 import pygame
 from typing import List, Optional, Any, Tuple
 from dataclasses import dataclass
+from unittest.mock import Mock
 
 from src.models.game_state import GameState
 from src.utils.logger import GameLogger
@@ -20,6 +20,8 @@ from src.ui.dashboard_panel import DashboardPanel
 from src.ui.detail_panel_renderer import DetailPanelRenderer
 from src.ui.components.hud_overlay import HUDOverlay
 from src.ui.components.quick_reference import QuickReference
+from src.ui.components.tab_bar import TabBar, Tab
+from src.ui.modals import ModalManager as TabModalManager, SpecialistModal, IncidentModal
 from src.core.event_bus import get_event_bus, Event
 
 
@@ -80,7 +82,23 @@ class GameUI:
             auto_hide_delay=5.0
         )
         
-        # Initialize modal manager for detail panels
+        # Initialize Tab + Modal system
+        self.tab_bar = TabBar(
+            y=10,
+            tabs=[
+                Tab(id="dashboard", label="Dashboard", icon="📊"),
+                Tab(id="operations", label="Operations", icon="⚙️"),
+                Tab(id="incidents", label="Incidents", icon="🚨"),
+                Tab(id="specialists", label="Specialists", icon="👥"),
+                Tab(id="analytics", label="Analytics", icon="📈"),
+            ]
+        )
+        self.active_tab = "dashboard"
+        
+        # Initialize modal manager for Tab + Modal architecture
+        self.tab_modal_manager = TabModalManager()
+        
+        # Keep old modal manager for backward compatibility
         self.modal_manager = ModalManager(
             self.screen,
             self.game_state,
@@ -105,8 +123,11 @@ class GameUI:
             self.dashboard_panel = None
             self.logger.warning("[GAME_UI] No system_manager provided - dashboard disabled")
         
-        # Initialize gameplay panels (NEW - management sim style layout)
-        from src.ui.panels import SpecialistRosterPanel, IncidentQueuePanel
+        # Initialize gameplay panels
+        from src.ui.panels import (
+            SpecialistRosterPanel, 
+            IncidentQueuePanel
+        )
         
         # Specialist roster panel (top half of main area)
         self.specialist_roster = SpecialistRosterPanel(
@@ -124,11 +145,7 @@ class GameUI:
             height=340
         )
         
-        # Set up assignment workflow callbacks
-        self.specialist_roster.set_selection_callback(self._on_specialist_selected)
-        self.incident_queue.set_selection_callback(self._on_incident_selected)
-        
-        # Track current selections for assignment
+        # Track current selections for assignment (for future implementation)
         self.selected_specialist_id: Optional[str] = None
         self.selected_incident_id: Optional[str] = None
 
@@ -153,7 +170,7 @@ class GameUI:
             500
         )
 
-        self.logger.info("[GAME_UI] Game UI initialized (Dashboard Framework)")
+        self.logger.info("[GAME_UI] Game UI initialized with Tab + Modal Architecture")
 
     def _register_hotkey_callbacks(self) -> None:
         """Register hotkey callbacks."""
@@ -221,59 +238,6 @@ class GameUI:
         
         self.logger.debug("[GAME_UI] Detail panel closed")
     
-    def _on_specialist_selected(self, specialist_id: str):
-        """Handle specialist selection from roster panel.
-        
-        Args:
-            specialist_id: ID of selected specialist
-        """
-        self.selected_specialist_id = specialist_id
-        self.logger.info(f"[GAME_UI] Specialist selected: {specialist_id}")
-        
-        # If both specialist and incident are selected, perform assignment
-        if self.selected_incident_id:
-            self._attempt_assignment()
-    
-    def _on_incident_selected(self, incident_id: str):
-        """Handle incident selection from queue panel.
-        
-        Args:
-            incident_id: ID of selected incident
-        """
-        self.selected_incident_id = incident_id
-        self.logger.info(f"[GAME_UI] Incident selected: {incident_id}")
-        
-        # If both specialist and incident are selected, perform assignment
-        if self.selected_specialist_id:
-            self._attempt_assignment()
-    
-    def _attempt_assignment(self):
-        """Attempt to assign selected specialist to selected incident."""
-        if not self.selected_specialist_id or not self.selected_incident_id:
-            return
-        
-        self.logger.info(
-            f"[GAME_UI] Attempting assignment: "
-            f"specialist={self.selected_specialist_id}, "
-            f"incident={self.selected_incident_id}"
-        )
-        
-        # Publish assignment event
-        self.event_bus.publish("action:assign_incident", {
-            "specialist_id": self.selected_specialist_id,
-            "incident_id": self.selected_incident_id,
-            "game_state": self.game_state
-        }, source="game_ui")
-        
-        # Clear selections
-        self.selected_specialist_id = None
-        self.selected_incident_id = None
-        self.specialist_roster.clear_selection()
-        self.incident_queue.clear_selection()
-        
-        # Show feedback
-        self.notification_manager.show_success("Assignment attempted!")
-
     def handle_input(self, events: List[pygame.event.Event]) -> None:
         """Process input events. Game actions are published via EventBus.
 
@@ -318,6 +282,25 @@ class GameUI:
                     )
                     continue
 
+            # Handle tab bar clicks (before modal manager)
+            if self.tab_bar.handle_event(event):
+                # Tab was clicked - publish event to EventBus
+                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    self.active_tab = self.tab_bar.active_tab_id
+                    self.event_bus.publish("ui_tab_changed", {
+                        "tab_id": self.active_tab
+                    }, source="game_ui")
+                    self.logger.info(f"[GAME_UI] Tab changed published: {self.active_tab}")
+                continue
+            
+            # Handle modal manager events (Tab + Modal architecture)
+            if self.tab_modal_manager.has_active_modal():
+                modal_event_handled = self.tab_modal_manager.handle_event(event)
+                if isinstance(modal_event_handled, bool) and modal_event_handled:
+                    continue
+                elif modal_event_handled:  # Modal event consumed
+                    continue
+            
             # Handle window resize
             if event.type == pygame.VIDEORESIZE:
                 self.handle_resize((event.w, event.h))
@@ -411,38 +394,68 @@ class GameUI:
         self.notification_manager.update(delta_time, self.game_state)
 
     def render(self) -> None:
-        """Render the game UI."""
+        """Render the game UI with Tab + Modal architecture."""
         # Get background color from theme
         bg_color = self.theme_manager.get_color("background", (15, 15, 25))
         self.screen.fill(bg_color)
 
         # Render HUD overlay
-        self.hud_overlay.render(self.screen, self.game_state, "Dashboard")
+        self.hud_overlay.draw(self.screen, self.game_state, self.active_tab.capitalize())
         
-        # Render dashboard panel (left sidebar with UIProvider summaries)
-        if self.dashboard_panel and self.dashboard_manager:
-            # Set managers if not already set
-            if not self.dashboard_panel.dashboard_manager:
-                self.dashboard_panel.set_managers(self.dashboard_manager, self.game_state)
-            self.dashboard_panel.draw(self.screen, self.game_state)
+        # Render TabBar at top
+        self.tab_bar.draw(self.screen)
         
-        # Render gameplay panels (main area - management sim style)
-        # Get unassigned incidents and specialists
-        unassigned_incidents = [
-            inc for inc in self.game_state.incidents 
-            if not hasattr(inc, 'assigned_specialist_id') or inc.assigned_specialist_id is None
-        ]
+        # Get content area below tabs
+        content_area = self.tab_bar.get_content_area()
         
-        # Render specialist roster panel (top)
-        self.specialist_roster.draw(self.screen, self.game_state.specialists)
+        # Render tab content based on active tab
+        if self.active_tab == "dashboard":
+            # Dashboard tab - show overview with dashboard panel
+            if self.dashboard_panel and self.dashboard_manager:
+                # Set managers if not already set
+                if not self.dashboard_panel.dashboard_manager:
+                    self.dashboard_panel.set_managers(self.dashboard_manager, self.game_state)
+                self.dashboard_panel.draw(self.screen, self.game_state)
+            
+            # Render gameplay panels (specialist roster & incident queue)
+            self.specialist_roster.draw(self.screen, self.game_state.specialists)
+            
+            unassigned_incidents = [
+                inc for inc in self.game_state.incidents 
+                if not hasattr(inc, 'assigned_specialist_id') or inc.assigned_specialist_id is None
+            ]
+            self.incident_queue.draw(self.screen, unassigned_incidents, self.game_state)
         
-        # Render incident queue panel (bottom)
-        self.incident_queue.draw(self.screen, unassigned_incidents, self.game_state)
+        elif self.active_tab == "specialists":
+            # Specialists tab - show specialist roster with modal support
+            self.specialist_roster.draw(self.screen, self.game_state.specialists)
+            
+            # Handle specialist clicks to open modals
+            if event := getattr(self, '_last_click_event', None):
+                for specialist in self.game_state.specialists:
+                    # Simple proximity-based clicking (would be better with proper widget rects)
+                    if hasattr(specialist, 'ui_rect') and specialist.ui_rect.collidepoint(event.pos):
+                        modal = SpecialistModal(
+                            specialist,
+                            on_assign_clicked=lambda: self.logger.info(f"Assign {specialist.name}"),
+                            on_promote_clicked=lambda: self.logger.info(f"Promote {specialist.name}"),
+                            on_deactivate_clicked=lambda: self.logger.info(f"Deactivate {specialist.name}")
+                        )
+                        modal.set_position(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
+                        self.tab_modal_manager.push_modal(modal)
+        
+        elif self.active_tab == "incidents":
+            # Incidents tab - show incident queue
+            unassigned_incidents = [
+                inc for inc in self.game_state.incidents 
+                if not hasattr(inc, 'assigned_specialist_id') or inc.assigned_specialist_id is None
+            ]
+            self.incident_queue.draw(self.screen, unassigned_incidents, self.game_state)
         
         # Render quick reference card
         self.quick_reference.render(self.screen)
         
-        # Render detail panel if open
+        # Render detail panel if open (legacy support)
         if self.detail_panel_open and self.detail_panel_data:
             # Draw semi-transparent overlay
             overlay = pygame.Surface((self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
@@ -459,11 +472,15 @@ class GameUI:
                 on_close=self._on_detail_panel_close
             )
 
-        # Render modals on top of everything
+        # Render Tab + Modal system on top
+        if self.tab_modal_manager.has_active_modal():
+            self.tab_modal_manager.draw(self.screen)
+
+        # Render modals on top of everything (legacy modal manager)
         self.modal_manager.draw()
 
         # Render notifications (always on top)
-        self.notification_manager.render(self.screen)
+        self.notification_manager.draw(self.screen, self.game_state)
 
         # Render help overlay if active
         if self.show_help_overlay:

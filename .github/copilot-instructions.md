@@ -173,10 +173,12 @@ Every commit must pass this or it's rejected:
 | **Code style & anti-patterns** | [code-style.instructions.md](instructions/code-style.instructions.md) |
 | **Architecture & design patterns** | [architecture.instructions.md](instructions/architecture.instructions.md) |
 | **Plugin system architecture** | [plugin-system.instructions.md](instructions/plugin-system.instructions.md) |
+| **UI rendering & tabs** | [ui-rendering.instructions.md](instructions/ui-rendering.instructions.md) |
 | **Testing requirements & examples** | [testing.instructions.md](instructions/testing.instructions.md) |
 | **JSON configuration patterns** | [data-driven.instructions.md](instructions/data-driven.instructions.md) |
 | **Common dev tasks & workflows** | [workflows.instructions.md](instructions/workflows.instructions.md) |
 | **Documentation guidelines** | [documentation-guidelines.instructions.md](instructions/documentation-guidelines.instructions.md) |
+| **Active Implementation Plans** | See `/home/localadmin/python-game/plan/` and `*_PLAN.md` files |
 
 ---
 
