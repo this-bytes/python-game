@@ -145,6 +145,10 @@ class GameUI:
             height=340
         )
         
+        # Wire panel callbacks to event publishing
+        self.specialist_roster.set_selection_callback(self._on_specialist_selected)
+        self.incident_queue.set_selection_callback(self._on_incident_selected)
+        
         # Track current selections for assignment (for future implementation)
         self.selected_specialist_id: Optional[str] = None
         self.selected_incident_id: Optional[str] = None
@@ -258,6 +262,63 @@ class GameUI:
             event: The data change event
         """
         self.logger.debug(f"[GAME_UI] Data changed event: {event.type}")
+    
+    def _publish_specialist_action(self, action: str, specialist_id: str) -> None:
+        """Publish specialist action event to EventBus.
+        
+        Args:
+            action: Action type (e.g., "assign", "promote", "deactivate")
+            specialist_id: ID of the specialist
+        """
+        event_name = f"action:{action}_specialist"
+        self.event_bus.publish(event_name, {
+            "specialist_id": specialist_id
+        }, source="game_ui")
+        self.logger.info(f"[GAME_UI] Published {event_name} for specialist {specialist_id}")
+    
+    def _publish_incident_action(self, action: str, incident_id: str, specialist_id: Optional[str] = None) -> None:
+        """Publish incident action event to EventBus.
+        
+        Args:
+            action: Action type (e.g., "assign", "cancel")
+            incident_id: ID of the incident
+            specialist_id: Optional ID of the specialist (for assignment)
+        """
+        event_name = f"action:{action}_incident"
+        data = {"incident_id": incident_id}
+        if specialist_id:
+            data["specialist_id"] = specialist_id
+        
+        self.event_bus.publish(event_name, data, source="game_ui")
+        self.logger.info(f"[GAME_UI] Published {event_name} for incident {incident_id}")
+    
+    def _on_specialist_selected(self, specialist_id: str) -> None:
+        """Handle specialist card selection.
+        
+        Publishes event when a specialist is selected for potential actions.
+        
+        Args:
+            specialist_id: ID of the selected specialist
+        """
+        self.selected_specialist_id = specialist_id
+        self.event_bus.publish("ui_specialist_selected", {
+            "specialist_id": specialist_id
+        }, source="game_ui")
+        self.logger.info(f"[GAME_UI] Specialist selected: {specialist_id}")
+    
+    def _on_incident_selected(self, incident_id: str) -> None:
+        """Handle incident card selection.
+        
+        Publishes event when an incident is selected for potential actions.
+        
+        Args:
+            incident_id: ID of the selected incident
+        """
+        self.selected_incident_id = incident_id
+        self.event_bus.publish("ui_incident_selected", {
+            "incident_id": incident_id
+        }, source="game_ui")
+        self.logger.info(f"[GAME_UI] Incident selected: {incident_id}")
     
     def handle_input(self, events: List[pygame.event.Event]) -> None:
         """Process input events. Game actions are published via EventBus.
