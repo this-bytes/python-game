@@ -36,7 +36,8 @@ class StateManager:
     sla_trackers: Dict[str, SLATracker] = field(default_factory=dict)
 
     # Game metadata
-    budget: Optional[Budget] = None
+    # Budget is always present; initialize with a sensible default via factory
+    budget: Budget = field(default_factory=lambda: Budget(total_reserves=5000.0))
     game_time: float = 0.0
     day_counter: int = 0
     company_name: str = "SOC Startup"
@@ -45,6 +46,12 @@ class StateManager:
     total_incidents_resolved: int = 0
     total_money_earned: float = 0.0
     total_xp_gained: int = 0
+    # Prestige and achievement metadata
+    prestige_points: int = 0
+    total_prestiges: int = 0
+    prestige_upgrades: Dict[str, int] = field(default_factory=dict)
+    unlocked_achievements: List[str] = field(default_factory=list)
+    achievement_progress: Dict[str, float] = field(default_factory=dict)
 
     def __post_init__(self):
         """Initialize StateManager with empty collections if needed."""
@@ -74,9 +81,8 @@ class StateManager:
 
     def get_available_specialists(self) -> List[Specialist]:
         """Get specialists who are not currently assigned to incidents."""
-        """TODO: get incidents and check the assignments to then determine availability. I don't want to store incident data in the specialist data model."""
+        # TODO: consider cross-referencing incidents for availability if needed
         return [s for s in self.specialists.values() if s.status == "available"]
-        return [s for s in self.specialists.values() if s.current_incident is None]
 
     # ===== INCIDENT OPERATIONS =====
 
@@ -106,7 +112,8 @@ class StateManager:
 
     def get_unassigned_incidents(self) -> List[Incident]:
         """Get incidents that are not assigned to any specialist."""
-        return [i for i in self.incidents.values() if i.assigned_specialist_id is None]
+        # Treat None or empty-string as unassigned (some incidents use "" as default)
+        return [i for i in self.incidents.values() if not i.assigned_specialist_id]
 
     # ===== CLIENT OPERATIONS =====
 
@@ -217,6 +224,12 @@ class StateManager:
             "total_incidents_resolved": self.total_incidents_resolved,
             "total_money_earned": self.total_money_earned,
             "total_xp_gained": self.total_xp_gained,
+            # Prestige / achievement metadata
+            "prestige_points": self.prestige_points,
+            "total_prestiges": self.total_prestiges,
+            "prestige_upgrades": self.prestige_upgrades,
+            "unlocked_achievements": self.unlocked_achievements,
+            "achievement_progress": self.achievement_progress,
         }
 
     @classmethod
@@ -263,6 +276,13 @@ class StateManager:
         state_manager.total_money_earned = data.get("total_money_earned", 0.0)
         state_manager.total_xp_gained = data.get("total_xp_gained", 0)
 
+        # Load prestige / achievement metadata if present
+        state_manager.prestige_points = data.get("prestige_points", 0)
+        state_manager.total_prestiges = data.get("total_prestiges", 0)
+        state_manager.prestige_upgrades = data.get("prestige_upgrades", {})
+        state_manager.unlocked_achievements = data.get("unlocked_achievements", [])
+        state_manager.achievement_progress = data.get("achievement_progress", {})
+
         return state_manager
 
     # ===== UTILITY METHODS =====
@@ -274,7 +294,10 @@ class StateManager:
         self.clients.clear()
         self.contracts.clear()
         self.sla_trackers.clear()
-        self.budget.clear()
+        # Reset budget while preserving current reserves value
+        # (clearing histories and expense/revenue tracking)
+        current_reserves = getattr(self.budget, 'total_reserves', 0.0)
+        self.budget = Budget(total_reserves=current_reserves)
 
     def get_entity_counts(self) -> Dict[str, int]:
         """Get counts of all entities."""
@@ -312,6 +335,6 @@ class StateManager:
         # Check SLA tracker -> client references
         for tracker in self.sla_trackers.values():
             if tracker.client_id and tracker.client_id not in self.clients:
-                errors.append(f"SLA tracker {tracker.id} references non-existent client {tracker.client_id}")
+                errors.append(f"SLA tracker {tracker.tracker_id} references non-existent client {tracker.client_id}")
 
         return errors

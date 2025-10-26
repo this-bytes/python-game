@@ -81,6 +81,26 @@ class HUDOverlay(UIComponent):
         time_label_rect = time_label.get_rect(right=right_x, bottom=time_rect.top - 2)
         screen.blit(time_label, time_label_rect)
         
+        # Show simple counts: clients and pending incidents
+        try:
+            clients_count = len(getattr(game_state, 'clients', []) or [])
+            pending_count = len(getattr(game_state, 'get_pending_incidents', lambda: [])() or [])
+        except Exception:
+            clients_count = 0
+            pending_count = 0
+
+        right_x = time_rect.left - 40
+        clients_text = f"Clients: {clients_count}"
+        clients_surface = self.label_font.render(clients_text, True, self.text_secondary_color)
+        clients_rect = clients_surface.get_rect(right=right_x, centery=bar_height // 2)
+        screen.blit(clients_surface, clients_rect)
+
+        right_x = clients_rect.left - 20
+        pending_text = f"Incidents: {pending_count}"
+        pending_surface = self.label_font.render(pending_text, True, (255, 180, 120) if pending_count > 0 else self.text_secondary_color)
+        pending_rect = pending_surface.get_rect(right=right_x, centery=bar_height // 2)
+        screen.blit(pending_surface, pending_rect)
+        
         if game_state.is_paused:
             right_x = time_rect.left - 30
             pause_text = self.label_font.render("⏸ PAUSED", True, (255, 200, 100))

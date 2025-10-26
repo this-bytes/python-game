@@ -10,6 +10,8 @@ import sys
 import time
 from datetime import datetime
 from typing import Optional
+import threading
+import functools
 
 # Third-party imports
 import pygame
@@ -53,6 +55,14 @@ from src.utils.logger import GameLogger
 from src.utils.rich_parameter_system import get_parameter_system
 from src.utils.screenshot import initialize_screenshot_utility
 
+# Websocket server integration (headless/local-server mode)
+from src.websocket_game import start_background_server, start_background_server_with_enqueue, set_state
+import src.websocket_game as websocket_game
+import http.server
+import socketserver
+import webbrowser
+import queue
+
 
 class Game:
     """Main game class coordinating all systems.
@@ -85,11 +95,16 @@ class Game:
         self.last_update = time.time()
         self.target_fps = 60
         self.frame_time = 1.0 / self.target_fps
+        # Headless websocket broadcast accumulator (seconds)
+        self._ws_broadcast_acc = 0.0
         
         # Auto-save system
         self.last_auto_save = time.time()
         self.auto_save_interval = 300.0  # Default 5 minutes, will be updated from config
-        
+
+        # Action queue for external inputs (from websocket server)
+        self._action_queue = queue.Queue()
+
         # Menu state
         self.in_menu = args.should_show_menu()
         self.menu_action: Optional[MenuAction] = None
@@ -280,6 +295,18 @@ class Game:
         except Exception as e:
             self.logger.error(f"[GAME] Failed to initialize tutorial: {e}")
             return False
+
+    def enqueue_action(self, action: dict) -> None:
+        """Enqueue an external action (called by websocket server thread).
+
+        Actions are processed on the main game loop to preserve authoritative
+        ordering and thread-safety.
+        """
+        try:
+            self._action_queue.put(action)
+        except Exception:
+            # Best-effort: ignore enqueue failures to keep game running
+            pass
     
     def _initialize_game_systems(self, game_data: dict) -> bool:
         """Initialize UI and game systems (common for both new and loaded games).
@@ -342,15 +369,50 @@ class Game:
                 # Initialize UI AFTER plugins are registered
                 # This allows DashboardManager to discover UIProvider plugins immediately
                 with self.logger.operation("UI Initialization"):
-                    self.logger.debug("[GAME] Creating GameUI instance...")
-                    self.ui = GameUI(self.game_state, self.system_manager)
-                    self.logger.info("[GAME] User interface initialized successfully")
+                    if self.args.headless:
+                        self.ui = None
+                        self.logger.info("[GAME] Headless mode: skipping UI initialization")
+                    else:
+                        self.logger.debug("[GAME] Creating GameUI instance...")
+                        self.ui = GameUI(self.game_state, self.system_manager)
+                        self.logger.info("[GAME] User interface initialized successfully")
                 
                 # Initialize all registered systems
                 with self.logger.operation("Systems Initialization"):
                     self.logger.debug("[SYSTEM] Initializing all registered systems...")
                     self.system_manager.initialize_all(self.game_state)
                     self.logger.info("[SYSTEM] All systems initialized successfully")
+
+                # If requested, start the embedded websocket server in background
+                if self.args.local_server:
+                    try:
+                        # Web UI connects to websocket on port 8765 by convention
+                        ws_port = 8765
+                        self.logger.info(f"[WS] Starting embedded websocket server on port {ws_port}")
+                        # If ADMIN_TOKEN is set in environment, register it for the WS server
+                        try:
+                            websocket_game.ADMIN_TOKEN = os.getenv('ADMIN_TOKEN')
+                            if websocket_game.ADMIN_TOKEN:
+                                self.logger.info("[WS] Admin token set - admin actions will require token")
+                        except Exception:
+                            pass
+
+                        # NOTE: Static server is started early in main() when local_server is enabled.
+                        # Avoid starting another instance here to prevent port conflicts.
+
+                        # Pass our enqueue function so the websocket server can forward actions
+                        self._ws_thread = start_background_server_with_enqueue(
+                            host="0.0.0.0", port=ws_port, action_enqueue=self.enqueue_action
+                        )
+                        self.logger.info("[WS] Embedded websocket server started in background thread")
+
+                        # Optionally wait for WS port so web UI can connect immediately
+                        try:
+                            self._wait_for_port('127.0.0.1', ws_port, timeout=3.0)
+                        except Exception:
+                            self.logger.debug("[WS] Websocket port did not become available in time; continuing")
+                    except Exception as e:
+                        self.logger.error("[WS] Failed to start embedded websocket server", exception=e)
 
                 # Load auto-save configuration from game data
                 with self.logger.operation("Auto-Save Configuration"):
@@ -427,12 +489,14 @@ class Game:
 
                 self.last_update = current_time
 
-                # Handle events
-                events = pygame.event.get()
-                for event in events:
-                    if event.type == pygame.QUIT:
-                        self.running = False
-                        break
+                # Headless mode: do not poll pygame events
+                events = []
+                if not self.args.headless:
+                    events = pygame.event.get()
+                    for event in events:
+                        if event.type == pygame.QUIT:
+                            self.running = False
+                            break
 
                 # Handle menu or game (only if still running)
                 if self.running:
@@ -498,12 +562,53 @@ class Game:
             self.logger.error("[GAME] game_state is None in _run_game!")
             self.running = False
             return
-        
-        if not self.ui:
-            self.logger.error("[GAME] ui is None in _run_game!")
+
+        if not self.args.headless and not self.ui:
+            self.logger.error("[GAME] ui is None in _run_game (non-headless)!")
             self.running = False
             return
         
+        # Process queued external actions (from websocket clients)
+        try:
+            while not self._action_queue.empty():
+                action = self._action_queue.get_nowait()
+                try:
+                    # Handle known action types
+                    if action.get("action") == "assign_incident":
+                        incident_id = action.get("incident_id")
+                        specialist_id = action.get("specialist_id")
+                        if incident_id and specialist_id:
+                            ok = False
+                            try:
+                                ok = self.game_state.assign_incident_to_specialist(incident_id, specialist_id)
+                            except Exception as e:
+                                self.logger.warning("[GAME] Failed to assign incident from queued action", exception=e)
+                            self.logger.info(f"[GAME] Queued action assign_incident processed: {incident_id} -> {specialist_id} (ok={ok})")
+                            # Immediately publish snapshot so WS clients see the result without waiting
+                            try:
+                                set_state(self.game_state.to_dict())
+                            except Exception:
+                                pass
+                            # If the action included a client action id, post a result for the websocket server to dispatch
+                            client_action_id = action.get("_client_action_id")
+                            if client_action_id:
+                                try:
+                                    websocket_game.ACTION_RESULT_QUEUE.put({
+                                        "_client_action_id": client_action_id,
+                                        "action": "assign_incident",
+                                        "status": "ok" if ok else "error",
+                                        "details": {"incident_id": incident_id, "specialist_id": specialist_id},
+                                    })
+                                except Exception:
+                                    pass
+                    else:
+                        self.logger.debug(f"[GAME] Unknown queued action received: {action.get('action')}")
+                except Exception as e:
+                    self.logger.error("[GAME] Error processing queued action", exception=e)
+        except Exception:
+            # Non-fatal: ignore queue processing errors to avoid breaking main loop
+            pass
+
         # Update game state and plugins
         self.game_state.update(delta_time)
         
@@ -514,9 +619,24 @@ class Game:
         # Check for auto-save
         self._check_auto_save(delta_time)
 
-        # Update UI
-        self.ui.handle_input(events)
-        self.ui.update(delta_time)
+        # Headless: broadcast state periodically to websocket clients
+        if self.args.headless:
+            try:
+                self._ws_broadcast_acc += delta_time
+                if self._ws_broadcast_acc >= 1.0:
+                    # Best-effort: publish authoritative snapshot to WS clients
+                    try:
+                        set_state(self.game_state.to_dict())
+                    except Exception as e:
+                        self.logger.debug("[WS] Failed to publish state snapshot", exception=e)
+                    self._ws_broadcast_acc = 0.0
+            except Exception:
+                # Silently ignore broadcast errors to avoid breaking game loop
+                pass
+        else:
+            # Update UI
+            self.ui.handle_input(events)
+            self.ui.update(delta_time)
 
         # Update development systems
         if self.screenshot_utility:
@@ -525,11 +645,10 @@ class Game:
         # Update backend integration
         # Backend integration runs in background thread, no per-frame update needed
 
-        # Render
-        if self.ui:
+        # Render (only when UI present)
+        if not self.args.headless and self.ui:
             self.ui.render()
-
-        pygame.display.flip()
+            pygame.display.flip()
 
     def _check_auto_save(self, delta_time: float) -> None:
         """Check if auto-save should be triggered.
@@ -585,9 +704,25 @@ class Game:
 
         if self.ui:
             self.ui.shutdown()
-
-        pygame.quit()
+        if not self.args.headless:
+            pygame.quit()
         self.logger.info("[GAME] Game shutdown complete")
+
+    def _wait_for_port(self, host: str, port: int, timeout: float = 3.0) -> None:
+        """Wait for a TCP port to be open on host:port up to timeout seconds.
+
+        Raises:
+            TimeoutError: if port is not open within timeout
+        """
+        import socket
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            try:
+                with socket.create_connection((host, port), timeout=0.5):
+                    return
+            except Exception:
+                time.sleep(0.1)
+        raise TimeoutError(f"Port {host}:{port} not open after {timeout}s")
 
 
 def main():
@@ -614,26 +749,103 @@ def main():
         # Parse command-line arguments
         with logger.operation("Parsing Command-Line Arguments"):
             args = parse_game_args()
+
+            # User preference: default to local embedded server unless explicit remote or no-server provided
+            if not args.remote_host and not args.no_server and not args.local_server:
+                args.local_server = True
+                # When running an embedded server we run headless by default
+                args.headless = True
+
+            # Enforce: embedded local server => headless engine and skip menu to avoid opening legacy Pygame window
+            if args.local_server:
+                args.headless = True
+                if args.mode == GameMode.MENU:
+                    # Skip interactive menu in embedded-server mode; start new game directly
+                    args.mode = GameMode.NEW_GAME
+
+            # If we are running a local embedded server, start the static file server early
+            # so the UI is available immediately (before game systems initialize).
+            if args.local_server:
+                try:
+                    # Pick a static HTTP port (prefer 8000, fall back to next few)
+                    static_port = 8000
+                    repo_root = os.path.dirname(os.path.abspath(__file__))
+                    web_ui_dir = os.path.join(repo_root, 'web_ui')
+                    if os.path.isdir(web_ui_dir):
+                        # Try a small range of ports to avoid conflict
+                        chosen_port = None
+                        for candidate in range(static_port, static_port + 10):
+                            try:
+                                # Try binding to candidate to test availability, then close
+                                test_handler = functools.partial(
+                                    http.server.SimpleHTTPRequestHandler,
+                                    directory=web_ui_dir
+                                )
+                                # Use a one-off server instance to check bind; if success, run real server
+                                class _ThreadingTCPServer(socketserver.ThreadingTCPServer):
+                                    allow_reuse_address = True
+                                httpd = _ThreadingTCPServer(("0.0.0.0", candidate), test_handler)
+                                httpd.server_close()  # Release test bind immediately
+                                chosen_port = candidate
+                                break
+                            except OSError:
+                                continue
+
+                        if chosen_port is None:
+                            # If all candidates fail, fall back to 8000 and hope for the best
+                            chosen_port = static_port
+
+                        def _start_static_early(port: int):
+                            handler = functools.partial(
+                                http.server.SimpleHTTPRequestHandler,
+                                directory=web_ui_dir
+                            )
+                            class ThreadingHTTPServer(socketserver.ThreadingTCPServer):
+                                allow_reuse_address = True
+                            with ThreadingHTTPServer(("0.0.0.0", port), handler) as httpd:
+                                logger.info(f"[STATIC-EARLY] Serving web UI at http://0.0.0.0:{port}")
+                                httpd.serve_forever()
+
+                        t_static_early = threading.Thread(target=lambda: _start_static_early(chosen_port), daemon=True, name="static-server-early")
+                        t_static_early.start()
+                        # Best-effort: open browser after a short delay so server has time to bind
+                        try:
+                            time.sleep(0.1)
+                            webbrowser.open(f'http://localhost:{chosen_port}/index.html')
+                        except Exception:
+                            pass
+                    else:
+                        logger.warning(f"[STATIC-EARLY] web_ui directory not found at {web_ui_dir}; static UI will not be served.")
+                except Exception:
+                    # Do not raise - static server is optional
+                    pass
+
             logger.info(
                 "[GAME] Arguments parsed",
-                mode=args.mode.value if hasattr(args.mode, 'value') else str(args.mode)
+                mode=args.mode.value if hasattr(args.mode, 'value') else str(args.mode),
+                backend_mode=args.get_backend_mode()
             )
         
-        # Initialize Pygame
+        # Initialize Pygame (only when not running headless)
         with logger.operation("Pygame Initialization"):
-            pygame.init()
-            pygame.display.set_caption("Cybersecurity Firm - Idle/Tycoon/RPG")
-            logger.info("[GAME] Pygame initialized successfully")
+            if not args.headless:
+                pygame.init()
+                pygame.display.set_caption("Cybersecurity Firm - Idle/Tycoon/RPG")
+                logger.info("[GAME] Pygame initialized successfully")
+            else:
+                logger.info("[GAME] Headless mode requested; skipping Pygame initialization")
 
         # Create and run game
         logger.info("[GAME] Creating game instance...")
         game = Game(args)
-        
+
+        # If local embedded server requested, start it when game systems are initialized
+        # The Game class will start the server in _initialize_game_systems when appropriate
         logger.info("[GAME] Starting game...")
         game.run()
-        
+
         logger.info("[GAME] Game exited normally")
-        
+
     except KeyboardInterrupt:
         logger.info("[GAME] Game interrupted by user (Ctrl+C)")
     except Exception as e:

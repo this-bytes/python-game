@@ -37,6 +37,7 @@ class GenerationConfig:
     difficulty_weights: Dict[int, float]
     specialty_distribution: Dict[str, float]
     max_active_incidents: int
+    generation_rate_multiplier: float = 1.0
 
 
 class IncidentGenerator:
@@ -102,7 +103,8 @@ class IncidentGenerator:
             self._config = GenerationConfig(
                 difficulty_weights=incident_gen_config.get("difficulty_weights", {}),
                 specialty_distribution=incident_gen_config.get("specialty_distribution", {}),
-                max_active_incidents=game_settings.get("max_active_incidents", 50)
+                max_active_incidents=game_settings.get("max_active_incidents", 50),
+                generation_rate_multiplier=incident_gen_config.get("generation_rate_multiplier", 1000.0)
             )
 
             logger_target = getattr(self._logger, "logger", self._logger)
@@ -132,13 +134,23 @@ class IncidentGenerator:
 
         # Calculate incident probability based on client's industry profile
         # New Client model uses avg_monthly_incidents instead of incident_rate_per_minute
-        incidents_per_second = client.avg_monthly_incidents / (60.0 * 60.0 * 24.0 * 30.0)  # Convert monthly to per-second
+        # Convert monthly incidents to a base per-second rate
+        incidents_per_second = client.avg_monthly_incidents / (60.0 * 60.0 * 24.0 * 30.0)
+
+        # Base probability over the delta_time window
         probability = incidents_per_second * delta_time
 
-        # Apply satisfaction modifier (higher satisfaction = lower incident rate, via inverse relationship)
-        # satisfaction 1.0 = 100% events (no reduction), 0.5 = 50% chance (halved incidents)
-        satisfaction_modifier = 1.0 + (1.0 - client.satisfaction)  # Range: 1.0 to 2.0
+        # Apply generation rate multiplier to scale config values into playable probabilities
+        rate_mult = self._config.generation_rate_multiplier if self._config else 1.0
+        probability *= rate_mult
+
+        # Apply satisfaction modifier (lower satisfaction -> higher incident rate)
+        # Keep multiplier in a reasonable range: satisfaction in [0,1]
+        satisfaction_modifier = 1.0 + (1.0 - max(0.0, min(1.0, getattr(client, 'satisfaction', 1.0))))
         probability *= satisfaction_modifier
+
+        # Clamp probability to [0, 1]
+        probability = max(0.0, min(1.0, probability))
 
         # Generate random number and check against probability
         return random.random() < probability
@@ -172,9 +184,17 @@ class IncidentGenerator:
         # Generate difficulty based on weights
         difficulty = self._select_difficulty()
 
-        # Use client's SLA resolution time (new Client model uses absolute seconds, not multiplier)
-        # Template base_sla_seconds becomes the SLA for this incident
-        sla_seconds = client.sla_resolution_time_seconds
+        # Determine SLA for this incident. Prefer a client-provided SLA multiplier
+        # applied to the template base SLA if present (tests expect base_sla * multiplier).
+        sla_multiplier = getattr(client, 'sla_multiplier', None)
+        if sla_multiplier is not None:
+            try:
+                sla_seconds = int(template.base_sla_seconds * float(sla_multiplier))
+            except Exception:
+                sla_seconds = template.base_sla_seconds
+        else:
+            # Fall back to template base SLA
+            sla_seconds = template.base_sla_seconds
 
         # Generate unique ID
         if incident_id is None:

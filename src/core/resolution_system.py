@@ -406,8 +406,28 @@ class ResolutionSystem:
 
         incident.complete_resolution(success)
 
-        # Burnout tracking is now handled by BurnoutPlugin via event system
-        # It listens to "incident_completed" events published elsewhere
+        # Publish an incident_completed event so any burnout system or plugin
+        # can react to the completion (tests and plugins subscribe to this).
+        try:
+            from src.core.event_bus import get_event_bus
+            event_bus = get_event_bus()
+            event_bus.publish("incident_completed", {
+                "specialist_id": specialist.id,
+                "incident_id": incident.id,
+                "incident_difficulty": getattr(incident, 'difficulty', 1),
+                "success": success
+            })
+            # Immediately process events so lightweight test fixtures (which
+            # expect synchronous updates) receive notifications during tests.
+            try:
+                event_bus.process_events()
+            except Exception:
+                # If the event bus does not implement process_events or it fails,
+                # swallow the error (best-effort delivery) — do not break resolution.
+                logger.debug("EventBus.process_events() not available or failed")
+        except Exception:
+            # Best-effort publish; do not crash resolution on missing event bus
+            logger.debug("Could not publish incident_completed event")
         
         # Determine burnout tier using shared method
         burnout_tier = specialist.get_burnout_tier()

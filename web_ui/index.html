@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Python Game - Web UI Prototype</title>
+    <style>
+      body { font-family: system-ui, Arial, sans-serif; margin: 16px; background:#111; color:#eee }
+      .container { display:flex; gap:20px }
+      .panel { background:#1b1b1b; padding:12px; border-radius:8px; width:45%; }
+      h2 { margin-top:0 }
+      button { background:#2b8; color:#042; border:none; padding:6px 10px; border-radius:4px; cursor:pointer }
+      button.small { padding:4px 8px }
+      .item { padding:6px; border-bottom:1px solid rgba(255,255,255,0.04) }
+      .muted { color:#999 }
+    </style>
+  </head>
+  <body>
+    <h1>Python Game — Web UI Prototype</h1>
+    <p class="muted">Connects to <code>ws://localhost:8765</code>. This is a lightweight prototype to drive and visualize the headless engine.</p>
+
+    <div class="container">
+      <div class="panel" id="specialists">
+        <h2>Specialists</h2>
+        <div id="specialist_list">Loading...</div>
+      </div>
+
+      <div class="panel" id="incidents">
+        <h2>Incidents</h2>
+        <div id="incident_list">Loading...</div>
+      </div>
+    </div>
+
+    <script>
+      const ws = new WebSocket('ws://' + window.location.hostname + ':8765');
+      let state = { specialists: [], incidents: [] };
+
+      function render() {
+        const specRoot = document.getElementById('specialist_list');
+        specRoot.innerHTML = '';
+        state.specialists.forEach(s => {
+          const div = document.createElement('div');
+          div.className = 'item';
+          div.innerHTML = `<strong>${s.name || s.id || 'Spec'}</strong> <div class='muted'>${s.specialty || ''}</div>`;
+          specRoot.appendChild(div);
+        });
+
+        const incRoot = document.getElementById('incident_list');
+        incRoot.innerHTML = '';
+        state.incidents.forEach(i => {
+          const div = document.createElement('div');
+          div.className = 'item';
+          const assigned = i.assigned_to ? `Assigned to ${i.assigned_to}` : '<button class="small" onclick="assignPrompt(\'' + i.id + '\')">Assign</button>';
+          div.innerHTML = `<strong>${i.incident_type || i.id}</strong> <div class='muted'>${i.specialty_required || ''} — ${assigned}</div>`;
+          incRoot.appendChild(div);
+        });
+      }
+
+      function assignPrompt(incidentId) {
+        const specialistId = prompt('Specialist id to assign (use exact id from list)');
+        if (!specialistId) return;
+        const action = {
+          action: 'assign_incident',
+          id: 'c_' + Date.now(),
+          data: { incident_id: incidentId, specialist_id: specialistId },
+          // Request final confirmation/result from engine
+          wait_for_result: true
+        };
+        ws.send(JSON.stringify(action));
+      }
+
+      ws.addEventListener('open', () => {
+        console.log('ws open');
+      });
+
+      ws.addEventListener('message', (ev) => {
+        try {
+          const msg = JSON.parse(ev.data);
+          if (msg.event === 'state_snapshot') {
+            state = msg.data;
+            render();
+          } else if (msg.event === 'state_patch') {
+            // naive patch application: replace arrays if present
+            const d = msg.data || {};
+            if (d.specialists) state.specialists = d.specialists;
+            if (d.incidents) state.incidents = d.incidents;
+            render();
+          } else if (msg.event === 'action_result') {
+            // Final confirmation for a client-initiated action
+            const clientId = msg.id;
+            const result = msg.result;
+            console.log('action_result', clientId, result);
+            try {
+              alert('Action result: ' + JSON.stringify(result));
+            } catch (e) {
+              console.log('Action result', result);
+            }
+          } else if (msg.event === 'ack') {
+            console.log('ack', msg);
+          }
+        } catch (err) {
+          console.error('ws message error', err, ev.data);
+        }
+      });
+    </script>
+  </body>
+</html>

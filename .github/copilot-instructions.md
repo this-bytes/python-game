@@ -13,10 +13,6 @@ When instructions below conflict with `plan/` documents, **the plan documents ta
 - **[plan/DETAILED_SPECIFICATION.md](../../plan/DETAILED_SPECIFICATION.md)** - Exact mechanics and formulas
 - **[plan/IMPLEMENTATION_ROADMAP.md](../../plan/IMPLEMENTATION_ROADMAP.md)** - Phase sequencing and timeline
 
-**Current Development Phase**: Phase 2: Core Tycoon Mechanics
-- ✅ Tasks 5-8: COMPLETE (Budget System, SLA System, 90 tests passing)
-- ⏳ Tasks 9-11: IN-PROGRESS (SLA Plugin, Game Loop, Integration Testing)
-
 ---
 
 This is your **main entry point** for working with this codebase. For detailed guidance on specific topics, see the specialized instruction files below.
@@ -55,35 +51,6 @@ This is your **main entry point** for working with this codebase. For detailed g
 
 **See [plan/SOC_STARTUP_VISION.md](../../plan/SOC_STARTUP_VISION.md) for complete vision. This section summarizes the essentials.**
 
-### Game Title & Concept
-**"SOC Startup Management Game"**
-
-Manage a boutique Security Operations Center startup. Hire specialists, acquire clients from different industries (each with different threat landscapes), handle their security incidents under SLA pressure, balance hiring costs vs. revenue, and try to grow without going broke. Miss SLAs → clients leave → you downsize → game over or reset with new strategy.
-
-### The 6-Step Core Game Loop
-
-```
-1. THREATS SPAWN FOR EACH CLIENT
-   (Different industries = different threat types)
-
-2. PLAYER ASSIGNS SPECIALISTS TO INCIDENTS  
-   (Who handles what? Based on specialties & SLA pressure)
-
-3. RESOLUTION HAPPENS
-   (Based on specialist skill + SLA timer)
-
-4. CONSEQUENCES & FEEDBACK
-   - SLA Met? Client satisfaction ↑ (keeps paying)
-   - SLA Missed? Client satisfaction ↓ (may cancel)
-
-5. END OF DAY: BUDGET UPDATE
-   - Revenue from clients who stayed
-   - Salaries paid to specialists
-   - Profit/loss calculated
-   - Can hire/fire based on budget?
-
-6. REPEAT
-```
 
 ### The 3 Pillars
 
@@ -108,17 +75,6 @@ Every feature must support at least ONE:
 
 **If a feature doesn't clearly support one of these 3 pillars, question whether it belongs.**
 
-### Key Systems Required
-
-These systems are MANDATORY (non-negotiable core):
-- **Client System** - Multiple clients with different threat landscapes
-- **SLA System** - Timers that create pressure, affect satisfaction
-- **Budget System** - Revenue/salary tracking, hiring/firing consequences  
-- **Incident Generation** - Continuous spawning based on clients
-- **Specialist Assignment** - Player decisions on WHO handles WHAT
-- **Specialist Progression** - Leveling, XP, stats, abilities
-- **Team Dynamics** - Specialties, synergies, relationships
-
 
 ---
 
@@ -136,7 +92,11 @@ For detailed guidance on specific aspects of development, reference these files:
 | **Data-Driven Design** | [data-driven.instructions.md](instructions/data-driven.instructions.md) | JSON configuration, game balance, hot-reloadable parameters |
 | **Workflows** | [workflows.instructions.md](instructions/workflows.instructions.md) | Step-by-step guides for common development tasks |
 | **Documentation Guidelines** | [documentation-guidelines.instructions.md](instructions/documentation-guidelines.instructions.md) | When to add to instruction files vs feature docs |
+| **UI rendering & tabs** | [ui-rendering.instructions.md](instructions/ui-rendering.instructions.md) |
+| **Documentation guidelines** | [documentation-guidelines.instructions.md](instructions/documentation-guidelines.instructions.md) |
+| **Active Implementation Plans** | See `/home/localadmin/python-game/plan/` and `*_PLAN.md` files |
 
+---
 **Pick the right instruction file for your task** - Don't load all context if you only need plugin system guidance.
 
 ---
@@ -165,64 +125,6 @@ Every commit must pass this or it's rejected:
 
 ---
 
-## Where to Find What You Need
-
-| Need | File |
-|------|------|
-| **Core standards & red flags** | [core-standards.instructions.md](instructions/core-standards.instructions.md) |
-| **Code style & anti-patterns** | [code-style.instructions.md](instructions/code-style.instructions.md) |
-| **Architecture & design patterns** | [architecture.instructions.md](instructions/architecture.instructions.md) |
-| **Plugin system architecture** | [plugin-system.instructions.md](instructions/plugin-system.instructions.md) |
-| **UI rendering & tabs** | [ui-rendering.instructions.md](instructions/ui-rendering.instructions.md) |
-| **Testing requirements & examples** | [testing.instructions.md](instructions/testing.instructions.md) |
-| **JSON configuration patterns** | [data-driven.instructions.md](instructions/data-driven.instructions.md) |
-| **Common dev tasks & workflows** | [workflows.instructions.md](instructions/workflows.instructions.md) |
-| **Documentation guidelines** | [documentation-guidelines.instructions.md](instructions/documentation-guidelines.instructions.md) |
-| **Active Implementation Plans** | See `/home/localadmin/python-game/plan/` and `*_PLAN.md` files |
-
----
-
-## What a Good First Commit Looks Like
-
-```
-Title: Add specialist burnout mechanic with recovery
-
-- Specialists accumulate burnout meter on incident assignment
-- Burnout >80% triggers performance penalties (-10% speed, -15% accuracy)
-- Rest day action fully recovers specialist
-- Added burnout thresholds to game_config.json
-- Full test coverage: 12 test cases covering all states
-- Type hints throughout, docstrings explain design
-
-Commit format:
-- Clear title: WHAT + WHY
-- Bullet points: concrete changes
-- JSON file changes listed
-- Test coverage numbers mentioned
-- No vague language like "Fixed stuff"
-```
-
----
-
-## Before Every Coding Session
-
-1. **Read** [core-standards.instructions.md](instructions/core-standards.instructions.md)
-2. **Review** [documentation-guidelines.instructions.md](instructions/documentation-guidelines.instructions.md)
-3. **Understand** the architecture from [ARCHITECTURE.md](ARCHITECTURE.md)
-4. **Check** [code-style.instructions.md](instructions/code-style.instructions.md) for naming/formatting conventions
-
----
-
-## Project Fundamentals
-
-### Separation of Concerns (Non-negotiable)
-
-- `/src/models/` → Pure game logic (no UI, no HTTP)
-- `/src/core/` → Game systems (generation, assignment, progression)
-- `/src/ui/` → Pygame rendering ONLY (no game logic)
-- `/backend/` → Flask CRUD API (no game logic)
-- `/data/` → JSON configuration (all game parameters)
-
 **CRITICAL: Never put game logic in Pygame code. Rendering reads state; it doesn't create it.**
 
 ### Plugin System Architecture
@@ -239,30 +141,6 @@ Commit format:
 
 ---
 
-### Data-Driven Everything
-
-**ALL GAME PARAMETERS MUST BE IN JSON FILES.**
-
-📖 **See [data-driven.instructions.md](instructions/data-driven.instructions.md) for complete JSON configuration patterns.**
-
-If it affects gameplay, it's in JSON config.
-
----
-
-## Testing Mandate
-
-**EVERY PUBLIC FUNCTION MUST HAVE TESTS. NO EXCEPTIONS.**
-
-📖 **See [testing.instructions.md](instructions/testing.instructions.md) for complete testing standards.**
-
-**Quick Facts:**
-- Minimum 80% coverage for new code
-- Test organization: one file per class/system
-- Test naming: `test_<subject>_<action>_<expected_outcome>`
-- All edge cases must be tested
-
----
-
 ## Common Development Tasks
 
 - **Add new specialist type** → Edit `/data/specialist_templates.json` (data-driven, no code changes)
@@ -273,21 +151,6 @@ If it affects gameplay, it's in JSON config.
 - **Debug with godmode** → Use backend admin panel at `http://localhost:5000/admin`
 
 📖 **See [workflows.instructions.md](instructions/workflows.instructions.md) for step-by-step guides.**
-
----
-
-## Quick Links to Sections
-
-### If you're struggling with...
-
-- **Plugin system** → Read [plugin-system.instructions.md](instructions/plugin-system.instructions.md) (architecture, events, lifecycle)
-- **Testing** → Read [testing.instructions.md](instructions/testing.instructions.md) (fixtures, patterns, coverage)
-- **JSON config** → Read [data-driven.instructions.md](instructions/data-driven.instructions.md) (configuration patterns, hot-reload)
-- **Unclear code** → Read [code-style.instructions.md](instructions/code-style.instructions.md) (naming, docstrings, clarity)
-- **Bad patterns** → Read [code-style.instructions.md](instructions/code-style.instructions.md) (10 anti-patterns with examples)
-- **Architecture questions** → Read [architecture.instructions.md](instructions/architecture.instructions.md) (design patterns, separation of concerns)
-- **How to add a feature** → Read [workflows.instructions.md](instructions/workflows.instructions.md) (step-by-step guides)
-- **Before committing** → Read [core-standards.instructions.md](instructions/core-standards.instructions.md) (commit checklist)
 
 ---
 
@@ -371,22 +234,6 @@ curl -X POST http://localhost:5000/incidents/spawn \
 curl http://localhost:5000/game/state | jq
 ```
 
----
-
-## Documentation Files - What Each Does
-
-| File | Purpose | Read When |
-|------|---------|-----------|
-| **core-standards.instructions.md** | Core mandate: 15-point gate, 15 red flags, daily checklist | Starting every session |
-| **code-style.instructions.md** | Naming, type hints, docstrings, formatting, anti-patterns | Writing code |
-| **architecture.instructions.md** | Project structure, design patterns, separation of concerns | Understanding structure |
-| **plugin-system.instructions.md** | Plugin architecture, events, lifecycle patterns | Creating/converting game systems |
-| **testing.instructions.md** | Test requirements, fixtures, coverage | Writing tests |
-| **data-driven.instructions.md** | JSON configuration, hot-reload patterns | Adding game parameters |
-| **workflows.instructions.md** | Step-by-step guides for adding features | Adding features |
-| **documentation-guidelines.instructions.md** | When to add to instruction files vs feature docs | Documenting features |
-
-All instruction files are now located in the `.github/instructions/` subdirectory following GitHub's best practices.
 
 ---
 

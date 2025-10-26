@@ -117,7 +117,11 @@ def create_incidents_blueprint(game_state_ref):
                 incident = game_state.incident_generator.generate_incident(client)
                 
                 if incident:
-                    game_state.incidents.append(incident)
+                    # Persist via GameState API so StateManager is authoritative
+                    if hasattr(game_state, 'add_incident'):
+                        game_state.add_incident(incident)
+                    else:
+                        game_state._state_manager.add_incident(incident)
                     
                     return jsonify({
                         "success": True,
@@ -162,7 +166,10 @@ def create_incidents_blueprint(game_state_ref):
                     client = random.choice(active_clients)
                     incident = game_state.incident_generator.generate_incident(client)
                     if incident:
-                        game_state.incidents.append(incident)
+                        if hasattr(game_state, 'add_incident'):
+                            game_state.add_incident(incident)
+                        else:
+                            game_state._state_manager.add_incident(incident)
                         spawned.append(incident.id)
                 
                 return jsonify({
@@ -223,7 +230,19 @@ def create_incidents_blueprint(game_state_ref):
             if not incident:
                 return jsonify({"success": False, "message": "Incident not found"}), 404
             
-            game_state.incidents.remove(incident)
+            # Use GameState API to remove so persistence is correct
+            if hasattr(game_state, 'remove_incident'):
+                game_state.remove_incident(incident.id)
+            else:
+                try:
+                    game_state._state_manager.remove_incident(incident.id)
+                except Exception:
+                    # Last resort: try to remove from transient list (not recommended)
+                    try:
+                        game_state.incidents.remove(incident)
+                    except Exception:
+                        if hasattr(game_state, '_logger') and game_state._logger:
+                            game_state._logger.warning(f"[BACKEND_ROUTE] Failed to remove incident {incident.id}")
             
             return jsonify({
                 "success": True,

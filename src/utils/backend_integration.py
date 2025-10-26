@@ -337,7 +337,15 @@ class BackendIntegration:
 
                     if client:
                         incident = self.game_state.incident_generator.generate_incident(client)
-                        self.game_state.incidents.append(incident)
+                        # Persist via StateManager to ensure it's stored correctly
+                        try:
+                            # Prefer the public GameState API to persist incidents
+                            if hasattr(self.game_state, 'add_incident'):
+                                self.game_state.add_incident(incident)
+                            else:
+                                self.game_state._state_manager.add_incident(incident)
+                        except Exception:
+                            self.logger.warning("[BACKEND_INTEGRATION] Could not persist spawned incident via add_incident/state_manager")
                         self.logger.info(f"[BACKEND_INTEGRATION] Spawned incident: {incident.incident_type}")
                     else:
                         self.logger.warning("[BACKEND_INTEGRATION] No clients available to spawn incident for")

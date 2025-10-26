@@ -136,6 +136,7 @@ class UIAction:
     cost: str = ""
     enabled: bool = True
     requires_selection: bool = False
+    data: Optional[Dict[str, Any]] = field(default=None)
 
 
 class UIProvider(ABC):

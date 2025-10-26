@@ -9,6 +9,7 @@ from src.models.incident import Incident
 from src.models.specialist import Specialist
 from src.utils.logger import GameLogger
 from src.ui.ui_provider import UIProvider, UISummaryItem, UISectionItem, UIPanelSection, UIAction
+from src.core.incident_dispatch_system import IncidentDispatchSystem
 
 class IncidentDispatchPlugin(GameSystem, UIProvider):
     """Plugin for managing incident assignment, driven by UI events."""
@@ -18,15 +19,27 @@ class IncidentDispatchPlugin(GameSystem, UIProvider):
         self._logger = GameLogger("incident_dispatch_plugin")
         self._event_bus = get_event_bus()
         self._subscription_ids: List[str] = []
+        self._dispatch_system: Optional[IncidentDispatchSystem] = None
     
     def get_name(self) -> str:
         return "IncidentDispatchPlugin"
 
+    def get_feature_id(self) -> str:
+        """Feature flag id for this plugin."""
+        return "incident_dispatch_system"
+
     def initialize(self, game_state: GameState) -> None:
+        # Initialize the underlying dispatch system
+        self._dispatch_system = IncidentDispatchSystem()
+
+        # Subscribe to UI actions and game loop phase events
         self._subscription_ids = [
-            self._event_bus.subscribe("action:assign_incident", self._on_assign_incident_action)
+            self._event_bus.subscribe("action:assign_incident", self._on_assign_incident_action),
+            self._event_bus.subscribe("day_started", self._on_day_started),
+            self._event_bus.subscribe("evening_started", self._on_evening_started),
+            self._event_bus.subscribe("night_started", self._on_night_started),
         ]
-        self._logger.info("[IncidentDispatchPlugin] Initialized and subscribed to UI actions.")
+        self._logger.info("[IncidentDispatchPlugin] Initialized, dispatch system created and subscriptions registered.")
 
     def update(self, game_state: GameState, delta_time: float) -> None:
         # Incident generation and resolution is handled by other systems.
@@ -56,7 +69,13 @@ class IncidentDispatchPlugin(GameSystem, UIProvider):
             return
 
         # The core logic of assigning an incident.
-        success = game_state.assign_incident_to_specialist(incident_id, specialist_id)
+        # Prefer using the dispatch system if available, otherwise fall back to GameState helper
+        success = False
+        if self._dispatch_system:
+            result = self._dispatch_system.assign_incident(incident, specialist)
+            success = result.success
+        else:
+            success = game_state.assign_incident_to_specialist(incident_id, specialist_id)
         
         if success:
             message = f"Assigned {incident.incident_type} to {specialist.name}."
@@ -87,6 +106,53 @@ class IncidentDispatchPlugin(GameSystem, UIProvider):
             ],
             accent_color=color
         )
+
+    # Plugin wrapper helpers expected by tests
+    def get_best_specialist_for_incident(self, incident: Incident, specialists: List[Specialist]) -> Optional[Specialist]:
+        """Expose dispatch system's specialist selection logic to tests/UI."""
+        if self._dispatch_system:
+            return self._dispatch_system.find_best_specialist(incident, specialists)
+        # Fallback: simple heuristic
+        candidates = [s for s in specialists if s.specialty == incident.specialty_required and s.assigned_incident_id is None]
+        if not candidates:
+            return None
+        candidates.sort(key=lambda s: (-s.level, s.burnout_level))
+        return candidates[0]
+
+    def get_dispatch_stats(self) -> Dict[str, Any]:
+        """Return dispatch statistics via the underlying system if present."""
+        if self._dispatch_system:
+            return self._dispatch_system.get_dispatch_stats()
+        return {"total_incidents": 0, "pending_count": 0, "active_count": 0}
+
+    # Simple passthroughs expected by tests
+    def assign_incident(self, incident: Incident, specialist: Specialist):
+        """Assign an incident via the underlying dispatch system."""
+        if self._dispatch_system:
+            result = self._dispatch_system.assign_incident(incident, specialist)
+            # Return simple boolean for legacy callers/tests
+            return bool(result.success)
+        return False
+
+    def get_pending_incidents(self) -> List[Incident]:
+        """Return pending incidents either from dispatch system or game state."""
+        if self._dispatch_system:
+            return self._dispatch_system.get_pending_incidents()
+        # Fallback to GameState helper if someone passes game_state elsewhere
+        return []
+
+    # Game loop event handlers (placeholders that integrate with dispatch system)
+    def _on_day_started(self, event: Event) -> None:
+        # Could trigger daily maintenance or incident generation hooks
+        self._logger.debug("[IncidentDispatchPlugin] Day started event received.")
+
+    def _on_evening_started(self, event: Event) -> None:
+        # Process assigned incidents if needed (resolution step is elsewhere)
+        self._logger.debug("[IncidentDispatchPlugin] Evening started event received.")
+
+    def _on_night_started(self, event: Event) -> None:
+        # Night summary / cleanup
+        self._logger.debug("[IncidentDispatchPlugin] Night started event received.")
 
     def get_detail_panel_data(self, game_state: GameState) -> Dict[str, Any]:
         # Section for pending incidents
