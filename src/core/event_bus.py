@@ -23,6 +23,7 @@ Event Types (use these strings when publishing/subscribing):
 from typing import Callable, Dict, List, Any, Optional
 from dataclasses import dataclass, field
 from enum import IntEnum
+import logging
 import time
 
 
@@ -97,6 +98,8 @@ class EventBus:
             "events_by_type": {},
             "average_processing_time": 0.0
         }
+        
+        self._logger = logging.getLogger(__name__)
     
     def subscribe(
         self, 
@@ -216,7 +219,7 @@ class EventBus:
                 subscription.callback(event)
             except Exception as e:
                 # Log error but continue processing other subscriptions
-                print(f"Error in event handler for {event.event_type}: {e}")
+                self._logger.error(f"Error in event handler for {event.event_type}: {e}", exc_info=True)
     
     def get_pending_count(self) -> int:
         """Get number of pending events."""

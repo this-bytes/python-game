@@ -3,6 +3,7 @@
 import json
 import os
 import pygame
+import logging
 from typing import Dict, Tuple, Optional
 
 
@@ -157,6 +158,8 @@ class ThemeManager:
         self.current_theme: Optional[Theme] = None
         self.font_cache: Dict[Tuple[str, int, bool, bool], pygame.font.Font] = {}
 
+        self._logger = logging.getLogger(__name__)
+
         # Load themes
         self._load_themes()
 
@@ -177,9 +180,9 @@ class ThemeManager:
                 self.themes[theme_id] = Theme(theme_data)
 
         except FileNotFoundError:
-            print(f"Warning: themes.json not found at {themes_path}")
+            self._logger.warning(f"themes.json not found at {themes_path}")
         except json.JSONDecodeError as e:
-            print(f"Warning: Error parsing themes.json: {e}")
+            self._logger.warning(f"Error parsing themes.json: {e}")
 
     def load_theme(self, theme_name: str) -> bool:
         """Switch to theme.

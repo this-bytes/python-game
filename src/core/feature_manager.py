@@ -12,6 +12,7 @@ import random
 import time
 import json
 import os
+import logging
 
 
 @dataclass
@@ -73,6 +74,8 @@ class FeatureManager:
         self._rollout_assignments: Dict[str, bool] = {}  # Feature ID -> assigned state
         self._session_id = int(time.time())  # Unique session ID
         
+        self._logger = logging.getLogger(__name__)
+        
         # Load features
         self.reload()
     
@@ -101,7 +104,7 @@ class FeatureManager:
                 self._create_default_features()
         
         except Exception as e:
-            print(f"Error loading features: {e}")
+            self._logger.error(f"Error loading features: {e}", exc_info=True)
             # Continue with empty features rather than crashing
     
     def _create_default_features(self):
@@ -151,7 +154,7 @@ class FeatureManager:
             with open(self.config_path, 'w') as f:
                 json.dump(default_features, f, indent=2)
         except Exception as e:
-            print(f"Error creating default features file: {e}")
+            self._logger.error(f"Error creating default features file: {e}", exc_info=True)
     
     def is_enabled(
         self, 
@@ -331,7 +334,7 @@ class FeatureManager:
             return True
         
         except Exception as e:
-            print(f"Error saving features: {e}")
+            self._logger.error(f"Error saving features: {e}", exc_info=True)
             return False
 
 

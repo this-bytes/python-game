@@ -29,7 +29,7 @@ class BackendApp:
         """
         # Set up Flask with static folder pointing to ui/admin
         static_folder = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'ui', 'admin')
-        self.app = Flask(__name__, static_folder=static_folder, static_url_path='/static')
+        self.app = Flask(__name__, static_folder=static_folder, static_url_path='../ui/admin')
         self.logger = GameLogger("backend")
         
         # Use instance manager for multi-client support

@@ -80,7 +80,7 @@ class IncidentDetailModal(ModernPanel):
         """Handle assign button click."""
         # This would ideally open a specialist selection view or modal
         
-        print(f"Assign button clicked for incident {self.incident.id}")
+        self.logger.info(f"Assign button clicked for incident {self.incident.id}")
         self._on_close_clicked()
 
     def _on_close_clicked(self):
