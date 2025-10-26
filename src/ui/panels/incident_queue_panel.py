@@ -130,6 +130,13 @@ class IncidentQueuePanel:
         """
         # Draw panel background
         pygame.draw.rect(screen, self.BG_COLOR, self.rect)
+
+        # Instrumentation: log incoming incident snapshot ids for debugging
+        try:
+            incident_ids = [getattr(i, 'id', None) for i in incidents]
+            self.logger.debug(f"[INCIDENT_QUEUE] draw called with {len(incident_ids)} incidents: {incident_ids[:12]} ts={time.time()}")
+        except Exception:
+            pass
         
         # Draw title
         title_text = self.font_title.render("Incident Queue", True, self.TEXT_COLOR)
@@ -330,16 +337,23 @@ class IncidentQueuePanel:
         Returns:
             Seconds remaining (negative if overdue)
         """
-        # Get current game time
-        if not hasattr(game_state, 'game_time'):
-            raise AttributeError("game_state is missing required attribute 'game_time'. SLA calculations require game_time to be present.")
-        current_time = game_state.game_time
+        # Determine current game time. Prefer the simulation time if provided
+        # by the GameState facade (current_time). Fall back to real wall-clock time
+        # so the UI still renders when the facade uses different property names.
+        current_time = getattr(game_state, 'current_time', None)
+        if current_time is None:
+            # Fall back to StateManager-style attribute or real time
+            current_time = getattr(game_state, 'game_time', None)
+        if current_time is None:
+            # Last resort: use wall-clock time so SLA timers still display
+            current_time = time.time()
         
         # Calculate time since spawn
         if hasattr(incident, 'spawn_time'):
             elapsed = current_time - incident.spawn_time
         else:
-            GameLogger.warning(f"Incident {getattr(incident, 'id', '<unknown>')} missing spawn_time. SLA timer cannot be calculated accurately.")
+            # Use instance logger to record missing spawn_time
+            self.logger.warning(f"Incident {getattr(incident, 'id', '<unknown>')} missing spawn_time. SLA timer cannot be calculated accurately.")
             return float('-inf')
         
         return incident.sla_seconds - elapsed

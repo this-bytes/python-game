@@ -134,6 +134,112 @@ class GameState:
     _offline_progress_calculated: bool = field(init=False)
     _last_offline_report: Optional[Dict[str, Any]] = field(init=False)
 
+    def __init__(
+        self,
+        specialists: int = 0,
+        incidents: int = 0,
+        clients: int = 0,
+        money: float = 5000.0,
+        time: float = 0.0,
+        **kwargs
+    ) -> None:
+        """Construct a GameState with optional quick-test parameters.
+
+        Tests often construct GameState(specialists=5, incidents=4, clients=6,...).
+        This initializer supports that pattern, then delegates to the dataclass
+        post-init to wire up the layered architecture.
+        """
+        # Minimal observer list until layered systems are initialized
+        self._observers = []
+
+        # Store requested bootstrap numbers or explicit lists for post-init population
+        # Accept either an integer count OR a list of pre-built objects (for tests)
+        if isinstance(specialists, list):
+            self._bootstrap_specialists = len(specialists)
+            self._bootstrap_specialists_list = list(specialists)
+        else:
+            self._bootstrap_specialists = int(specialists or 0)
+            self._bootstrap_specialists_list = None
+
+        if isinstance(incidents, list):
+            self._bootstrap_incidents = len(incidents)
+            self._bootstrap_incidents_list = list(incidents)
+        else:
+            self._bootstrap_incidents = int(incidents or 0)
+            self._bootstrap_incidents_list = None
+
+        if isinstance(clients, list):
+            self._bootstrap_clients = len(clients)
+            self._bootstrap_clients_list = list(clients)
+        else:
+            self._bootstrap_clients = int(clients or 0)
+            self._bootstrap_clients_list = None
+        self._bootstrap_money = float(money)
+        self._bootstrap_time = float(time)
+
+        # Now run full post-init to initialize layered architecture
+        self.__post_init__()
+
+        # After layered systems are ready, populate requested entities
+        try:
+            if hasattr(self, '_bootstrap_clients_list') and self._bootstrap_clients_list is not None:
+                # Tests passed explicit client objects; use them directly
+                self.clients = self._bootstrap_clients_list
+            elif self._bootstrap_clients > 0:
+                # Create simple placeholder clients if JSON not available
+                from src.models.client import Client
+                for i in range(self._bootstrap_clients):
+                    cid = f"client_{i+1:03d}"
+                    client = Client(
+                        client_id=cid,
+                        company_name=f"Client {i+1}",
+                        industry="generic",
+                        monthly_contract_value=1000.0,
+                        sla_response_time_seconds=600,
+                        sla_resolution_time_seconds=3600,
+                        satisfaction=1.0,
+                    )
+                    self._state_manager.add_client(client)
+
+            if hasattr(self, '_bootstrap_specialists_list') and self._bootstrap_specialists_list is not None:
+                # Use provided specialists list directly
+                self.specialists = self._bootstrap_specialists_list
+            elif self._bootstrap_specialists > 0:
+                # Create simple specialists
+                for i in range(self._bootstrap_specialists):
+                    spec_id = f"spec_{i+1:03d}"
+                    spec = Specialist(
+                        id=spec_id,
+                        name=f"Spec {i+1}",
+                        specialty="Network Security",
+                        level=1,
+                        xp=0,
+                        stats=SpecialistStats(speed=100, accuracy=80, experience_bonus=1.0),
+                    )
+                    self._state_manager.specialists[spec.id] = spec
+
+            if hasattr(self, '_bootstrap_incidents_list') and self._bootstrap_incidents_list is not None:
+                # Use provided incident objects directly
+                self.incidents = self._bootstrap_incidents_list
+            elif self._bootstrap_incidents > 0:
+                for i in range(self._bootstrap_incidents):
+                    inc = Incident(
+                        id=f"inc_{i+1:06d}",
+                        incident_type="DDoS Attack",
+                        difficulty=1,
+                        status="pending",
+                    )
+                    self._state_manager.add_incident(inc)
+
+            # Apply bootstrap money and time
+            if hasattr(self._state_manager, 'budget') and self._state_manager.budget:
+                self._state_manager.budget.total_reserves = self._bootstrap_money
+            self._state_manager.game_time = self._bootstrap_time
+        except Exception:
+            # Best-effort population for test harness; do not fail init
+            if self._logger:
+                self._logger.debug("[GAME_STATE] Bootstrap population encountered an issue during __init__")
+
     def __post_init__(self):
         """Initialize game state facade with layered architecture."""
         # Initialize essential systems first
@@ -150,6 +256,12 @@ class GameState:
 
         # Load initial data and set up event subscriptions
         self._initialize_game_data()
+
+        # Initialize simple in-memory flags for properties not yet in StateManager
+        # These provide backward-compatible storage until full migration
+        self._is_paused = False
+        self._game_speed_multiplier = 1.0
+        self._investments = {}
 
     def _initialize_essential_systems(self):
         """Initialize essential systems needed by layered architecture."""
@@ -189,6 +301,9 @@ class GameState:
         self._dopamine_system = None
         self._idle_core = None
         self._equipment_system = None
+        # Backing storage for features not yet migrated into StateManager
+        # Initialize automation scripts storage so _load_initial_data can populate it
+        self._automation_scripts: List[AutomationScript] = []
 
         # Initialize timing accumulators
         self._last_incident_generation = time.time()
@@ -243,6 +358,62 @@ class GameState:
     def incidents(self, value: List[Incident]):
         """Set incidents from list, converting to dict storage."""
         self._state_manager.incidents = {i.id: i for i in value}
+
+    # Convenience API: add/remove incidents via the facade to ensure persistence
+    def add_incident(self, incident: Incident) -> None:
+        """Add an incident into the canonical StateManager store.
+
+        This is the preferred API for creating/persisting incidents. It
+        guarantees the incident is stored in the authoritative StateManager
+        and not lost by mutating transient list views.
+
+        Args:
+            incident: Incident instance to add
+        """
+        try:
+            self._state_manager.add_incident(incident)
+            if self._logger:
+                self._logger.info(f"[GAME_STATE] Incident added: id={incident.id} type={getattr(incident,'incident_type',None)}")
+            self._notify_observers("incident_added", incident)
+        except Exception as e:
+            if self._logger:
+                self._logger.error(f"[GAME_STATE] Failed to add incident {getattr(incident,'id',None)}: {e}")
+            raise
+
+    def remove_incident(self, incident_id: str) -> Optional[Incident]:
+        """Remove an incident by id from the canonical StateManager store.
+
+        Returns the removed Incident or None if not found.
+        """
+        try:
+            removed = self._state_manager.remove_incident(incident_id)
+            if removed and self._logger:
+                self._logger.info(f"[GAME_STATE] Incident removed: id={incident_id}")
+            if removed:
+                self._notify_observers("incident_removed", removed)
+            return removed
+        except Exception as e:
+            if self._logger:
+                self._logger.error(f"[GAME_STATE] Failed to remove incident {incident_id}: {e}")
+            raise
+
+    def add_observer(self, callback: Callable[[str, Any], None]) -> None:
+        """Register an observer callback for GameState events.
+
+        Callback signature: fn(event_type: str, payload: Any)
+        """
+        if callback not in self._observers:
+            self._observers.append(callback)
+
+    def _notify_observers(self, event_type: str, payload: Any) -> None:
+        """Internal: notify registered observers of an event."""
+        for cb in list(self._observers):
+            try:
+                cb(event_type, payload)
+            except Exception:
+                # Observers must not break game flow; log and continue
+                if self._logger:
+                    self._logger.exception(f"[GAME_STATE] Observer callback failed for event {event_type}")
 
     @property
     def clients(self) -> List[Client]:
@@ -321,11 +492,16 @@ class GameState:
     # Placeholder properties for attributes not yet in StateManager
     @property
     def automation_scripts(self) -> List[AutomationScript]:
-        return []
+        # Return the in-memory automation scripts list. In the future this
+        # should be persisted via StateManager; for now keep a local list to
+        # satisfy tests and legacy consumers.
+        return getattr(self, '_automation_scripts', [])
 
     @automation_scripts.setter
     def automation_scripts(self, value: List[AutomationScript]):
-        pass  # TODO: Add to StateManager
+        # Store automation scripts in backing list for legacy compatibility.
+        # Expect a list of AutomationScript instances.
+        self._automation_scripts = list(value) if value is not None else []
 
     @property
     def equipment_instances(self) -> Dict[str, Any]:
@@ -377,27 +553,27 @@ class GameState:
 
     @property
     def game_speed_multiplier(self) -> float:
-        return 1.0
+        return getattr(self, '_game_speed_multiplier', 1.0)
 
     @game_speed_multiplier.setter
     def game_speed_multiplier(self, value: float):
-        pass  # TODO: Add to StateManager
+        self._game_speed_multiplier = float(value or 1.0)
 
     @property
     def is_paused(self) -> bool:
-        return False
+        return getattr(self, '_is_paused', False)
 
     @is_paused.setter
     def is_paused(self, value: bool):
-        pass  # TODO: Add to StateManager
+        self._is_paused = bool(value)
 
     @property
     def investments(self) -> Dict[str, float]:
-        return {}
+        return getattr(self, '_investments', {})
 
     @investments.setter
     def investments(self, value: Dict[str, float]):
-        pass  # TODO: Add to StateManager
+        self._investments = dict(value or {})
 
     @property
     def company_founded_month(self) -> int:
@@ -425,43 +601,43 @@ class GameState:
 
     @property
     def prestige_points(self) -> int:
-        return 0
+        return getattr(self._state_manager, 'prestige_points', 0)
 
     @prestige_points.setter
     def prestige_points(self, value: int):
-        pass  # TODO: Add to StateManager
+        setattr(self._state_manager, 'prestige_points', int(value or 0))
 
     @property
     def prestige_upgrades(self) -> Dict[str, int]:
-        return {}
+        return getattr(self._state_manager, 'prestige_upgrades', {})
 
     @prestige_upgrades.setter
     def prestige_upgrades(self, value: Dict[str, int]):
-        pass  # TODO: Add to StateManager
+        setattr(self._state_manager, 'prestige_upgrades', dict(value or {}))
 
     @property
     def total_prestiges(self) -> int:
-        return 0
+        return getattr(self._state_manager, 'total_prestiges', 0)
 
     @total_prestiges.setter
     def total_prestiges(self, value: int):
-        pass  # TODO: Add to StateManager
+        setattr(self._state_manager, 'total_prestiges', int(value or 0))
 
     @property
     def unlocked_achievements(self) -> List[str]:
-        return []
+        return getattr(self._state_manager, 'unlocked_achievements', [])
 
     @unlocked_achievements.setter
     def unlocked_achievements(self, value: List[str]):
-        pass  # TODO: Add to StateManager
+        setattr(self._state_manager, 'unlocked_achievements', list(value or []))
 
     @property
     def achievement_progress(self) -> Dict[str, float]:
-        return {}
+        return getattr(self._state_manager, 'achievement_progress', {})
 
     @achievement_progress.setter
     def achievement_progress(self, value: Dict[str, float]):
-        pass  # TODO: Add to StateManager
+        setattr(self._state_manager, 'achievement_progress', dict(value or {}))
 
     @property
     def dopamine_feedback_queue(self) -> List[Dict]:
@@ -505,11 +681,21 @@ class GameState:
 
     @property
     def metrics(self) -> GameMetrics:
-        return GameMetrics()  # TODO: Integrate with StateManager metrics
+        # Use in-memory backing field for metrics until StateManager integration
+        return getattr(self, '_metrics', GameMetrics())
 
     @metrics.setter
     def metrics(self, value: GameMetrics):
-        pass  # TODO: Integrate with StateManager metrics
+        # Store metrics in a private backing field. Migration to StateManager
+        # will later persist these into the canonical store.
+        if isinstance(value, GameMetrics):
+            self._metrics = value
+        elif isinstance(value, dict):
+            # Allow assignment from dict for deserialization convenience
+            self._metrics = GameMetrics.from_dict(value)
+        else:
+            # Fallback: create empty metrics
+            self._metrics = GameMetrics()
 
     def _initialize_game_data(self):
         """Initialize game data and set up subscriptions."""
@@ -616,15 +802,20 @@ class GameState:
         initial_incident_count = random.randint(3, 5)
         if self._logger:
             self._logger.info(f"[GAME_STATE] Generating {initial_incident_count} initial incidents for new game")
-        
+
         for _ in range(initial_incident_count):
             client = random.choice(self.clients)
             try:
                 incident = self._incident_generator.generate_incident(client)
                 if incident:
-                    self.incidents.append(incident)
+                    # Persist incident into the StateManager (do not append to temporary list)
+                    self._state_manager.add_incident(incident)
                     if self._logger:
-                        self._logger.info(f"[GAME_STATE] Generated initial incident: {incident.incident_type} (difficulty {incident.difficulty})")
+                        # Log full incident id and initial status for lifecycle tracing
+                        # Note: Incident uses 'incident_type' as the label field
+                        self._logger.info(
+                            f"[GAME_STATE] Generated initial incident: id={incident.id} incident_type={incident.incident_type} status={getattr(incident,'status',None)} difficulty={getattr(incident,'difficulty',None)} spawn_time={getattr(incident,'spawn_time',None)} ts={time.time()}"
+                        )
             except Exception as e:
                 if self._logger:
                     self._logger.warning(f"[GAME_STATE] Failed to generate initial incident: {e}")
@@ -847,9 +1038,17 @@ class GameState:
                     self._fail_incident(incident)
                     incidents_to_remove.append(incident)
 
-        # Remove resolved/failed incidents
+        # Remove resolved/failed incidents from the StateManager
         for incident in incidents_to_remove:
-            self.incidents.remove(incident)
+            try:
+                self._state_manager.remove_incident(incident.id)
+            except Exception:
+                # Defensive: fall back to list removal if necessary
+                try:
+                    self.incidents.remove(incident)
+                except Exception:
+                    if self._logger:
+                        self._logger.debug(f"[GAME_STATE] Could not remove incident {getattr(incident,'id',None)} from state manager")
 
     def _generate_incidents(self, delta_time: float):
         """Generate new incidents based on client rates."""
@@ -860,7 +1059,8 @@ class GameState:
             if self._incident_generator.should_generate_incident(client, delta_time, len(self.incidents)):
                 incident = self._incident_generator.generate_incident(client)
                 if incident:
-                    self.incidents.append(incident)
+                    # Persist generated incident into StateManager
+                    self._state_manager.add_incident(incident)
                     
                     if hasattr(incident, 'difficulty') and isinstance(incident.difficulty, int):
                         risk_contract = self._dopamine_system.offer_risk_contract(incident, incident.difficulty)
@@ -1102,11 +1302,36 @@ class GameState:
 
         # Notify observers of assignment
         if result.success:
+            # Log assignment for lifecycle tracing
+            if self._logger:
+                self._logger.info(
+                    f"[GAME_STATE] Incident assigned: incident_id={incident_id} -> specialist_id={specialist_id} at time={self.current_time} ts={time.time()}"
+                )
+
             self._notify_observers("incident_assigned", {
                 "incident_id": incident_id,
                 "specialist_id": specialist_id,
                 "assignment_time": self.current_time
             })
+
+            # Publish event on the global EventBus so systems like SLAPlugin can react
+            try:
+                event_bus = get_event_bus()
+                client = None
+                client_id_val = getattr(incident, 'client_id', None)
+                if isinstance(client_id_val, str) and client_id_val:
+                    client = self.get_client_by_id(client_id_val)
+                event_bus.publish("incident_assigned", {
+                    "incident_id": incident_id,
+                    "specialist_id": specialist_id,
+                    "incident": incident,
+                    "specialist": specialist,
+                    "client": client,
+                    "assignment_time": self.current_time,
+                })
+            except Exception:
+                # Best-effort publish; never break assignment on event failure
+                pass
 
         return result.success
 
@@ -1239,11 +1464,36 @@ class GameState:
         """Create GameState from dictionary (for loaded games)."""
         instance = cls.__new__(cls)
 
-        # Initialize minimal essentials first
-        instance._json_loader = JSONLoader()
-        instance._logger = GameLogger("game_state")
+        # Initialize essential systems and layered architecture so property
+        # setters (which delegate to StateManager) are safe to use.
+        try:
+            # essential systems set up JSON loader and logger
+            instance._initialize_essential_systems()
+        except Exception:
+            # Fallback to best-effort minimal initialization
+            instance._json_loader = JSONLoader()
+            instance._logger = GameLogger("game_state")
 
-        # Load entities
+        # Initialize layered architecture (creates StateManager, GameLogic, etc.)
+        try:
+            instance._initialize_layered_architecture()
+        except Exception:
+            # If layered init fails, leave instance in minimal usable state
+            if not hasattr(instance, '_state_manager'):
+                from src.core.state_manager import StateManager
+                instance._state_manager = StateManager(budget=Budget(total_reserves=5000.0))
+
+        # Initialize legacy systems which also prepares core systems that expect
+        # attributes like _dopamine_system, _idle_core, etc.
+        try:
+            instance._initialize_legacy_systems()
+        except Exception:
+            # Best-effort: ensure attributes referenced by core init exist
+            for attr in ('_dopamine_system', '_idle_core', '_equipment_system', '_relationships_system', '_automation_processor', '_incident_generator', '_passive_income_system'):
+                if not hasattr(instance, attr):
+                    setattr(instance, attr, None)
+
+        # Load entities into the StateManager-backed properties
         instance.specialists = [Specialist.from_dict(s) for s in data.get("specialists", [])]
         instance.incidents = [Incident.from_dict(i) for i in data.get("incidents", [])]
         instance.clients = [Client.from_dict(c) for c in data.get("clients", [])]

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cybersecurity Firm - Game Launcher</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1e2442 100%);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .launcher {
+            background: rgba(21, 25, 55, 0.9);
+            border: 2px solid #00ff88;
+            border-radius: 20px;
+            padding: 60px 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 8px 32px rgba(0, 255, 136, 0.3);
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 36px;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #00ff88, #00ccff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            color: #8892b0;
+            font-size: 18px;
+            margin-bottom: 40px;
+        }
+
+        .features {
+            text-align: left;
+            margin-bottom: 40px;
+            padding: 20px;
+            background: rgba(10, 14, 39, 0.5);
+            border-radius: 10px;
+        }
+
+        .feature {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+            color: #8892b0;
+        }
+
+        .feature-icon {
+            font-size: 24px;
+        }
+
+        .feature:last-child {
+            margin-bottom: 0;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 16px 32px;
+            background: linear-gradient(135deg, #00ff88, #00ccff);
+            color: #0a0e27;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            margin: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 255, 136, 0.5);
+        }
+
+        .status {
+            margin-top: 30px;
+            padding: 15px;
+            background: rgba(255, 51, 102, 0.1);
+            border: 1px solid #ff3366;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .status.checking {
+            display: block;
+            background: rgba(255, 204, 0, 0.1);
+            border-color: #ffcc00;
+        }
+
+        .status.connected {
+            display: block;
+            background: rgba(0, 255, 136, 0.1);
+            border-color: #00ff88;
+        }
+
+        .status.error {
+            display: block;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #00ff88;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="launcher">
+        <div class="logo">🔒</div>
+        <h1>Cybersecurity Firm</h1>
+        <p class="subtitle">Idle Tycoon & Management Game</p>
+
+        <div class="features">
+            <div class="feature">
+                <span class="feature-icon">🚨</span>
+                <span>Manage security incidents in real-time</span>
+            </div>
+            <div class="feature">
+                <span class="feature-icon">👨‍💼</span>
+                <span>Hire and train specialist security teams</span>
+            </div>
+            <div class="feature">
+                <span class="feature-icon">💰</span>
+                <span>Grow your cybersecurity empire</span>
+            </div>
+            <div class="feature">
+                <span class="feature-icon">⚡</span>
+                <span>Real-time WebSocket-powered gameplay</span>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 15px; margin: 30px 0;">
+            <a href="command-center.html" class="btn" style="flex: 1; background: linear-gradient(135deg, #00ff88, #00ccff); font-size: 18px;">
+                🚀 Launch Command Center
+            </a>
+            <a href="game.html" class="btn" style="flex: 1; background: rgba(0, 255, 136, 0.2); border: 2px solid #00ff88;">
+                📊 Classic Interface
+            </a>
+        </div>
+
+        <div id="status" class="status">
+            <span id="status-text"></span>
+        </div>
+    </div>
+
+    <script>
+        // Check if game server is running
+        const statusEl = document.getElementById('status');
+        const statusText = document.getElementById('status-text');
+
+        function checkServer() {
+            statusEl.className = 'status checking';
+            statusText.innerHTML = '<span class="spinner"></span>Checking game server...';
+
+            const ws = new WebSocket(`ws://${window.location.hostname}:8765`);
+            
+            ws.onopen = () => {
+                statusEl.className = 'status connected';
+                statusText.textContent = '✅ Game server is running! Click above to play.';
+                ws.close();
+            };
+
+            ws.onerror = () => {
+                statusEl.className = 'status error';
+                statusText.innerHTML = '⚠️ Game server not detected. Please start the server:<br><code style="display:block;margin-top:10px;padding:10px;background:#0a0e27;border-radius:5px;">python main.py --local-server</code>';
+            };
+        }
+
+        // Check on page load
+        checkServer();
+    </script>
+</body>
+</html>

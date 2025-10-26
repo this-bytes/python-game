@@ -21,7 +21,13 @@ from src.ui.detail_panel_renderer import DetailPanelRenderer
 from src.ui.components.hud_overlay import HUDOverlay
 from src.ui.components.quick_reference import QuickReference
 from src.ui.components.tab_bar import TabBar, Tab
-from src.ui.modals import ModalManager as TabModalManager, SpecialistModal, IncidentModal
+from src.ui.modals import (
+    ModalManager as TabModalManager,
+    SpecialistModal,
+    IncidentModal,
+    IncidentSelectorModal,
+)
+from src.ui.modals.specialist_selector_modal import SpecialistSelectorModal
 from src.core.event_bus import get_event_bus, Event
 
 
@@ -109,19 +115,35 @@ class GameUI:
         # Initialize detail panel renderer
         self.detail_panel_renderer = DetailPanelRenderer()
         
-        # Initialize dashboard manager and panel
+        # Initialize dashboard manager and panel. If no system_manager is provided
+        # create a lightweight local stub so the dashboard can still render basic info
         if self.system_manager:
             self.dashboard_manager = DashboardManager(self.system_manager)
             self.dashboard_panel = DashboardPanel(
                 x=10,
                 y=60
-                # Removed on_widget_clicked callback
             )
+            # Attach managers so panel can render immediately
+            self.dashboard_panel.set_managers(self.dashboard_manager, self.game_state)
             self.logger.info("[GAME_UI] Dashboard initialized with system plugins")
         else:
-            self.dashboard_manager = None
-            self.dashboard_panel = None
-            self.logger.warning("[GAME_UI] No system_manager provided - dashboard disabled")
+            # Minimal local stub to satisfy DashboardManager expectations
+            class _LocalSystemManagerStub:
+                def get_all_systems(self):
+                    return {}
+
+            try:
+                self.logger.info("[GAME_UI] No system_manager provided - creating local dashboard stub")
+                local_stub = _LocalSystemManagerStub()
+                self.dashboard_manager = DashboardManager(local_stub)
+                self.dashboard_panel = DashboardPanel(x=10, y=60)
+                self.dashboard_panel.set_managers(self.dashboard_manager, self.game_state)
+                self.logger.info("[GAME_UI] Dashboard initialized with local stub manager")
+            except Exception:
+                # If anything fails, fall back to disabling dashboard but don't crash UI
+                self.dashboard_manager = None
+                self.dashboard_panel = None
+                self.logger.warning("[GAME_UI] Failed to init local dashboard stub - dashboard disabled")
         
         # Initialize gameplay panels
         from src.ui.panels import (
@@ -166,6 +188,15 @@ class GameUI:
         self.event_bus.subscribe("incident_generated", self._on_data_changed)
         self.event_bus.subscribe("incident_assigned", self._on_data_changed)
         self.event_bus.subscribe("incident_completed", self._on_data_changed)
+        # Notifications for important events
+        try:
+            self.event_bus.subscribe("sla_violated", self._on_sla_violated)
+            self.event_bus.subscribe("client_lost", self._on_client_lost)
+            # Keep lightweight incident generated notification
+            self.event_bus.subscribe("incident_generated", self._on_incident_generated_notify)
+        except Exception:
+            # Be defensive - event bus implementations may vary
+            pass
         
         self.logger.info("[GAME_UI] Subscribed to data change events")
 
@@ -262,6 +293,40 @@ class GameUI:
             event: The data change event
         """
         self.logger.debug(f"[GAME_UI] Data changed event: {event.type}")
+
+    def _on_sla_violated(self, event: Event) -> None:
+        """Handle SLA violation events and show a warning notification."""
+        try:
+            incident_id = event.data.get('incident_id')
+            client_id = event.data.get('client_id')
+            title = "SLA Violated"
+            msg = f"Incident {incident_id} violated SLA for {client_id}" if incident_id and client_id else "An SLA was violated"
+            self.notification_manager.show_warning(title, msg, duration=4.0)
+            self.logger.warning(f"[GAME_UI] SLA violated: {incident_id} for {client_id}")
+        except Exception:
+            pass
+
+    def _on_client_lost(self, event: Event) -> None:
+        """Handle client lost events and show an error notification."""
+        try:
+            client_id = event.data.get('client_id')
+            title = "Client Lost"
+            msg = f"Client {client_id} has terminated their contract." if client_id else "A client has been lost."
+            self.notification_manager.show_error(title, msg, duration=5.0)
+            self.logger.error(f"[GAME_UI] Client lost: {client_id}")
+        except Exception:
+            pass
+
+    def _on_incident_generated_notify(self, event: Event) -> None:
+        """Show a brief info notification when an incident is generated."""
+        try:
+            incident = event.data.get('incident') if isinstance(event.data, dict) else None
+            title = "New Incident"
+            msg = f"{getattr(incident,'name', 'Incident')} spawned" if incident else "A new incident has been generated"
+            self.notification_manager.show_info(title, msg, duration=2.5)
+            self.logger.info(f"[GAME_UI] Incident generated notification: {msg}")
+        except Exception:
+            pass
     
     def _publish_specialist_action(self, action: str, specialist_id: str) -> None:
         """Publish specialist action event to EventBus.
@@ -305,6 +370,70 @@ class GameUI:
             "specialist_id": specialist_id
         }, source="game_ui")
         self.logger.info(f"[GAME_UI] Specialist selected: {specialist_id}")
+
+        # Open specialist modal so player can take actions (assign/promote/deactivate)
+        try:
+            # Find specialist object from game_state
+            specialist = None
+            for s in getattr(self.game_state, 'specialists', []) or []:
+                if getattr(s, 'id', None) == specialist_id:
+                    specialist = s
+                    break
+
+            if specialist:
+                # Callback for Assign: if an incident is selected, publish assign action
+                def _on_assign():
+                    if self.selected_incident_id:
+                        # Publish assignment using incident-focused action
+                        self._publish_incident_action("assign", self.selected_incident_id, specialist_id)
+                        # Close modal by popping it
+                        try:
+                            self.tab_modal_manager.pop_modal()
+                        except Exception:
+                            pass
+                    else:
+                        # No incident selected - open incident selector modal so the player
+                        # can pick one inline instead of forcing them to pre-select.
+                        try:
+                            # Build list of available unassigned incidents
+                            pending = []
+                            if hasattr(self.game_state, 'get_pending_incidents') and callable(self.game_state.get_pending_incidents):
+                                try:
+                                    pending = list(self.game_state.get_pending_incidents() or [])
+                                except Exception:
+                                    pending = []
+                            if not pending:
+                                pending = list(getattr(self.game_state, 'incidents', []) or [])
+
+                            unassigned = [inc for inc in pending if not getattr(inc, 'assigned_specialist_id', None)]
+
+                            selector = IncidentSelectorModal(
+                                available_incidents=unassigned,
+                                specialist_id=specialist_id,
+                                on_incident_selected=lambda inc_id: (
+                                    self._publish_incident_action("assign", inc_id, specialist_id)
+                                )
+                            )
+                            selector.set_position(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
+                            self.tab_modal_manager.push_modal(selector)
+                        except Exception:
+                            # Fallback: show notification
+                            self.notification_manager.show_error(
+                                "No Incident Selected",
+                                "Select an incident from the Incidents tab before assigning.",
+                                duration=3.5
+                            )
+
+                modal = SpecialistModal(
+                    specialist,
+                    on_assign_clicked=_on_assign,
+                    on_promote_clicked=lambda: self._publish_specialist_action("promote", specialist_id),
+                    on_deactivate_clicked=lambda: self._publish_specialist_action("deactivate", specialist_id)
+                )
+                modal.set_position(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
+                self.tab_modal_manager.push_modal(modal)
+        except Exception:
+            self.logger.exception("[GAME_UI] Failed to open specialist modal")
     
     def _on_incident_selected(self, incident_id: str) -> None:
         """Handle incident card selection.
@@ -319,6 +448,64 @@ class GameUI:
             "incident_id": incident_id
         }, source="game_ui")
         self.logger.info(f"[GAME_UI] Incident selected: {incident_id}")
+
+        # Open incident modal so player can take actions (assign/complete)
+        try:
+            incident = None
+            for inc in list(getattr(self.game_state, 'incidents', []) or []):
+                if getattr(inc, 'id', None) == incident_id:
+                    incident = inc
+                    break
+
+            if incident:
+                def _on_assign():
+                    # If a specialist is selected in roster, assign them; else prompt
+                    if self.selected_specialist_id:
+                        self._publish_incident_action("assign", incident_id, self.selected_specialist_id)
+                        try:
+                            self.tab_modal_manager.pop_modal()
+                        except Exception:
+                            pass
+                    else:
+                        try:
+                            # Build list of available specialists (prefer available flag or unassigned)
+                            all_specs = list(getattr(self.game_state, 'specialists', []) or [])
+                            available_specs = []
+                            for s in all_specs:
+                                # prefer explicit availability attribute when present
+                                if getattr(s, 'is_available', None) is not None:
+                                    if getattr(s, 'is_available'):
+                                        available_specs.append(s)
+                                else:
+                                    # fallback: include specialists not currently assigned
+                                    if not getattr(s, 'current_incident', None) and not getattr(s, 'assigned_incident_id', None):
+                                        available_specs.append(s)
+
+                            selector = SpecialistSelectorModal(
+                                available_specialists=available_specs,
+                                incident_id=incident_id,
+                                on_specialist_selected=lambda spec_id: (
+                                    self._publish_incident_action("assign", incident_id, spec_id)
+                                )
+                            )
+                            selector.set_position(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
+                            self.tab_modal_manager.push_modal(selector)
+                        except Exception:
+                            self.notification_manager.show_error(
+                                "No Specialist Selected",
+                                "Select a specialist from the Team Roster before assigning.",
+                                duration=3.5
+                            )
+
+                modal = IncidentModal(
+                    incident,
+                    on_assign_clicked=_on_assign,
+                    on_complete_clicked=lambda: self._publish_incident_action("complete", incident_id)
+                )
+                modal.set_position(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
+                self.tab_modal_manager.push_modal(modal)
+        except Exception:
+            self.logger.exception("[GAME_UI] Failed to open incident modal")
     
     def handle_input(self, events: List[pygame.event.Event]) -> None:
         """Process input events. Game actions are published via EventBus.
@@ -427,8 +614,14 @@ class GameUI:
                     # Close detail panel or exit
                     if self.detail_panel_open:
                         self._on_detail_panel_close()
-                    elif self.modal_manager.is_modal_open():
-                        self.modal_manager.close_modal()
+                    elif getattr(self.modal_manager, 'is_modal_open', lambda: False)():
+                        # Backwards-compatible guard: some ModalManager implementations
+                        # may not expose is_modal_open(). Use hasattr fallback.
+                        try:
+                            self.modal_manager.close_modal()
+                        except Exception:
+                            # Be defensive - don't crash UI on modal manager mismatch
+                            self.logger.debug("[GAME_UI] modal_manager.close_modal() failed or unavailable")
                     else:
                         self.running = False
         
@@ -570,11 +763,35 @@ class GameUI:
         Shows unassigned incidents waiting for specialist assignment.
         Players triage and assign incidents to specialists.
         """
-        unassigned_incidents = [
-            inc for inc in self.game_state.incidents 
-            if not hasattr(inc, 'assigned_specialist_id') or inc.assigned_specialist_id is None
-        ]
-        self.incident_queue.draw(self.screen, unassigned_incidents, self.game_state)
+        # Prefer GameState API if present and non-empty; otherwise fall back to scanning all incidents
+        pending = []
+        if hasattr(self.game_state, 'get_pending_incidents') and callable(self.game_state.get_pending_incidents):
+            try:
+                pending = list(self.game_state.get_pending_incidents() or [])
+            except Exception:
+                pending = []
+
+        # Full incident list for diagnostics / fallback
+        all_incidents = list(getattr(self.game_state, 'incidents', []) or [])
+
+        # If helper returned nothing, fall back to scanning all incidents
+        if not pending:
+            pending = all_incidents
+
+        # Filter to unassigned incidents (robust against '', None etc.)
+        unassigned_incidents = [inc for inc in pending if not getattr(inc, 'assigned_specialist_id', None)]
+
+        # Helpful debug: log counts and a small sample (id:status) from the full list
+        try:
+            sample_info = [f"{getattr(inc,'id',None)}:{getattr(inc,'status',None)}" for inc in all_incidents[:6]]
+            self.logger.info(
+                f"[GAME_UI] Rendering incidents tab: pending={len(pending)}, unassigned={len(unassigned_incidents)}, sample={sample_info}"
+            )
+        except Exception:
+            pass
+
+        # Draw panel with snapshot list
+        self.incident_queue.draw(self.screen, list(unassigned_incidents), self.game_state)
 
     def _render_specialists_tab(self) -> None:
         """Render specialists tab - team view.

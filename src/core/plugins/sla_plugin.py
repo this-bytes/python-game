@@ -336,6 +336,29 @@ class SLAPlugin(GameSystem, UIProvider):
                 return
             
             tracker = self._sla_monitor.get_tracker_for_incident(incident_id)
+            # Fallback: if no tracker exists yet (e.g., no incident_created event was published),
+            # create one opportunistically using any incident/client data included on the event.
+            if not tracker:
+                incident_obj = event.data.get("incident")
+                client_obj = event.data.get("client")
+                try:
+                    if incident_obj and client_obj:
+                        tracker_id = f"sla_{incident_id}"
+                        client_id = getattr(client_obj, 'client_id', None) or client_obj.get('client_id')
+                        tracker = SLATracker(
+                            tracker_id=tracker_id,
+                            client_id=str(client_id) if client_id else "unknown_client",
+                            month=0,
+                            total_incidents=1,
+                        )
+                        self._sla_monitor.add_tracker(tracker, incident_id=incident_id)
+                        logger.info(
+                            f"[SLA_PLUGIN] Opportunistically created SLA tracker for incident {incident_id}"
+                        )
+                except Exception:
+                    # Continue without tracker if creation fails
+                    tracker = None
+
             if tracker:
                 # Mark response SLA as met (response time = assignment time)
                 tracker.response_sla_met += 1

@@ -27,7 +27,8 @@ class IncidentModal(EntityModal):
             on_assign_clicked: Callback when Assign is clicked
             on_complete_clicked: Callback when Complete is clicked
         """
-        super().__init__(incident.id, incident.name)
+    # Incident objects use 'incident_type' as the human-readable type/name
+        super().__init__(incident.id, getattr(incident, 'incident_type', 'Incident'))
         self.incident = incident
         
         self.on_assign_clicked = on_assign_clicked

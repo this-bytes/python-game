@@ -1,0 +1,1506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cybersecurity Firm - Command Center</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a0e27;
+            --bg-secondary: #151937;
+            --bg-tertiary: #1e2442;
+            --bg-quaternary: #252d4d;
+            --accent-primary: #00ff88;
+            --accent-secondary: #00ccff;
+            --accent-tertiary: #ff00ff;
+            --accent-danger: #ff3366;
+            --accent-warning: #ffcc00;
+            --text-primary: #ffffff;
+            --text-secondary: #8892b0;
+            --text-tertiary: #4a5578;
+            --border-color: #2d3561;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            --glow: 0 0 20px rgba(0, 255, 136, 0.3);
+            --glow-strong: 0 0 30px rgba(0, 255, 136, 0.6);
+        }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: radial-gradient(ellipse at top, #1a1f3a 0%, var(--bg-primary) 100%);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* ===== PERSISTENT HUD ===== */
+        .hud {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 70px;
+            background: linear-gradient(180deg, rgba(21, 25, 55, 0.98) 0%, rgba(21, 25, 55, 0.95) 100%);
+            border-bottom: 2px solid var(--accent-primary);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+
+        .hud-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 100%;
+            padding: 0 30px;
+        }
+
+        .hud-logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .hud-logo-icon {
+            font-size: 32px;
+            animation: pulse 3s ease-in-out infinite;
+        }
+
+        .hud-logo-text {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 24px;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(0, 255, 136, 0.5);
+        }
+
+        .hud-stats {
+            display: flex;
+            gap: 40px;
+            align-items: center;
+        }
+
+        .hud-stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        .hud-stat-label {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 3px;
+        }
+
+        .hud-stat-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--accent-primary);
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+
+        .hud-stat-value.danger {
+            color: var(--accent-danger);
+            text-shadow: 0 0 10px rgba(255, 51, 102, 0.5);
+        }
+
+        .hud-stat-value.warning {
+            color: var(--accent-warning);
+            text-shadow: 0 0 10px rgba(255, 204, 0, 0.5);
+        }
+
+        .hud-actions {
+            display: flex;
+            gap: 15px;
+        }
+
+        .hud-button {
+            padding: 8px 20px;
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid var(--accent-primary);
+            border-radius: 4px;
+            color: var(--accent-primary);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .hud-button:hover {
+            background: var(--accent-primary);
+            color: var(--bg-primary);
+            box-shadow: var(--glow);
+        }
+
+        /* ===== DESKTOP ENVIRONMENT ===== */
+        .desktop {
+            position: fixed;
+            top: 70px;
+            left: 0;
+            right: 0;
+            bottom: 60px;
+            padding: 30px;
+            overflow: hidden;
+        }
+
+        .desktop-icons {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, 120px);
+            gap: 30px;
+            height: 100%;
+            align-content: start;
+        }
+
+        .desktop-icon {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            padding: 20px 10px;
+            background: rgba(21, 25, 55, 0.5);
+            border: 2px solid transparent;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .desktop-icon:hover {
+            background: rgba(30, 36, 66, 0.8);
+            border-color: var(--accent-primary);
+            box-shadow: var(--glow);
+            transform: translateY(-5px);
+        }
+
+        .desktop-icon-image {
+            font-size: 48px;
+            filter: drop-shadow(0 0 10px rgba(0, 255, 136, 0.3));
+        }
+
+        .desktop-icon-label {
+            font-size: 13px;
+            font-weight: 600;
+            text-align: center;
+            color: var(--text-primary);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .desktop-icon-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: var(--accent-danger);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+            box-shadow: 0 2px 8px rgba(255, 51, 102, 0.4);
+        }
+
+        /* ===== WINDOW SYSTEM ===== */
+        .window {
+            position: fixed;
+            background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+            border: 2px solid var(--accent-primary);
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 100;
+        }
+
+        .window.active {
+            display: flex;
+            z-index: 200;
+        }
+
+        .window.maximized {
+            top: 70px !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 60px !important;
+            width: auto !important;
+            height: auto !important;
+            border-radius: 0;
+        }
+
+        .window-titlebar {
+            height: 50px;
+            background: linear-gradient(180deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: move;
+            user-select: none;
+        }
+
+        .window-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--accent-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .window-control-btn {
+            width: 32px;
+            height: 32px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: rgba(0, 0, 0, 0.3);
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 16px;
+        }
+
+        .window-control-btn:hover {
+            background: var(--accent-primary);
+            color: var(--bg-primary);
+            border-color: var(--accent-primary);
+        }
+
+        .window-control-btn.close:hover {
+            background: var(--accent-danger);
+            border-color: var(--accent-danger);
+        }
+
+        .window-content {
+            flex: 1;
+            overflow: auto;
+            padding: 20px;
+        }
+
+        /* ===== TASKBAR ===== */
+        .taskbar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: linear-gradient(180deg, rgba(21, 25, 55, 0.95) 0%, rgba(21, 25, 55, 0.98) 100%);
+            border-top: 2px solid var(--accent-primary);
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+
+        .taskbar-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 100%;
+            padding: 0 20px;
+        }
+
+        .taskbar-windows {
+            display: flex;
+            gap: 10px;
+            flex: 1;
+        }
+
+        .taskbar-window {
+            padding: 8px 20px;
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid var(--accent-primary);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .taskbar-window:hover {
+            background: rgba(0, 255, 136, 0.2);
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+        }
+
+        .taskbar-window.active {
+            background: var(--accent-primary);
+            color: var(--bg-primary);
+        }
+
+        .taskbar-clock {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--accent-primary);
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+
+        /* ===== COMMON COMPONENTS ===== */
+        .panel {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--accent-primary);
+        }
+
+        .panel-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--accent-primary);
+        }
+
+        .panel-badge {
+            background: var(--accent-primary);
+            color: var(--bg-primary);
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        /* ===== ENTITY CARDS ===== */
+        .entity-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+        }
+
+        .entity-card {
+            background: linear-gradient(135deg, var(--bg-quaternary) 0%, var(--bg-tertiary) 100%);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .entity-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+        }
+
+        .entity-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(0, 255, 136, 0.2);
+            border-color: var(--accent-primary);
+        }
+
+        .entity-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .entity-card-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .entity-card-status {
+            padding: 4px 10px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .status-available {
+            background: rgba(0, 255, 136, 0.2);
+            color: var(--accent-primary);
+            border: 1px solid var(--accent-primary);
+        }
+
+        .status-busy {
+            background: rgba(255, 204, 0, 0.2);
+            color: var(--accent-warning);
+            border: 1px solid var(--accent-warning);
+        }
+
+        .status-critical {
+            background: rgba(255, 51, 102, 0.2);
+            color: var(--accent-danger);
+            border: 1px solid var(--accent-danger);
+        }
+
+        .entity-card-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-top: 2px;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: var(--bg-primary);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+            transition: width 0.3s ease;
+        }
+
+        /* ===== BUTTONS ===== */
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            color: var(--bg-primary);
+        }
+
+        .btn-primary:hover {
+            box-shadow: var(--glow-strong);
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: var(--accent-danger);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--bg-quaternary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        /* ===== ANIMATIONS ===== */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: slideIn 0.3s ease;
+        }
+
+        /* ===== SCROLLBAR ===== */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent-primary);
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-secondary);
+        }
+
+        /* ===== NOTIFICATIONS ===== */
+        .notifications {
+            position: fixed;
+            top: 90px;
+            right: 20px;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 400px;
+        }
+
+        .notification {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+            border: 2px solid var(--accent-primary);
+            border-radius: 8px;
+            padding: 15px 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            animation: slideIn 0.3s ease;
+        }
+
+        .notification-title {
+            font-weight: 700;
+            margin-bottom: 5px;
+            color: var(--accent-primary);
+        }
+
+        .notification-message {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        /* ===== MODAL ===== */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            z-index: 3000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal {
+            background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+            border: 2px solid var(--accent-primary);
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9);
+        }
+
+        .modal-header {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--accent-primary);
+            margin-bottom: 20px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+            justify-content: flex-end;
+        }
+
+        /* ===== DETAIL VIEW ===== */
+        .detail-view {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+        }
+
+        .detail-sidebar {
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .detail-avatar {
+            width: 100%;
+            aspect-ratio: 1;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 64px;
+            margin-bottom: 20px;
+            box-shadow: 0 0 40px rgba(0, 255, 136, 0.4);
+        }
+
+        .detail-name {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 24px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .detail-role {
+            text-align: center;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        .detail-main {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* ===== CHARTS & METRICS ===== */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .metric-card {
+            background: var(--bg-quaternary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--accent-primary);
+            text-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+        }
+
+        .metric-label {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            margin-top: 8px;
+            letter-spacing: 1px;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 1200px) {
+            .desktop-icons {
+                grid-template-columns: repeat(auto-fill, 100px);
+                gap: 20px;
+            }
+
+            .detail-view {
+                grid-template-columns: 1fr;
+            }
+
+            .hud-stats {
+                gap: 20px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hud-content {
+                padding: 0 15px;
+            }
+
+            .hud-logo-text {
+                display: none;
+            }
+
+            .desktop {
+                padding: 15px;
+            }
+
+            .entity-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body x-data="gameOS()" x-init="init()">
+    <!-- PERSISTENT HUD -->
+    <div class="hud">
+        <div class="hud-content">
+            <div class="hud-logo">
+                <div class="hud-logo-icon">🔒</div>
+                <div class="hud-logo-text">CYBEROPS</div>
+            </div>
+            
+            <div class="hud-stats">
+                <div class="hud-stat">
+                    <div class="hud-stat-label">Cash</div>
+                    <div class="hud-stat-value" x-text="'$' + formatNumber(state.money || 0)"></div>
+                </div>
+                
+                <div class="hud-stat">
+                    <div class="hud-stat-label">Day</div>
+                    <div class="hud-stat-value" x-text="currentDay"></div>
+                </div>
+                
+                <div class="hud-stat">
+                    <div class="hud-stat-label">Incidents</div>
+                    <div class="hud-stat-value" 
+                         :class="activeIncidents > 10 ? 'danger' : activeIncidents > 5 ? 'warning' : ''"
+                         x-text="activeIncidents + '/' + totalIncidents"></div>
+                </div>
+                
+                <div class="hud-stat">
+                    <div class="hud-stat-label">Team</div>
+                    <div class="hud-stat-value" x-text="availableSpecialists + '/' + totalSpecialists"></div>
+                </div>
+                
+                <div class="hud-stat">
+                    <div class="hud-stat-label">Reputation</div>
+                    <div class="hud-stat-value" x-text="Math.round(averageSatisfaction * 100) + '%'"></div>
+                </div>
+            </div>
+            
+            <div class="hud-actions">
+                <button class="hud-button" @click="openWindow('settings')">⚙️ Settings</button>
+                <button class="hud-button" 
+                        :class="{'status-available': connected, 'status-critical': !connected}">
+                    <span x-text="connected ? '🟢 Online' : '🔴 Offline'"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- DESKTOP -->
+    <div class="desktop">
+        <div class="desktop-icons">
+            <div class="desktop-icon" @click="openWindow('specialists')">
+                <div class="desktop-icon-image">👨‍💼</div>
+                <div class="desktop-icon-label">Specialists</div>
+                <div class="desktop-icon-badge" x-show="availableSpecialists > 0" x-text="availableSpecialists"></div>
+            </div>
+
+            <div class="desktop-icon" @click="openWindow('incidents')">
+                <div class="desktop-icon-image">🚨</div>
+                <div class="desktop-icon-label">Incidents</div>
+                <div class="desktop-icon-badge" x-show="activeIncidents > 0" x-text="activeIncidents"></div>
+            </div>
+
+            <div class="desktop-icon" @click="openWindow('clients')">
+                <div class="desktop-icon-image">🏢</div>
+                <div class="desktop-icon-label">Clients</div>
+                <div class="desktop-icon-badge" x-show="clients.length > 0" x-text="clients.length"></div>
+            </div>
+
+            <div class="desktop-icon" @click="openWindow('analytics')">
+                <div class="desktop-icon-image">📊</div>
+                <div class="desktop-icon-label">Analytics</div>
+            </div>
+
+            <div class="desktop-icon" @click="openWindow('dispatch')">
+                <div class="desktop-icon-image">🎯</div>
+                <div class="desktop-icon-label">Dispatch</div>
+            </div>
+
+            <div class="desktop-icon" @click="openWindow('briefings')">
+                <div class="desktop-icon-image">📋</div>
+                <div class="desktop-icon-label">Briefings</div>
+            </div>
+
+            <div class="desktop-icon" @click="openWindow('resources')">
+                <div class="desktop-icon-image">⚡</div>
+                <div class="desktop-icon-label">Resources</div>
+            </div>
+
+            <div class="desktop-icon" @click="openWindow('intel')">
+                <div class="desktop-icon-image">🔍</div>
+                <div class="desktop-icon-label">Intel</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SPECIALISTS WINDOW -->
+    <div class="window" :class="{'active': windows.specialists.open, 'maximized': windows.specialists.maximized}"
+         :style="windowStyle('specialists')" x-show="windows.specialists.open">
+        <div class="window-titlebar" @mousedown="startDrag('specialists', $event)">
+            <div class="window-title">
+                <span>👨‍💼</span>
+                <span>Specialist Command</span>
+            </div>
+            <div class="window-controls">
+                <div class="window-control-btn" @click="toggleMaximize('specialists')">
+                    <span x-text="windows.specialists.maximized ? '🗗' : '🗖'"></span>
+                </div>
+                <div class="window-control-btn close" @click="closeWindow('specialists')">✕</div>
+            </div>
+        </div>
+        <div class="window-content">
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">Active Team Members</div>
+                    <div class="panel-badge" x-text="specialists.length"></div>
+                </div>
+                
+                <div class="entity-grid">
+                    <template x-for="spec in specialists" :key="spec.id">
+                        <div class="entity-card" @click="openEntityDetail('specialist', spec)">
+                            <div class="entity-card-header">
+                                <div class="entity-card-title" x-text="spec.name || spec.id"></div>
+                                <div class="entity-card-status" 
+                                     :class="spec.assigned_incident_id || spec.current_incident ? 'status-busy' : 'status-available'"
+                                     x-text="spec.assigned_incident_id || spec.current_incident ? 'BUSY' : 'AVAILABLE'">
+                                </div>
+                            </div>
+                            <div class="entity-card-stats">
+                                <div class="stat-item">
+                                    <div class="stat-label">Specialty</div>
+                                    <div class="stat-value" x-text="spec.specialty || 'General'"></div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">Level</div>
+                                    <div class="stat-value" x-text="spec.level || 1"></div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">XP</div>
+                                    <div class="stat-value" x-text="spec.xp || 0"></div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">Burnout</div>
+                                    <div class="stat-value" x-text="Math.round(spec.burnout_level || 0) + '%'"></div>
+                                </div>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" :style="`width: ${100 - (spec.burnout_level || 0)}%`"></div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- INCIDENTS WINDOW -->
+    <div class="window" :class="{'active': windows.incidents.open, 'maximized': windows.incidents.maximized}"
+         :style="windowStyle('incidents')" x-show="windows.incidents.open">
+        <div class="window-titlebar" @mousedown="startDrag('incidents', $event)">
+            <div class="window-title">
+                <span>🚨</span>
+                <span>Incident Command Center</span>
+            </div>
+            <div class="window-controls">
+                <div class="window-control-btn" @click="toggleMaximize('incidents')">
+                    <span x-text="windows.incidents.maximized ? '🗗' : '🗖'"></span>
+                </div>
+                <div class="window-control-btn close" @click="closeWindow('incidents')">✕</div>
+            </div>
+        </div>
+        <div class="window-content">
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">Active Threats</div>
+                    <div class="panel-badge" x-text="incidents.length"></div>
+                </div>
+                
+                <div class="entity-grid">
+                    <template x-for="inc in incidents" :key="inc.id">
+                        <div class="entity-card" @click="openEntityDetail('incident', inc)">
+                            <div class="entity-card-header">
+                                <div class="entity-card-title" x-text="inc.incident_type || inc.id"></div>
+                                <div class="entity-card-status" 
+                                     :class="inc.assigned_to ? 'status-busy' : 'status-critical'"
+                                     x-text="inc.assigned_to ? 'ASSIGNED' : 'UNASSIGNED'">
+                                </div>
+                            </div>
+                            <div class="entity-card-stats">
+                                <div class="stat-item">
+                                    <div class="stat-label">Specialty</div>
+                                    <div class="stat-value" x-text="inc.specialty_required || 'Any'"></div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">Difficulty</div>
+                                    <div class="stat-value" x-text="'⭐'.repeat(inc.difficulty || 1)"></div>
+                                </div>
+                                <template x-if="inc.assigned_to">
+                                    <div class="stat-item" style="grid-column: 1 / -1;">
+                                        <div class="stat-label">Assigned To</div>
+                                        <div class="stat-value" x-text="getSpecialistName(inc.assigned_to)"></div>
+                                    </div>
+                                </template>
+                            </div>
+                            <template x-if="!inc.assigned_to">
+                                <button class="btn btn-primary" style="width: 100%; margin-top: 10px;" 
+                                        @click.stop="quickAssign(inc)">
+                                    Quick Assign
+                                </button>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CLIENTS WINDOW -->
+    <div class="window" :class="{'active': windows.clients.open, 'maximized': windows.clients.maximized}"
+         :style="windowStyle('clients')" x-show="windows.clients.open">
+        <div class="window-titlebar" @mousedown="startDrag('clients', $event)">
+            <div class="window-title">
+                <span>🏢</span>
+                <span>Client Relations</span>
+            </div>
+            <div class="window-controls">
+                <div class="window-control-btn" @click="toggleMaximize('clients')">
+                    <span x-text="windows.clients.maximized ? '🗗' : '🗖'"></span>
+                </div>
+                <div class="window-control-btn close" @click="closeWindow('clients')">✕</div>
+            </div>
+        </div>
+        <div class="window-content">
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">Active Contracts</div>
+                    <div class="panel-badge" x-text="clients.length"></div>
+                </div>
+                
+                <div class="entity-grid">
+                    <template x-for="client in clients" :key="client.id">
+                        <div class="entity-card" @click="openEntityDetail('client', client)">
+                            <div class="entity-card-header">
+                                <div class="entity-card-title" x-text="client.name || client.id"></div>
+                                <div class="entity-card-status status-available">
+                                    <span x-text="'$' + formatNumber(client.monthly_contract_value || 0)"></span>
+                                </div>
+                            </div>
+                            <div class="entity-card-stats">
+                                <div class="stat-item">
+                                    <div class="stat-label">Industry</div>
+                                    <div class="stat-value" x-text="client.industry || 'Tech'"></div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">Satisfaction</div>
+                                    <div class="stat-value" x-text="Math.round((client.satisfaction || 0) * 100) + '%'"></div>
+                                </div>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" :style="`width: ${(client.satisfaction || 0) * 100}%`"></div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ANALYTICS WINDOW -->
+    <div class="window" :class="{'active': windows.analytics.open, 'maximized': windows.analytics.maximized}"
+         :style="windowStyle('analytics')" x-show="windows.analytics.open">
+        <div class="window-titlebar" @mousedown="startDrag('analytics', $event)">
+            <div class="window-title">
+                <span>📊</span>
+                <span>Performance Analytics</span>
+            </div>
+            <div class="window-controls">
+                <div class="window-control-btn" @click="toggleMaximize('analytics')">
+                    <span x-text="windows.analytics.maximized ? '🗗' : '🗖'"></span>
+                </div>
+                <div class="window-control-btn close" @click="closeWindow('analytics')">✕</div>
+            </div>
+        </div>
+        <div class="window-content">
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-value" x-text="state.total_incidents_resolved || 0"></div>
+                    <div class="metric-label">Total Resolved</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" x-text="successRate + '%'"></div>
+                    <div class="metric-label">Success Rate</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" x-text="averageLevel"></div>
+                    <div class="metric-label">Avg Team Level</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" x-text="'$' + formatNumber(totalRevenue)"></div>
+                    <div class="metric-label">Total Revenue</div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">Team Performance</div>
+                </div>
+                <template x-for="spec in specialists" :key="spec.id">
+                    <div style="margin-bottom: 15px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span x-text="spec.name"></span>
+                            <span x-text="'Level ' + spec.level"></span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" :style="`width: ${(spec.xp % 1000) / 10}%`"></div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+
+    <!-- ENTITY DETAIL MODAL -->
+    <template x-if="entityDetail.show">
+        <div class="modal-overlay" @click.self="closeEntityDetail()">
+            <div class="modal">
+                <div class="modal-header" x-text="entityDetail.data?.name || entityDetail.data?.id"></div>
+                
+                <div class="detail-view">
+                    <div class="detail-sidebar">
+                        <div class="detail-avatar" x-text="entityDetail.type === 'specialist' ? '👤' : entityDetail.type === 'incident' ? '🚨' : '🏢'"></div>
+                        <div class="detail-name" x-text="entityDetail.data?.name || entityDetail.data?.id"></div>
+                        <div class="detail-role" x-text="entityDetail.data?.specialty || entityDetail.data?.industry || entityDetail.data?.incident_type"></div>
+                    </div>
+                    
+                    <div class="detail-main">
+                        <div class="panel">
+                            <div class="panel-header">
+                                <div class="panel-title">Details</div>
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                                <template x-for="(value, key) in entityDetail.data" :key="key">
+                                    <div x-show="!['id', 'name'].includes(key)">
+                                        <div class="stat-label" x-text="key.replace(/_/g, ' ')"></div>
+                                        <div class="stat-value" x-text="formatValue(value)"></div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <template x-if="entityDetail.type === 'incident' && !entityDetail.data?.assigned_to">
+                            <div class="panel">
+                                <div class="panel-header">
+                                    <div class="panel-title">Assign Specialist</div>
+                                </div>
+                                <select style="width: 100%; padding: 10px; background: var(--bg-quaternary); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 4px; margin-bottom: 15px;"
+                                        x-model="entityDetail.selectedSpecialist">
+                                    <option value="">-- Select Specialist --</option>
+                                    <template x-for="spec in availableSpecialistsList" :key="spec.id">
+                                        <option :value="spec.id" x-text="`${spec.name} - ${spec.specialty} (Lvl ${spec.level})`"></option>
+                                    </template>
+                                </select>
+                                <button class="btn btn-primary" style="width: 100%;" 
+                                        @click="assignFromDetail()"
+                                        :disabled="!entityDetail.selectedSpecialist">
+                                    Assign to Incident
+                                </button>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" @click="closeEntityDetail()">Close</button>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- NOTIFICATIONS -->
+    <div class="notifications">
+        <template x-for="notif in notifications" :key="notif.id">
+            <div class="notification" x-show="notif.show" x-transition>
+                <div class="notification-title" x-text="notif.title"></div>
+                <div class="notification-message" x-text="notif.message"></div>
+            </div>
+        </template>
+    </div>
+
+    <!-- TASKBAR -->
+    <div class="taskbar">
+        <div class="taskbar-content">
+            <div class="taskbar-windows">
+                <template x-for="(win, key) in windows" :key="key">
+                    <div class="taskbar-window" 
+                         x-show="win.open"
+                         :class="{'active': win.focused}"
+                         @click="focusWindow(key)"
+                         x-text="win.title">
+                    </div>
+                </template>
+            </div>
+            
+            <div class="taskbar-clock" x-text="currentTime"></div>
+        </div>
+    </div>
+
+    <script>
+        function gameOS() {
+            return {
+                // WebSocket
+                ws: null,
+                connected: false,
+                
+                // Game State
+                state: {
+                    specialists: [],
+                    incidents: [],
+                    clients: [],
+                    money: 0,
+                    game_time: 0,
+                    total_incidents_resolved: 0,
+                    total_incidents_failed: 0
+                },
+
+                // Windows
+                windows: {
+                    specialists: { open: false, maximized: false, focused: false, title: 'Specialists', x: 100, y: 100, width: 1000, height: 700 },
+                    incidents: { open: false, maximized: false, focused: false, title: 'Incidents', x: 150, y: 150, width: 1000, height: 700 },
+                    clients: { open: false, maximized: false, focused: false, title: 'Clients', x: 200, y: 200, width: 900, height: 600 },
+                    analytics: { open: false, maximized: false, focused: false, title: 'Analytics', x: 250, y: 100, width: 800, height: 600 },
+                    dispatch: { open: false, maximized: false, focused: false, title: 'Dispatch', x: 300, y: 150, width: 700, height: 500 },
+                    briefings: { open: false, maximized: false, focused: false, title: 'Briefings', x: 350, y: 200, width: 700, height: 500 },
+                    resources: { open: false, maximized: false, focused: false, title: 'Resources', x: 400, y: 100, width: 700, height: 500 },
+                    intel: { open: false, maximized: false, focused: false, title: 'Intel', x: 450, y: 150, width: 700, height: 500 },
+                    settings: { open: false, maximized: false, focused: false, title: 'Settings', x: 500, y: 200, width: 600, height: 400 }
+                },
+
+                // Drag state
+                dragging: null,
+                dragOffset: { x: 0, y: 0 },
+
+                // Entity detail
+                entityDetail: {
+                    show: false,
+                    type: null,
+                    data: null,
+                    selectedSpecialist: ''
+                },
+
+                // Notifications
+                notifications: [],
+                notificationId: 0,
+
+                // Time
+                currentTime: '00:00:00',
+                
+                // Computed properties
+                get specialists() {
+                    return this.state.specialists || [];
+                },
+                
+                get incidents() {
+                    return this.state.incidents || [];
+                },
+                
+                get clients() {
+                    return this.state.clients || [];
+                },
+                
+                get activeIncidents() {
+                    return this.incidents.filter(i => !i.assigned_to).length;
+                },
+                
+                get totalIncidents() {
+                    return this.incidents.length;
+                },
+                
+                get availableSpecialists() {
+                    return this.specialists.filter(s => !s.assigned_incident_id && !s.current_incident).length;
+                },
+                
+                get totalSpecialists() {
+                    return this.specialists.length;
+                },
+                
+                get currentDay() {
+                    return Math.floor((this.state.game_time || 0) / 86400) + 1;
+                },
+                
+                get averageSatisfaction() {
+                    if (this.clients.length === 0) return 1;
+                    return this.clients.reduce((sum, c) => sum + (c.satisfaction || 0), 0) / this.clients.length;
+                },
+
+                get successRate() {
+                    const total = this.state.total_incidents_resolved || 0;
+                    const failed = this.state.total_incidents_failed || 0;
+                    if (total === 0) return 100;
+                    return Math.round(((total - failed) / total) * 100);
+                },
+
+                get averageLevel() {
+                    if (this.specialists.length === 0) return 0;
+                    const sum = this.specialists.reduce((acc, s) => acc + (s.level || 1), 0);
+                    return (sum / this.specialists.length).toFixed(1);
+                },
+
+                get totalRevenue() {
+                    return this.clients.reduce((sum, c) => sum + (c.monthly_contract_value || 0), 0);
+                },
+
+                get availableSpecialistsList() {
+                    return this.specialists.filter(s => !s.assigned_incident_id && !s.current_incident);
+                },
+
+                init() {
+                    this.connectWebSocket();
+                    this.updateClock();
+                    setInterval(() => this.updateClock(), 1000);
+                    
+                    // Setup drag listeners
+                    document.addEventListener('mousemove', (e) => this.onDrag(e));
+                    document.addEventListener('mouseup', () => this.stopDrag());
+                },
+
+                connectWebSocket() {
+                    const wsUrl = `ws://${window.location.hostname}:8765`;
+                    console.log('Connecting to', wsUrl);
+                    
+                    this.ws = new WebSocket(wsUrl);
+                    
+                    this.ws.onopen = () => {
+                        console.log('WebSocket connected');
+                        this.connected = true;
+                        this.showNotification('System', 'Connected to game server');
+                    };
+                    
+                    this.ws.onmessage = (event) => {
+                        try {
+                            const msg = JSON.parse(event.data);
+                            console.log('Received:', msg.event);
+                            
+                            if (msg.event === 'state_snapshot') {
+                                this.state = msg.data || {};
+                            } else if (msg.event === 'state_patch') {
+                                this.applyPatch(msg.data);
+                            } else if (msg.event === 'action_result') {
+                                this.handleActionResult(msg);
+                            }
+                        } catch (e) {
+                            console.error('Error parsing message:', e);
+                        }
+                    };
+                    
+                    this.ws.onerror = (error) => {
+                        console.error('WebSocket error:', error);
+                        this.connected = false;
+                    };
+                    
+                    this.ws.onclose = () => {
+                        console.log('WebSocket closed. Reconnecting in 3s...');
+                        this.connected = false;
+                        setTimeout(() => this.connectWebSocket(), 3000);
+                    };
+                },
+
+                applyPatch(patch) {
+                    if (patch.specialists) this.state.specialists = patch.specialists;
+                    if (patch.incidents) this.state.incidents = patch.incidents;
+                    if (patch.clients) this.state.clients = patch.clients;
+                    if (patch.money !== undefined) this.state.money = patch.money;
+                },
+
+                // Window Management
+                openWindow(key) {
+                    // Close all windows first for focused experience
+                    Object.keys(this.windows).forEach(k => {
+                        this.windows[k].focused = false;
+                    });
+                    
+                    this.windows[key].open = true;
+                    this.windows[key].focused = true;
+                },
+
+                closeWindow(key) {
+                    this.windows[key].open = false;
+                    this.windows[key].focused = false;
+                },
+
+                focusWindow(key) {
+                    Object.keys(this.windows).forEach(k => {
+                        this.windows[k].focused = false;
+                    });
+                    this.windows[key].focused = true;
+                },
+
+                toggleMaximize(key) {
+                    this.windows[key].maximized = !this.windows[key].maximized;
+                },
+
+                windowStyle(key) {
+                    const win = this.windows[key];
+                    if (win.maximized) return '';
+                    return `top: ${win.y}px; left: ${win.x}px; width: ${win.width}px; height: ${win.height}px;`;
+                },
+
+                startDrag(key, event) {
+                    if (this.windows[key].maximized) return;
+                    
+                    this.dragging = key;
+                    this.dragOffset = {
+                        x: event.clientX - this.windows[key].x,
+                        y: event.clientY - this.windows[key].y
+                    };
+                    this.focusWindow(key);
+                },
+
+                onDrag(event) {
+                    if (!this.dragging) return;
+                    
+                    this.windows[this.dragging].x = event.clientX - this.dragOffset.x;
+                    this.windows[this.dragging].y = event.clientY - this.dragOffset.y;
+                },
+
+                stopDrag() {
+                    this.dragging = null;
+                },
+
+                // Entity Details
+                openEntityDetail(type, data) {
+                    this.entityDetail = {
+                        show: true,
+                        type: type,
+                        data: data,
+                        selectedSpecialist: ''
+                    };
+                },
+
+                closeEntityDetail() {
+                    this.entityDetail.show = false;
+                },
+
+                // Actions
+                quickAssign(incident) {
+                    const available = this.availableSpecialistsList;
+                    if (available.length === 0) {
+                        this.showNotification('Error', 'No specialists available');
+                        return;
+                    }
+
+                    // Find best match
+                    const match = available.find(s => s.specialty === incident.specialty_required) || available[0];
+                    this.assignIncident(incident.id, match.id);
+                },
+
+                assignIncident(incidentId, specialistId) {
+                    const action = {
+                        action: 'assign_incident',
+                        id: 'client_' + Date.now(),
+                        data: {
+                            incident_id: incidentId,
+                            specialist_id: specialistId
+                        },
+                        wait_for_result: true
+                    };
+
+                    console.log('Sending action:', action);
+                    this.ws.send(JSON.stringify(action));
+                    this.showNotification('Action', 'Assignment request sent');
+                },
+
+                assignFromDetail() {
+                    if (!this.entityDetail.selectedSpecialist || !this.entityDetail.data) return;
+                    
+                    this.assignIncident(this.entityDetail.data.id, this.entityDetail.selectedSpecialist);
+                    this.closeEntityDetail();
+                },
+
+                handleActionResult(msg) {
+                    console.log('Action result:', msg.result);
+                    if (msg.result.status === 'ok') {
+                        this.showNotification('Success', 'Incident assigned successfully!');
+                    } else {
+                        this.showNotification('Error', 'Assignment failed: ' + (msg.result.error || 'unknown error'));
+                    }
+                },
+
+                // Notifications
+                showNotification(title, message) {
+                    const id = this.notificationId++;
+                    const notif = { id, title, message, show: true };
+                    this.notifications.push(notif);
+                    
+                    setTimeout(() => {
+                        notif.show = false;
+                        setTimeout(() => {
+                            this.notifications = this.notifications.filter(n => n.id !== id);
+                        }, 300);
+                    }, 3000);
+                },
+
+                // Helpers
+                getSpecialistName(specialistId) {
+                    const specialist = this.specialists.find(s => s.id === specialistId);
+                    return specialist ? (specialist.name || specialist.id) : specialistId;
+                },
+
+                formatNumber(num) {
+                    return num.toLocaleString();
+                },
+
+                formatValue(value) {
+                    if (typeof value === 'number') {
+                        if (value > 1000) return this.formatNumber(value);
+                        if (value < 1 && value > 0) return (value * 100).toFixed(1) + '%';
+                        return value;
+                    }
+                    if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+                    if (typeof value === 'object') return JSON.stringify(value);
+                    return value;
+                },
+
+                updateClock() {
+                    const now = new Date();
+                    this.currentTime = now.toLocaleTimeString();
+                }
+            }
+        }
+    </script>
+</body>
+</html>

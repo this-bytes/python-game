@@ -72,6 +72,10 @@ class ContractManager:
         if client.satisfaction < 0.3:
             # Low satisfaction clients unlikely to accept negotiations
             return None
+        # Also require a minimum reputation for negotiations to succeed
+        # Reputation is a 0-100 scale; very low reputation (<30) should block new deals
+        if getattr(client, 'reputation', 100) < 30:
+            return None
 
         # Create contract from template with negotiated terms
         contract_id = f"contract_{uuid.uuid4().hex[:8]}"
@@ -79,8 +83,8 @@ class ContractManager:
         duration_days = terms.get("duration_days", template["duration_days"])
 
         contract = Contract(
-            contract_id=contract_id,
-            client_id=client.id,
+            id=contract_id,
+            client_id=client.client_id if hasattr(client, 'client_id') else client.id,
             contract_type=template["contract_type"],
             base_rate=base_rate,
             sla_terms=template["sla_terms"].copy(),
@@ -115,21 +119,20 @@ class ContractManager:
             return contract
 
         # Better reputation = better renewal terms
-        new_duration = contract.end_month - contract.start_month + 1
-        new_base_rate = contract.monthly_value
+        new_duration = contract.duration_days
+        new_base_rate = contract.base_rate
 
-        if client.satisfaction >= 80:
+        # Client.satisfaction in Client model is 0.0-1.0
+        if client.satisfaction >= 0.8:
             # Excellent satisfaction: 20% rate increase, longer duration
             new_base_rate *= 1.2
             new_duration = int(new_duration * 1.5)
-        elif client.satisfaction >= 60:
+        elif client.satisfaction >= 0.6:
             # Good satisfaction: 10% rate increase
             new_base_rate *= 1.1
 
         # Renew with improved terms
-        contract.renew(
-            new_duration_days=new_duration, new_terms={"base_rate": new_base_rate}
-        )
+        contract.renew(duration_days=new_duration, overrides={"base_rate": new_base_rate})
 
         return contract
 
@@ -212,7 +215,10 @@ class ContractManager:
         total_income = 0.0
 
         for contract in contracts:
-            if contract.contract_type == "retainer" and contract.is_active:
+            # Normalize is_active whether it's a method or a boolean attribute
+            active_attr = getattr(contract, 'is_active', False)
+            is_active_flag = active_attr() if callable(active_attr) else bool(active_attr)
+            if contract.contract_type == "retainer" and is_active_flag:
                 # Calculate income based on time elapsed
                 # Retainer pays evenly over contract duration
                 daily_rate = contract.base_rate / contract.duration_days
@@ -250,13 +256,16 @@ class ContractManager:
         Returns:
             Dictionary with contract metrics and status
         """
+        active_attr = getattr(contract, 'is_active', False)
+        is_active_flag = active_attr() if callable(active_attr) else bool(active_attr)
+
         return {
             "id": contract.id,
             "client_id": contract.client_id,
             "contract_type": contract.contract_type,
             "base_rate": contract.base_rate,
             "status": contract.status,
-            "is_active": contract.is_active,
+            "is_active": is_active_flag,
             "days_remaining": contract.get_days_remaining(),
             "time_remaining_seconds": contract.get_time_remaining(),
             "duration_days": contract.duration_days,
@@ -276,7 +285,13 @@ class ContractManager:
         Returns:
             Number of active contracts
         """
-        return sum(1 for c in contracts if c.is_active)
+        count = 0
+        for c in contracts:
+            active_attr = getattr(c, 'is_active', False)
+            is_active_flag = active_attr() if callable(active_attr) else bool(active_attr)
+            if is_active_flag:
+                count += 1
+        return count
 
     def get_total_retainer_value(self, contracts: List["Contract"]) -> float:
         """Get total value of all active retainer contracts.
@@ -287,8 +302,10 @@ class ContractManager:
         Returns:
             Total retainer value
         """
-        return sum(
-            c.base_rate
-            for c in contracts
-            if c.contract_type == "retainer" and c.is_active
-        )
+        total = 0.0
+        for c in contracts:
+            active_attr = getattr(c, 'is_active', False)
+            is_active_flag = active_attr() if callable(active_attr) else bool(active_attr)
+            if c.contract_type == "retainer" and is_active_flag:
+                total += c.base_rate
+        return total

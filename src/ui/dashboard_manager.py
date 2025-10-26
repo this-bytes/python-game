@@ -61,7 +61,63 @@ class DashboardManager:
         # Discover UIProvider plugins on initialization
         self.ui_providers: Dict[str, UIProvider] = {}
         self._discover_ui_providers()
-        
+        # Register a small built-in provider for core overview if no plugin provides it
+        try:
+            if 'core_summary' not in self.ui_providers:
+                class CoreUIProvider(UIProvider):
+                    def get_dashboard_summary(self, game_state):
+                        gs = game_state.get_game_summary() if hasattr(game_state, 'get_game_summary') else {}
+                        money = gs.get('current_money', getattr(game_state, 'current_money', 0.0)) if isinstance(gs, dict) else getattr(game_state, 'current_money', 0.0)
+                        pending = gs.get('pending_incidents_count', 0) if isinstance(gs, dict) else len(getattr(game_state, 'get_pending_incidents', lambda: [])() or [])
+                        clients = len(getattr(game_state, 'clients', []) or [])
+                        specialists = gs.get('specialists_count', len(getattr(game_state, 'specialists', []))) if isinstance(gs, dict) else len(getattr(game_state, 'specialists', []) or [])
+                        return UISummaryItem(
+                            title='Overview',
+                            icon='⚡',
+                            lines=[f"Budget: ${money:,.0f}", f"Clients: {clients}", f"Pending: {pending}", f"Team: {specialists}"],
+                            accent_color='green',
+                            clickable=True,
+                            data=None
+                        )
+
+                    def get_detail_panel_data(self, game_state):
+                        # Build a simple detail view for core metrics
+                        gs = game_state.get_game_summary() if hasattr(game_state, 'get_game_summary') else {}
+                        if not isinstance(gs, dict):
+                            gs = {}
+                        clients = getattr(game_state, 'clients', []) or []
+                        client_items = []
+                        for c in clients[:10]:
+                            name = getattr(c, 'company_name', getattr(c, 'name', str(getattr(c, 'client_id', 'unknown'))))
+                            sat = getattr(c, 'satisfaction', None)
+                            client_items.append({
+                                'name': name,
+                                'details': [f"Satisfaction: {sat:.2f}" if sat is not None else "Satisfaction: N/A"]
+                            })
+
+                        return {
+                            'title': 'Overview',
+                            'sections': [
+                                {
+                                    'title': 'Core Metrics',
+                                    'items': [
+                                        {'name': 'Budget', 'details': [f"${gs.get('current_money', getattr(game_state, 'current_money', 0.0)) :,.0f}"]},
+                                        {'name': 'Game Time', 'details': [f"{gs.get('game_time', getattr(game_state, 'get_game_time_elapsed', lambda: 0)()):.0f}s"]},
+                                    ]
+                                },
+                                {
+                                    'title': 'Clients (sample)',
+                                    'items': client_items
+                                }
+                            ],
+                            'actions': []
+                        }
+
+                self.ui_providers['core_summary'] = CoreUIProvider()
+        except Exception:
+            # Non-fatal: continue without core provider if something goes wrong
+            pass
+
         self.logger.info(f"Dashboard initialized with {len(self.ui_providers)} UI providers")
     
     def _discover_ui_providers(self):
@@ -89,8 +145,20 @@ class DashboardManager:
             DashboardState with list of summaries and expansion state
         """
         summaries = []
-        
+
+        # Prefer the built-in core_summary provider (if present) so the Overview appears first
+        if 'core_summary' in self.ui_providers:
+            try:
+                core = self.ui_providers['core_summary'].get_dashboard_summary(game_state)
+                if core:
+                    summaries.append(('core_summary', core))
+            except Exception as e:
+                self.logger.error(f"Failed to get core_summary from provider: {e}")
+
+        # Then collect summaries from other providers
         for plugin_name, provider in self.ui_providers.items():
+            if plugin_name == 'core_summary':
+                continue
             try:
                 summary = provider.get_dashboard_summary(game_state)
                 if summary:
@@ -100,7 +168,7 @@ class DashboardManager:
                     f"Failed to get summary from {plugin_name}",
                     exception=e
                 )
-        
+
         self.state.summaries = summaries
         return self.state
     

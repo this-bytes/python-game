@@ -1,7 +1,7 @@
 {
   "metadata": {
-    "save_time": 1761194789.9716542,
-    "save_time_formatted": "2025-10-23T15:46:29.971705",
+    "save_time": 1761464603.1150134,
+    "save_time_formatted": "2025-10-26T07:43:23.115013",
     "game_version": "0.2.0",
     "slot": 0,
     "playtime_seconds": 0.0,
@@ -129,7 +129,56 @@
         "burnout_level": 0.0
       }
     ],
-    "incidents": [],
+    "incidents": [
+      {
+        "id": "inc_1761464603003_7086",
+        "incident_type": "SQL Injection Attempt",
+        "specialty_required": "Application Security",
+        "difficulty": 3,
+        "sla_seconds": 420,
+        "base_reward": 700,
+        "xp_reward": 150,
+        "client_id": "client_001",
+        "status": "pending",
+        "assigned_specialist_id": "",
+        "spawn_time": 1761464603.003861,
+        "assignment_time": null,
+        "completion_time": null,
+        "sla_deadline": 1761465023.003861
+      },
+      {
+        "id": "inc_1761464603004_1019",
+        "incident_type": "DDoS Attack",
+        "specialty_required": "Network Security",
+        "difficulty": 1,
+        "sla_seconds": 300,
+        "base_reward": 500,
+        "xp_reward": 100,
+        "client_id": "client_001",
+        "status": "pending",
+        "assigned_specialist_id": "",
+        "spawn_time": 1761464603.004013,
+        "assignment_time": null,
+        "completion_time": null,
+        "sla_deadline": 1761464903.004013
+      },
+      {
+        "id": "inc_1761464603004_5958",
+        "incident_type": "Data Breach Investigation",
+        "specialty_required": "Digital Forensics",
+        "difficulty": 1,
+        "sla_seconds": 900,
+        "base_reward": 1500,
+        "xp_reward": 300,
+        "client_id": "client_002",
+        "status": "pending",
+        "assigned_specialist_id": "",
+        "spawn_time": 1761464603.0041451,
+        "assignment_time": null,
+        "completion_time": null,
+        "sla_deadline": 1761465503.0041451
+      }
+    ],
     "clients": [
       {
         "client_id": "client_001",
@@ -156,7 +205,13 @@
         },
         "assigned_specialists": [],
         "historical_sla_misses": 0,
-        "months_active": 0
+        "months_active": 0,
+        "reputation": 80,
+        "satisfaction_history": [],
+        "total_incidents_resolved": 0,
+        "total_sla_failures": 0,
+        "total_incidents_assigned": 0,
+        "tier": 5
       },
       {
         "client_id": "client_002",
@@ -183,7 +238,13 @@
         },
         "assigned_specialists": [],
         "historical_sla_misses": 0,
-        "months_active": 0
+        "months_active": 0,
+        "reputation": 80,
+        "satisfaction_history": [],
+        "total_incidents_resolved": 0,
+        "total_sla_failures": 0,
+        "total_incidents_assigned": 0,
+        "tier": 5
       },
       {
         "client_id": "client_003",
@@ -210,7 +271,13 @@
         },
         "assigned_specialists": [],
         "historical_sla_misses": 0,
-        "months_active": 0
+        "months_active": 0,
+        "reputation": 80,
+        "satisfaction_history": [],
+        "total_incidents_resolved": 0,
+        "total_sla_failures": 0,
+        "total_incidents_assigned": 0,
+        "tier": 5
       },
       {
         "client_id": "client_004",
@@ -237,7 +304,13 @@
         },
         "assigned_specialists": [],
         "historical_sla_misses": 0,
-        "months_active": 0
+        "months_active": 0,
+        "reputation": 80,
+        "satisfaction_history": [],
+        "total_incidents_resolved": 0,
+        "total_sla_failures": 0,
+        "total_incidents_assigned": 0,
+        "tier": 5
       },
       {
         "client_id": "client_005",
@@ -264,7 +337,13 @@
         },
         "assigned_specialists": [],
         "historical_sla_misses": 0,
-        "months_active": 0
+        "months_active": 0,
+        "reputation": 80,
+        "satisfaction_history": [],
+        "total_incidents_resolved": 0,
+        "total_sla_failures": 0,
+        "total_incidents_assigned": 0,
+        "tier": 5
       },
       {
         "client_id": "client_006",
@@ -291,7 +370,13 @@
         },
         "assigned_specialists": [],
         "historical_sla_misses": 0,
-        "months_active": 0
+        "months_active": 0,
+        "reputation": 80,
+        "satisfaction_history": [],
+        "total_incidents_resolved": 0,
+        "total_sla_failures": 0,
+        "total_incidents_assigned": 0,
+        "tier": 5
       }
     ],
     "contracts": [],
@@ -300,14 +385,14 @@
     "recruitment_refresh_time": 0.0,
     "active_events": [],
     "event_cooldowns": {},
-    "game_start_time": 28.40036630630493,
-    "current_time": 28.40036630630493,
+    "game_start_time": 0.1269972324371338,
+    "current_time": 0.1269972324371338,
     "game_speed_multiplier": 1.0,
     "is_paused": false,
     "current_money": 5000.0,
     "total_money_earned": 0.0,
     "investments": {},
-    "last_save_time": 1761194789.9719787,
+    "last_save_time": 1761464603.115098,
     "prestige_points": 0,
     "prestige_upgrades": {},
     "total_prestiges": 0,

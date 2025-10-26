@@ -60,8 +60,9 @@ class Specialist:
     name: str
     specialty: str
     level: int
-    xp: int
-    stats: SpecialistStats
+    xp: int = 0
+    # Provide a sensible default for stats so tests can construct with fewer args
+    stats: SpecialistStats = field(default_factory=lambda: SpecialistStats(100.0, 100.0, 1.0))
     status: str = "available"
     automation_scripts: List[str] = field(default_factory=list)
     assigned_incident_id: Optional[str] = None
@@ -348,6 +349,58 @@ class Specialist:
         difficulty_penalty = (base_difficulty - 1) * 5  # 0, 5, 10, 15, 20% penalty
         effective_accuracy = max(10, effective_stats.accuracy - difficulty_penalty)
         return min(1.0, effective_accuracy / 100.0)
+
+    # ------------------------------------------------------------------
+    # Burnout / performance helpers (tests rely on these methods)
+    # ------------------------------------------------------------------
+    def get_performance_multiplier(self) -> float:
+        """Get performance multiplier from burnout level.
+
+        Mapping (linear):
+          burnout 0% -> 1.0
+          burnout 30% -> 0.7
+          burnout 50% -> 0.5
+          burnout 70% -> 0.30
+          burnout 100% -> 0.0 (cannot resolve)
+
+        Returns:
+            Multiplier in range [0.0, 1.0]
+        """
+        multiplier = max(0.0, (100.0 - float(self.burnout_level)) / 100.0)
+        return multiplier
+
+    def get_error_chance_from_burnout(self) -> float:
+        """Return additional error chance (0.0-0.5) driven by burnout.
+
+        Tests expect: burnout 30 -> 0.15, burnout 50 -> 0.25, burnout 100 -> 0.5
+        We'll map linearly to a 0.0-0.5 range: error = (burnout/100) * 0.5
+        """
+        error = (float(self.burnout_level) / 100.0) * 0.5
+        return min(0.5, max(0.0, error))
+    
+    def get_burnout_tier(self) -> int:
+        """Return a discrete burnout tier based on burnout_level.
+
+        Tiers (int) mapping:
+          0 -> Healthy (0-29)
+          1 -> Stressed (30-49)
+          2 -> Exhausted (50-69)
+          3 -> Critical (70-99)
+          4 -> Broken (100)
+
+        Returns:
+            int: burnout tier 0..4
+        """
+        bl = float(self.burnout_level)
+        if bl >= 100.0:
+            return 4
+        if bl >= 70.0:
+            return 3
+        if bl >= 50.0:
+            return 2
+        if bl >= 30.0:
+            return 1
+        return 0
     
 
     
