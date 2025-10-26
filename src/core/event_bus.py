@@ -225,7 +225,7 @@ class EventBus:
         """Get number of pending events."""
         return len(self._pending_events)
     
-    def get_history(self, event_type: str = None, limit: int = 10) -> List[Event]:
+    def get_history(self, event_type: Optional[str] = None, limit: int = 10) -> List[Event]:
         """Get recent event history.
         
         Args:
