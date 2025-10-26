@@ -40,6 +40,7 @@ This project prioritizes **iteration speed** over perfect architecture:
 
 - Python 3.9+
 - pip
+- Modern web browser (for web UI)
 
 ### Installation
 
@@ -54,37 +55,57 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
+pip install -r requirements-websockets.txt  # For web UI support
 ```
 
 ### Running the Game
 
+**🌐 Web UI (Recommended)**
+```bash
+# Start game with embedded web server
+python start_web_game.py
+
+# Or manually:
+python main.py --local-server --headless
+
+# Then open browser to: http://localhost:8000
+```
+
+**🖥️ Desktop UI (Classic)**
 ```bash
 # Terminal 1: Start the game (shows main menu)
-python src/main.py
+python main.py
 
 # Or with command-line options:
-python src/main.py --continue        # Continue from last save
-python src/main.py --new-game        # Start new game directly
-python src/main.py --tutorial        # Start tutorial mode
-python src/main.py --load-slot 3     # Load from save slot 3
-python src/main.py --debug           # Enable debug mode
+python main.py --continue        # Continue from last save
+python main.py --new-game        # Start new game directly
+python main.py --tutorial        # Start tutorial mode
+python main.py --load-slot 3     # Load from save slot 3
+python main.py --debug           # Enable debug mode
 
 # See all options:
-python src/main.py --help
-
-# Terminal 2: Start the backend server (optional but recommended)
-cd backend
-python app.py
+python main.py --help
 ```
 
 ### Main Menu
 
-The game now features a main menu with options to:
-- 🎮 **Start New Game**: Begin a fresh game
-- ▶️ **Continue**: Resume from your last save
-- 📚 **Tutorial**: Learn the game with guided gameplay
-- ⚙️ **Settings**: Configure game options (coming soon)
-- ❌ **Exit**: Close the game
+The game features multiple UI modes:
+
+**🌐 Web UI (Modern)**
+- Access through browser at http://localhost:8000
+- Real-time WebSocket-powered gameplay
+- Lightweight and responsive
+- Works on any device with a modern browser
+- See [WebSocket Architecture](docs/WEBSOCKET_ARCHITECTURE.md) for details
+
+**🖥️ Desktop UI (Classic)**
+- Native Pygame-based interface
+- Main menu with options to:
+  - 🎮 **Start New Game**: Begin a fresh game
+  - ▶️ **Continue**: Resume from your last save
+  - 📚 **Tutorial**: Learn the game with guided gameplay
+  - ⚙️ **Settings**: Configure game options (coming soon)
+  - ❌ **Exit**: Close the game
 
 See [docs/MAIN_MENU.md](docs/MAIN_MENU.md) for detailed documentation on startup modes and command-line arguments.
 
@@ -124,8 +145,10 @@ pytest --cov=src tests/  # With coverage
 
 ## 📚 Documentation
 
+- [WebSocket Architecture](docs/WEBSOCKET_ARCHITECTURE.md) - Web UI and real-time communication
 - [Implementation Plan](plan/feature-cybersec-idle-game-1.md)
 - [Copilot Instructions](.github/copilot-instructions.md)
+- [Main Menu Guide](docs/MAIN_MENU.md)
 - [Architecture Documentation](docs/architecture.md) *(coming soon)*
 - [API Reference](docs/api_reference.md) *(coming soon)*
 
@@ -139,11 +162,13 @@ See [Developer Guide](docs/developer_guide.md) for contribution guidelines.
 
 ## 🎨 Tech Stack
 
-- **Game Engine**: Pygame
+- **Game Engine**: Pygame (desktop UI) / WebSocket + Alpine.js (web UI)
 - **Backend**: Flask/FastAPI
 - **Data Format**: JSON
 - **Testing**: pytest
 - **Type Checking**: mypy
+- **Web Framework**: Alpine.js (lightweight reactive framework)
+- **Real-time Communication**: WebSockets
 
 ---
 
