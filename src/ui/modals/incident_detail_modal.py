@@ -47,6 +47,7 @@ class IncidentDetailModal(ModernPanel):
         
         self.screen = screen
         self.game_state = game_state
+        self.logger = GameLogger(__name__)
         
         # Fonts
         self.title_font = pygame.font.SysFont('Arial', 16, bold=True)

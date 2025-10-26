@@ -81,7 +81,6 @@ class StateManager:
 
     def get_available_specialists(self) -> List[Specialist]:
         """Get specialists who are not currently assigned to incidents."""
-        # TODO: consider cross-referencing incidents for availability if needed
         return [s for s in self.specialists.values() if s.status == "available"]
 
     # ===== INCIDENT OPERATIONS =====

@@ -1,6 +1,7 @@
 """Specialist Detail Modal - Shows full specialist information and actions."""
 
 import pygame
+import logging
 from typing import Callable, Optional
 from src.models.specialist import Specialist
 from src.ui.components.panel import ModernPanel
@@ -27,6 +28,7 @@ class SpecialistDetailModal(ModernPanel):
         specialist_id: str,
         **kwargs
     ):
+        self.logger = logging.getLogger(__name__)
         """Initialize specialist detail modal.
         
         Args:
@@ -97,29 +99,13 @@ class SpecialistDetailModal(ModernPanel):
     def _on_assign_clicked(self):
         """Handle assign button click."""
         # This would ideally open another modal to select an incident
-        print(f"Assign button clicked for {self.specialist.name}")
+        self.logger.info(f"Assign button clicked for {self.specialist.name}")
         # For now, just close the modal
         self._on_close_clicked()
 
     def _on_close_clicked(self):
         """Handle close button click."""
         pygame.event.post(pygame.event.Event(event_types.HIDE_MODAL))
-        
-    def handle_event(self, event: pygame.event.Event):
-        """Handle events for the modal."""
-        super().handle_event(event)
-        self.assign_button.handle_event(event)
-        self.close_button_action.handle_event(event)
-
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            # Mouse wheel scrolling
-            if event.button == 4:  # Scroll up
-                self.scroll_offset = max(0, self.scroll_offset - self.scroll_speed)
-            elif event.button == 5:  # Scroll down
-                # TODO: Add a max scroll limit based on content height
-                self.scroll_offset += self.scroll_speed
-        
-        return True # Consume all events
         
     def update(self, delta_time: float):
         """Update modal state."""

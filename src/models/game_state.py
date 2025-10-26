@@ -509,7 +509,7 @@ class GameState:
 
     @equipment_instances.setter
     def equipment_instances(self, value: Dict[str, Any]):
-        pass  # TODO: Add to StateManager
+        raise NotImplementedError("Equipment instances not yet implemented in StateManager")
 
     @property
     def facilities(self) -> List:
@@ -517,7 +517,7 @@ class GameState:
 
     @facilities.setter
     def facilities(self, value: List):
-        pass  # TODO: Add to StateManager
+        raise NotImplementedError("Facilities not yet implemented in StateManager")
 
     @property
     def recruitment_pool(self) -> List[Dict]:
@@ -525,7 +525,7 @@ class GameState:
 
     @recruitment_pool.setter
     def recruitment_pool(self, value: List[Dict]):
-        pass  # TODO: Add to StateManager
+        raise NotImplementedError("Recruitment pool not yet implemented in StateManager")
 
     @property
     def recruitment_refresh_time(self) -> float:
@@ -533,7 +533,7 @@ class GameState:
 
     @recruitment_refresh_time.setter
     def recruitment_refresh_time(self, value: float):
-        pass  # TODO: Add to StateManager
+        raise NotImplementedError("Recruitment refresh time not yet implemented in StateManager")
 
     @property
     def active_events(self) -> List[Dict]:
@@ -541,7 +541,7 @@ class GameState:
 
     @active_events.setter
     def active_events(self, value: List[Dict]):
-        pass  # TODO: Add to StateManager
+        raise NotImplementedError("Active events not yet implemented in StateManager")
 
     @property
     def event_cooldowns(self) -> Dict[str, float]:
@@ -549,7 +549,7 @@ class GameState:
 
     @event_cooldowns.setter
     def event_cooldowns(self, value: Dict[str, float]):
-        pass  # TODO: Add to StateManager
+        raise NotImplementedError("Event cooldowns not yet implemented in StateManager")
 
     @property
     def game_speed_multiplier(self) -> float:
@@ -581,7 +581,7 @@ class GameState:
 
     @company_founded_month.setter
     def company_founded_month(self, value: int):
-        pass  # TODO: Add to StateManager
+        raise NotImplementedError("Company founded month not yet implemented in StateManager")
 
     @property
     def current_month(self) -> int:
@@ -589,7 +589,7 @@ class GameState:
 
     @current_month.setter
     def current_month(self, value: int):
-        pass  # TODO: Add to StateManager
+        raise NotImplementedError("Current month not yet implemented in StateManager")
 
     @property
     def last_save_time(self) -> float:
@@ -597,7 +597,7 @@ class GameState:
 
     @last_save_time.setter
     def last_save_time(self, value: float):
-        pass  # TODO: Add to StateManager
+        raise NotImplementedError("Last save time not yet implemented in StateManager")
 
     @property
     def prestige_points(self) -> int:
@@ -645,7 +645,7 @@ class GameState:
 
     @dopamine_feedback_queue.setter
     def dopamine_feedback_queue(self, value: List[Dict]):
-        pass  # TODO: Add to StateManager
+        raise NotImplementedError("Dopamine feedback queue not yet implemented in StateManager")
 
     @property
     def active_risk_contracts(self) -> Dict[str, Any]:
@@ -653,7 +653,7 @@ class GameState:
 
     @active_risk_contracts.setter
     def active_risk_contracts(self, value: Dict[str, Any]):
-        pass  # TODO: Add to StateManager
+        raise NotImplementedError("Active risk contracts not yet implemented in StateManager")
 
     @property
     def max_active_incidents(self) -> int:
@@ -661,7 +661,7 @@ class GameState:
 
     @max_active_incidents.setter
     def max_active_incidents(self, value: int):
-        pass  # TODO: Add to StateManager
+        raise NotImplementedError("Max active incidents not yet implemented in StateManager")
 
     @property
     def max_specialists(self) -> int:
@@ -669,7 +669,7 @@ class GameState:
 
     @max_specialists.setter
     def max_specialists(self, value: int):
-        pass  # TODO: Add to StateManager
+        raise NotImplementedError("Max specialists not yet implemented in StateManager")
 
     @property
     def incident_generation_enabled(self) -> bool:
@@ -677,7 +677,7 @@ class GameState:
 
     @incident_generation_enabled.setter
     def incident_generation_enabled(self, value: bool):
-        pass  # TODO: Add to StateManager
+        raise NotImplementedError("Incident generation enabled not yet implemented in StateManager")
 
     @property
     def metrics(self) -> GameMetrics:

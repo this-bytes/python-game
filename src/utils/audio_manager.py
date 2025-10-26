@@ -351,10 +351,8 @@ class AudioManager:
         # Fade out current music
         self.stop_music(fade_out=fade_duration)
         
-        # TODO: This is a simplified implementation
-        # A proper implementation would use a timer to start the new music
-        # after the fade out completes
-        # For now, we'll just start the new music with fade in
+        # Simplified implementation: start new music with fade in
+        # A proper implementation would use a timer to start after fade out completes
         return self.play_music(new_music_path, loop=loop, fade_in=fade_duration)
 
     def pause_music(self) -> None:

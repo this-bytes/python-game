@@ -10,6 +10,7 @@ browser-based UI migration. No backwards compatibility is preserved.
 """
 import asyncio
 import json
+import logging
 import threading
 import uuid
 from pathlib import Path
@@ -17,6 +18,8 @@ from typing import Any, Dict, List, Set, Optional, Callable
 import queue as _queue
 
 import websockets
+
+logger = logging.getLogger(__name__)
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
@@ -124,14 +127,13 @@ async def broadcast(message: Dict[str, Any]) -> None:
         # Use list() to snapshot connections
         conns = list(CONNECTED)
         # print a lightweight debug line - the server runs in background thread
-        print(f"[WS] Broadcasting event={message.get('event')} to {len(conns)} clients")
+        logger.info(f"[WS] Broadcasting event={message.get('event')} to {len(conns)} clients")
         try:
             await asyncio.gather(*(ws.send(payload) for ws in conns))
         except Exception as e:
             # Print traceback to help diagnose send failures
             import traceback
-            print(f"[WS] Error during broadcast: {e}")
-            traceback.print_exc()
+            logger.error(f"[WS] Error during broadcast: {e}", exc_info=True)
     except Exception:
         # Best-effort: ignore send errors
         pass
@@ -214,14 +216,14 @@ async def handle_action(action: Dict[str, Any], ws: websockets.WebSocketServerPr
 async def consumer_handler(ws: websockets.WebSocketServerProtocol) -> None:
     async for message in ws:
         # Debug: log incoming raw messages for diagnosis
-        print(f"[WS] Received raw message from client: {message}")
+        logger.debug(f"[WS] Received raw message from client: {message}")
         try:
             obj = json.loads(message)
         except Exception:
             try:
                 await ws.send(json.dumps({"event": "error", "error": "invalid_json"}))
             except Exception:
-                print("[WS] Failed to send invalid_json error to client")
+                logger.error("[WS] Failed to send invalid_json error to client")
             continue
 
         if "action" in obj:
@@ -230,8 +232,7 @@ async def consumer_handler(ws: websockets.WebSocketServerProtocol) -> None:
             except Exception as e:
                 # Log handler exceptions so we can see why actions may fail
                 import traceback
-                print(f"[WS] Exception handling action {obj.get('action')}: {e}")
-                traceback.print_exc()
+                logger.error(f"[WS] Exception handling action {obj.get('action')}: {e}", exc_info=True)
 
 
 async def produce_ticks() -> None:
@@ -262,7 +263,7 @@ async def result_dispatcher() -> None:
                 if ws and ws in CONNECTED:
                     try:
                         payload = json.dumps({"event": "action_result", "id": client_id, "result": result})
-                        print(f"[WS] Dispatching action_result for client_id={client_id}")
+                        logger.info(f"[WS] Dispatching action_result for client_id={client_id}")
                         await ws.send(payload)
                     except Exception:
                         # If send fails, ignore — client may have disconnected
@@ -273,28 +274,26 @@ async def result_dispatcher() -> None:
 async def handler(ws: websockets.WebSocketServerProtocol) -> None:
     # New connection: register and send snapshot
     CONNECTED.add(ws)
-    print(f"[WS] New connection from client; total connected={len(CONNECTED)}")
+    logger.info(f"[WS] New connection from client; total connected={len(CONNECTED)}")
     try:
         try:
             payload = json.dumps({"event": "state_snapshot", "tick": STATE.get("tick", 0), "data": STATE})
-            print(f"[WS] Sending initial state_snapshot to client (size={len(payload)} bytes)")
+            logger.info(f"[WS] Sending initial state_snapshot to client (size={len(payload)} bytes)")
             await ws.send(payload)
         except Exception as e:
-            print(f"[WS] Failed to send initial state_snapshot: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error(f"[WS] Failed to send initial state_snapshot: {e}", exc_info=True)
         consumer_task = asyncio.create_task(consumer_handler(ws))
         await consumer_task
     except websockets.ConnectionClosed:
         pass
     finally:
         CONNECTED.discard(ws)
-        print(f"[WS] Connection closed; total connected={len(CONNECTED)}")
+        logger.info(f"[WS] Connection closed; total connected={len(CONNECTED)}")
 
 
 async def main(host: str = "0.0.0.0", port: int = 8765) -> None:
     global SERVER_LOOP
-    print(f"Starting websocket game server on ws://{host}:{port}")
+    logger.info(f"Starting websocket game server on ws://{host}:{port}")
     SERVER_LOOP = asyncio.get_running_loop()
     server = await websockets.serve(handler, host, port)
     # start heartbeat ticks
@@ -319,8 +318,7 @@ def start_background_server(host: str = "0.0.0.0", port: int = 8765) -> threadin
         except Exception as e:
             # Print full traceback to help diagnose startup failures
             import traceback
-            print(f"[WS] WebSocket server thread exiting due to exception: {e}")
-            traceback.print_exc()
+            logger.error(f"[WS] WebSocket server thread exiting due to exception: {e}", exc_info=True)
 
     t = threading.Thread(target=_run, daemon=True, name="ws-server")
     t.start()
@@ -353,4 +351,4 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("Server stopped")
+        logger.info("Server stopped")

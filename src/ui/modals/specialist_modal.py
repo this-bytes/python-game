@@ -45,15 +45,15 @@ class SpecialistModal(EntityModal):
         """
         # Determine current status
         current_status = "Available"
-        if hasattr(self.specialist, 'current_incident') and self.specialist.current_incident:
-            current_status = f"Assigned: {self.specialist.current_incident.name}"
+        if self.specialist.assigned_incident_id:
+            current_status = f"Assigned to incident {self.specialist.assigned_incident_id}"
         
         sections = [
             {
                 "title": "Status",
                 "items": [
                     {"label": "State", "value": current_status},
-                    {"label": "Health", "value": "100%"},  # TODO: Get from specialist
+                    {"label": "Health", "value": "100%"},  # Placeholder - get from specialist health system
                 ]
             },
             {
@@ -79,7 +79,7 @@ class SpecialistModal(EntityModal):
             sections.append({
                 "title": "Well-being",
                 "items": [
-                    {"label": "Burnout", "value": f"{self.specialist.burnout:.0f}%"},
+                    {"label": "Burnout", "value": f"{self.specialist.burnout_level:.0f}%"},
                 ]
             })
         
@@ -92,7 +92,7 @@ class SpecialistModal(EntityModal):
             List of ActionButton objects
         """
         # Determine if specialist is available
-        is_available = not (hasattr(self.specialist, 'current_incident') and self.specialist.current_incident)
+        is_available = not self.specialist.assigned_incident_id
         can_promote = self.specialist.level < 10  # Assume level cap is 10
         
         return [
