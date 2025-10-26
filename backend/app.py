@@ -27,8 +27,8 @@ class BackendApp:
         Args:
             game_state: Optional GameState instance to manage (creates default instance)
         """
-        # Set up Flask with static folder
-        static_folder = os.path.join(os.path.dirname(__file__), 'static')
+        # Set up Flask with static folder pointing to ui/admin
+        static_folder = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'ui', 'admin')
         self.app = Flask(__name__, static_folder=static_folder, static_url_path='/static')
         self.logger = GameLogger("backend")
         

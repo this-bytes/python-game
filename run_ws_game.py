@@ -4,7 +4,7 @@ Usage:
     python run_ws_game.py
 
 This will start the asyncio websockets server on port 8765. The small
-browser UI in `web_ui/index.html` can connect to it (open that file in a
+browser UI in `ui/game/index.html` can connect to it (open that file in a
 browser and it will connect to ws://localhost:8765).
 """
 import asyncio

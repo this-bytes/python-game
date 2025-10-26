@@ -770,8 +770,8 @@ def main():
                     # Pick a static HTTP port (prefer 8000, fall back to next few)
                     static_port = 8000
                     repo_root = os.path.dirname(os.path.abspath(__file__))
-                    web_ui_dir = os.path.join(repo_root, 'web_ui')
-                    if os.path.isdir(web_ui_dir):
+                    ui_dir = os.path.join(repo_root, 'ui', 'game')
+                    if os.path.isdir(ui_dir):
                         # Try a small range of ports to avoid conflict
                         chosen_port = None
                         for candidate in range(static_port, static_port + 10):
@@ -779,7 +779,7 @@ def main():
                                 # Try binding to candidate to test availability, then close
                                 test_handler = functools.partial(
                                     http.server.SimpleHTTPRequestHandler,
-                                    directory=web_ui_dir
+                                    directory=ui_dir
                                 )
                                 # Use a one-off server instance to check bind; if success, run real server
                                 class _ThreadingTCPServer(socketserver.ThreadingTCPServer):
@@ -798,7 +798,7 @@ def main():
                         def _start_static_early(port: int):
                             handler = functools.partial(
                                 http.server.SimpleHTTPRequestHandler,
-                                directory=web_ui_dir
+                                directory=ui_dir
                             )
                             class ThreadingHTTPServer(socketserver.ThreadingTCPServer):
                                 allow_reuse_address = True
@@ -815,7 +815,7 @@ def main():
                         except Exception:
                             pass
                     else:
-                        logger.warning(f"[STATIC-EARLY] web_ui directory not found at {web_ui_dir}; static UI will not be served.")
+                        logger.warning(f"[STATIC-EARLY] ui/game directory not found at {ui_dir}; static UI will not be served.")
                 except Exception:
                     # Do not raise - static server is optional
                     pass

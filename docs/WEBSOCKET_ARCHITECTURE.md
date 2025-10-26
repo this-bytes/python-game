@@ -40,7 +40,7 @@ The WebSocket server handles real-time bidirectional communication between the g
 - `handler()` - Handle WebSocket connections
 - `broadcast()` - Send message to all connected clients
 
-### 2. Web UI (`web_ui/`)
+### 2. Web UI (`ui/game/`)
 
 The web UI is a single-page application built with Alpine.js, a lightweight reactive framework.
 
@@ -62,7 +62,7 @@ The game automatically starts an embedded HTTP server to serve the web UI files.
 
 **Configuration:**
 - Port: 8000 (automatically finds available port if busy)
-- Directory: `web_ui/`
+- Directory: `ui/game/`
 - Threading support for concurrent connections
 
 ## Message Protocol
@@ -196,7 +196,7 @@ ws.send(JSON.stringify({
 
 ### Adding UI Components
 
-The UI uses Alpine.js for reactivity. Add new components in `web_ui/game.html`:
+The UI uses Alpine.js for reactivity. Add new components in `ui/game/game.html`:
 
 ```html
 <div x-data="{ myState: 'initial' }">

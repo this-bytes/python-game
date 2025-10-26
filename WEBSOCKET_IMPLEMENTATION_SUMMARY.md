@@ -21,7 +21,7 @@ Successfully refactored the Cybersecurity Firm game to support a modern web-base
 ### 2. Static File Server
 - **Location**: Embedded in `main.py`
 - **Port**: 8000 (auto-selects if busy)
-- **Directory**: `web_ui/`
+- **Directory**: `ui/game/`
 - **Features**:
   - Automatic startup with game
   - Concurrent connection support
@@ -30,8 +30,8 @@ Successfully refactored the Cybersecurity Firm game to support a modern web-base
 ### 3. Web UI Application
 - **Framework**: Alpine.js 3.x (15KB lightweight)
 - **Files**:
-  - `web_ui/index.html` - Landing page with server status
-  - `web_ui/game.html` - Main game interface
+  - `ui/game/index.html` - Landing page with server status
+  - `ui/game/game.html` - Main game interface
 - **Panels**:
   - Specialists roster (real-time)
   - Incidents queue (with assignment)
@@ -149,8 +149,8 @@ Static Server (8000)
 ## Files Created
 
 ### Core Implementation
-1. `web_ui/game.html` (500+ lines) - Main game interface
-2. `web_ui/index.html` (100+ lines) - Landing page
+1. `ui/game/game.html` (500+ lines) - Main game interface
+2. `ui/game/index.html` (100+ lines) - Landing page
 3. `start_web_game.py` (80+ lines) - Startup script
 
 ### Documentation
