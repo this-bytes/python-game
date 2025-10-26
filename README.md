@@ -71,6 +71,10 @@ python main.py --local-server --headless
 # Then open browser to: http://localhost:8000
 ```
 
+**Choose Your Interface:**
+- 🚀 **Command Center**: Revolutionary desktop-style OS interface with windowing system, persistent HUD, and comprehensive entity management
+- 📊 **Classic Interface**: Streamlined single-page view for quick gameplay
+
 **🖥️ Desktop UI (Classic)**
 ```bash
 # Terminal 1: Start the game (shows main menu)
@@ -93,10 +97,16 @@ The game features multiple UI modes:
 
 **🌐 Web UI (Modern)**
 - Access through browser at http://localhost:8000
+- **Command Center**: Revolutionary desktop OS-style interface with:
+  - Desktop icons and windowing system
+  - Persistent HUD with real-time stats
+  - Multi-window workflow
+  - Comprehensive entity management
+  - Quick actions and detail views
+- **Classic Interface**: Single-page streamlined view
 - Real-time WebSocket-powered gameplay
-- Lightweight and responsive
 - Works on any device with a modern browser
-- See [WebSocket Architecture](docs/WEBSOCKET_ARCHITECTURE.md) for details
+- See [Command Center Guide](docs/COMMAND_CENTER_GUIDE.md) for details
 
 **🖥️ Desktop UI (Classic)**
 - Native Pygame-based interface
